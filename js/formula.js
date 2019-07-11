@@ -1,8 +1,5 @@
 "use strict";
 
-// TODO: "Classes" defined in this file seem to be slightly cumbersome
-// and feature considerable code duplication. Consider alternatives.
-
 class Term {
   constructor() {
     this.isConstant = false;
@@ -11,7 +8,7 @@ class Term {
   }
 
   get stringRep() {
-    return "generic term";
+    return "Generic term";
   }
 }
 
@@ -40,18 +37,18 @@ class Variable extends Term {
 }
 
 class Function extends Term {
-  constructor(name, operands) {
+  constructor(name, terms) {
     super();
     this.isFunction = true;
     this.name = name;
-    this.operands = operands;
+    this.terms = terms;
   }
 
   get stringRep() {
-    str = name + "(";
-    /* Add string representations of the operands separated by commas */
-    operands.forEach(operand => str += operand.stringRep +  ", ");
-    /* Trim trailing comma and space */
+    var str = this.name + "(";
+    /* Add string representations of the terms separated by commas */
+    this.terms.forEach(term => str += term.stringRep +  ", ");
+    /* Trim trailing comma and space, add closing bracket */
     str = str.substring(0, str.length - 2) + ")";
     return str;
   }
@@ -60,6 +57,7 @@ class Function extends Term {
 class Formula {
   constructor() {
     this.isPropositionalVariable = false;
+    this.isRelation = false;
     this.isEquality = false;
     this.isTop = false;
     this.isBottom = false;
@@ -70,10 +68,11 @@ class Formula {
     this.isBiconditional = false;
     this.isUniversal= false;
     this.isExistential = false;
+    this.priority = -1;
   }
 
   get stringRep() {
-    return "generic formula";
+    return "Generic formula";
   }
 }
 
@@ -82,6 +81,7 @@ class PropositionalVariable extends Formula {
     super();
     this.isPropositionalVariable = true;
     this.name = name;
+    this.priority = 0;
   }
 
   get stringRep() {
@@ -89,16 +89,36 @@ class PropositionalVariable extends Formula {
   }
 }
 
-class Equality extends Formula {
-  constructor(comparand1, comparand2) {
+class Relation extends Formula {
+  constructor(name, terms) {
     super();
-    this.isEquality = true;
-    this.comparand1 = comparand1;
-    this.comparand2 = comparand2;
+    this.isRelation = true;
+    this.name = name;
+    this.terms = terms;
+    this.priority = 0;
   }
 
   get stringRep() {
-    return comparand1.stringRep + " = " + comparand2.stringRep;
+    var str = this.name + "(";
+    /* Add string representations of the terms separated by commas */
+    this.terms.forEach(term => str += term.stringRep +  ", ");
+    /* Trim trailing comma and space, add closing bracket */
+    str = str.substring(0, str.length - 2) + ")";
+    return str;
+  }
+}
+
+class Equality extends Formula {
+  constructor(term1, term2) {
+    super();
+    this.isEquality = true;
+    this.term1 = term1;
+    this.term2 = term2;
+    this.priority = 0;
+  }
+
+  get stringRep() {
+    return this.term1.stringRep + " = " + this.term2.stringRep;
   }
 }
 
@@ -106,6 +126,7 @@ class Top extends Formula {
   constructor() {
     super();
     this.isTop = true;
+    this.priority = 0;
   }
 
   get stringRep() {
@@ -117,6 +138,7 @@ class Bottom extends Formula {
   constructor() {
     super();
     this.isBottom = true;
+    this.priority = 0;
   }
 
   get stringRep() {
@@ -125,91 +147,500 @@ class Bottom extends Formula {
 }
 
 class Negation extends Formula {
-  constructor(negand) {
+  constructor(operand) {
     super();
     this.isNegation = true;
-    this.negand = negand;
+    this.operand = operand;
+    this.priority = 1;
   }
 
   get stringRep() {
-    return "¬" + negand.stringRep;
+    str = "¬";
+    if (this.operand.priority <= this.priority) {
+      str += this.operand.stringRep;
+    } else {
+      str += "(" + this.operand.stringRep + ")";
+    }
+    return str;
   }
 }
 
-class Conjunction extends Formula {
-  constructor(conjunct1, conjunct2) {
+class BinaryConnective extends Formula {
+  constructor(symbol, operand1, operand2) {
     super();
-    this.isConjunction = true;
-    this.conjunct1 = conjunct1;
-    this.conjunct2 = conjunct2;
-  }
-
-  get stringRep() {
-    return conjunct1.stringRep + " ∧ " + conjunct2.stringRep;
-  }
-}
-
-class Disjunction extends Formula {
-  constructor(disjunct1, distjunct2) {
-    super();
-    this.isDisjunction = true;
-    this.disjunct1 = disjunct1;
-    this.distjunct2 = disjunct2;
-  }
-
-  get stringRep() {
-    return disjunct1.stringRep + " ∨ " + disjunct2.stringRep;
-  }
-}
-
-class Implication extends Formula {
-  constructor(antecedent, consequent) {
-    super();
-    this.isImplication = true;
-    this.antecedent = antecedent;
-    this.consequent = consequent;
-  }
-
-  get stringRep() {
-    return antecedent.stringRep + " → " + consequent.stringRep;
-  }
-}
-
-class Biconditional extends Formula {
-  constructor(operand1, operand2) {
-    super();
-    this.isBiconditional = true;
+    this.symbol = symbol;
     this.operand1 = operand1;
     this.operand2 = operand2;
+    this.isAssociative = true;
   }
 
   get stringRep() {
-    return operand1.stringRep + " ↔ " + operand2.stringRep;
+    var str = "";
+    if (this.operand1.priority < this.priority
+            || (this.isAssociative
+                && this.operand1.priority == this.priority)) {
+      str += this.operand1.stringRep;
+    } else {
+      str += "(" + this.operand1.stringRep + ")";
+    }
+    str += " " + this.symbol + " ";
+    if (this.operand2.priority < this.priority
+            || (this.isAssociative
+                && this.operand2.priority == this.priority)) {
+      str += this.operand2.stringRep;
+    } else {
+      str += "(" + this.operand2.stringRep + ")";
+    }
+    return str;
   }
 }
 
-class Universal extends Formula {
-  constructor(variable, predicate) {
+class Conjunction extends BinaryConnective {
+  constructor(conjunct1, conjunct2) {
+    super("∧", conjunct1, conjunct2);
+    this.isConjunction = true;
+    this.priority = 2;
+  }
+}
+
+class Disjunction extends BinaryConnective {
+  constructor(disjunct1, disjunct2) {
+    super("∨", disjunct1, disjunct2);
+    this.isDisjunction = true;
+    this.priority = 3;
+  }
+}
+
+class Implication extends BinaryConnective {
+  constructor(antecedent, consequent) {
+    super("→", antecedent, consequent);
+    this.isImplication = true;
+    this.isAssociative = false;
+    this.priority = 4;
+  }
+}
+
+class Biconditional extends BinaryConnective {
+  constructor(operand1, operand2) {
+    super("↔", operand1, operand2);
+    this.isBiconditional = true;
+    this.priority = 5;
+  }
+}
+
+class Quantifier extends Formula {
+  constructor(symbol, variableString, predicate) {
     super();
+    this.symbol = symbol;
+    this.variableString = variableString;
+    this.predicate = predicate;
+    this.priority = 1;
+  }
+
+  get stringRep() {
+    return this.symbol + this.variableString + "[" +
+        this.predicate.stringRep + "]";
+  }
+}
+
+class Universal extends Quantifier {
+  constructor(variable, predicate) {
+    super("∀", variable, predicate);;
     this.isUniversal = true;
-    this.variable = variable;
-    this.predicate = predicate;
-  }
-
-  get stringRep() {
-    return "∀" + variable.stringRep + ". " + predicate.stringRep;
   }
 }
 
-class Existential extends Formula {
+class Existential extends Quantifier {
   constructor(variable, predicate) {
-    super();
+    super("∃", variable, predicate);
     this.isExistential = true;
-    this.variable = variable;
-    this.predicate = predicate;
-  }
-
-  get stringRep() {
-    return "∃" + variable.stringRep + ". " + predicate.stringRep;
   }
 }
+
+const parseTypes = Object.freeze({
+  UNARY: "unary",
+  BINARY: "binary",
+  QUANTIFIER: "quantifier",
+})
+
+class OperatorData {
+  constructor(representingClass, parseType, priority) {
+    this.representingClass = representingClass;
+    this.parseType = parseType;
+    this.priority = priority;
+  }
+}
+
+class FormulaParsingError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'FormulaParsingError';
+  }
+}
+
+const negationData = new OperatorData(Negation, parseTypes.UNARY, 1);
+const conjunctionData = new OperatorData(Conjunction, parseTypes.BINARY, 2);
+const disjunctionData = new OperatorData(Disjunction, parseTypes.BINARY, 3);
+const implicationData = new OperatorData(Implication, parseTypes.BINARY, 4);
+const biconditionalData = new OperatorData(Biconditional, parseTypes.BINARY, 5);
+const universalData = new OperatorData(Universal, parseTypes.QUANTIFIER, 1);
+const existentialData = new OperatorData(Existential, parseTypes.QUANTIFIER, 1);
+
+const operatorDataDict = Object.freeze({
+  "~": negationData,
+  "˜": negationData,
+  "¬": negationData,
+  "!": negationData,
+  "∧": conjunctionData,
+  "^": conjunctionData,
+  ".": conjunctionData,
+  "·": conjunctionData,
+  "&": conjunctionData,
+  "&&": conjunctionData,
+  "∨": disjunctionData,
+  "+": disjunctionData,
+  "|": disjunctionData,
+  "||": disjunctionData,
+  "→": implicationData,
+  "⇒": implicationData,
+  "⊃": implicationData,
+  "->": implicationData,
+  ">": implicationData,
+  "↔": biconditionalData,
+  "⇔": biconditionalData,
+  "≡": biconditionalData,
+  "<->": biconditionalData,
+  "<>": biconditionalData,
+  "∀": universalData,
+  "(A)": universalData,
+  "∃": existentialData,
+  "(E)": existentialData
+})
+
+const OPERATOR_REGEX =
+    /^\(A\)|^\(E\)|^[~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<∀∃]+|^\(|^\[|^\)|^\]/;
+const OPERAND_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<∀∃]+/;
+const QUANTIFIER_VAR_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<∀∃()[\]]+/;
+const RELATION_OR_FUNCTION_NAME_REGEX = /^[^(]+/;
+const BRACKETED_REGEX = /^\((.+?)\)$/;
+
+function parseTerm(termString, variableStack, signature) {
+  if (termString.includes("(")) {
+    /* Parse function */
+    let functionName = RELATION_OR_FUNCTION_NAME_REGEX.exec(termString);
+    if (functionName == null) {
+      throw new FormulaParsingError("Parsing of a term in the formula failed "
+          + "in an unexpected way. Please contact the developer stating the "
+          + "formula which you used. Sorry... Cause: Failed to extract "
+          + "function name.");
+    }
+    functionName = functionName[0];
+    /* Consume the function name */
+    termString = termString.substr(functionName.length);
+    /* Parse the terms in the function and check arity */
+    let functionTerms = parseCommaSeparatedTerms(termString, variableStack,
+        signature);
+    if (functionTerms === null) {
+      throw new FormulaParsingError(`Function ${functionName} is malformed.`);
+    }
+    if (!(functionName in signature.functionArities)) {
+      signature.functionArities[functionName] = functionTerms.length;
+    } else if (functionTerms.length
+          !== signature.functionArities[functionName]) {
+      throw new FormulaParsingError(`Function '${functionName}' in the `
+          + "formula is used with conflicting arities.");
+    }
+    return new Function(functionName, functionTerms);
+  } else if (variableStack.includes(termString)) {
+    return new Variable(termString);
+  } else {
+    if (!signature.constants.includes(termString)) {
+      signature.constants.push(termString);
+    }
+    return new Constant(termString);
+  }
+}
+
+function parseCommaSeparatedTerms(termsString, variableStack, signature) {
+  /* Strip brackets */
+  var termsResult = BRACKETED_REGEX.exec(termsString);
+  if (termsResult == null) {
+    throw new FormulaParsingError("Malformed parentheses in term.");
+  }
+  var termsString = termsResult[1];
+  var terms = [];
+  while (termsString !== "") {
+    if (termsString.charAt(0) === ",") {
+      termsString = termsString.substr(1);
+      if (termsString === "") {
+        throw new FormulaParsingError("Incomplete term.");
+      }
+    }
+    let openedBrackets = 0;
+    let index = 0;
+    while (termsString.charAt(index) !== "," || openedBrackets !== 0) {
+      if (termsString.charAt(index) == "(") {
+        openedBrackets++;
+      } else if (termsString.charAt(index) == ")") {
+        openedBrackets--;
+      }
+      index++;
+      if (index >= termsString.length) {
+        break;
+      }
+    }
+    let term = parseTerm(termsString.substr(0, index), variableStack,
+        signature);
+    termsString = termsString.substr(index);
+    terms.push(term);
+  }
+  return terms;
+}
+
+function processOperator(operator, formulaStack, variableStack) {
+  /* Retrieve operator data */
+  if (!(operator in operatorDataDict)) {
+    throw new FormulaParsingError("Parsing of the formula failed in an "
+              + "unexpected way. Please contact the developer stating the "
+              + "formula which you used. Sorry... Cause: Got invalid "
+              + `operator to process '${operator}'.`);
+  }
+  var operatorData = operatorDataDict[operator];
+  /* Construct new formula out of the subformula(s) */
+  switch(operatorData.parseType) {
+    case parseTypes.UNARY:
+      if (formulaStack.length === 0) {
+        throw new FormulaParsingError("Formula is incomplete");
+      }
+      formulaStack.push(new operatorData.representingClass(formulaStack.pop()));
+      break;
+    case parseTypes.BINARY:
+      if (formulaStack.length <= 1) {
+        throw new FormulaParsingError("Formula is incomplete.");
+      }
+      var operand2 = formulaStack.pop();
+      var operand1 = formulaStack.pop();
+      formulaStack.push(new operatorData.representingClass(operand1, operand2));
+      break;
+    case parseTypes.QUANTIFIER:
+      if (variableStack.length === 0 || formulaStack.length === 0) {
+        throw new FormulaParsingError("Formula is incomplete.");
+      }
+      formulaStack.push(new operatorData.representingClass(variableStack.pop(),
+          formulaStack.pop()));
+      break;
+  }
+}
+
+function extractToken(formulaString) {
+  /* Attempt to extract an operator */
+  let token = OPERATOR_REGEX.exec(formulaString);
+  if (token === null) {
+    /* No operator at the beginning of the string - extract operand instead */
+    token = OPERAND_REGEX.exec(formulaString);
+    if (token === null) {
+      throw new FormulaParsingError("Parsing of the formula failed in an "
+          + "unexpected way. Please contact the developer stating the "
+          + "formula which you used. Sorry... Cause: Failed to extract token.");
+    }
+    token = token[0];
+    /* Identify excess brackets and trim them off */
+    var index = 0;
+    var openedBrackets = 0;
+    var bracketEncountered = false;
+    while (index < token.length
+        && (openedBrackets !== 0 || !bracketEncountered
+            || token.charAt(index) === "=")) {
+      if (token.charAt(index) === "("
+          || token.charAt(index) === "[") {
+        if (!bracketEncountered) {
+          bracketEncountered = true;
+        }
+        openedBrackets++;
+      } else if (token.charAt(index) === ")"
+          || token.charAt(index) === "]") {
+        if (openedBrackets === 0) {
+          break;
+        }
+        openedBrackets--;
+      }
+      index++;
+    }
+    return { str: token.substr(0, index), isOperator: false };
+  }
+  return { str: token[0], isOperator: true }
+}
+
+function processToken(formulaString, token, operatorStack, formulaStack,
+    variableStack) {
+  var tokenString = token.str;
+  var processedChars = tokenString.length;
+  if (token.isOperator) {
+    if (!(tokenString in operatorDataDict)) {
+      if (tokenString.charAt(0) === "(" || tokenString.charAt(0) === "[") {
+        /* Process opening bracket */
+        operatorStack.push(tokenString.charAt(0));
+      } else if (tokenString.charAt(0) === ")"
+          || tokenString.charAt(0) === "]") {
+        /* Process closing bracket */
+        let currOperator = operatorStack.pop();
+        while (currOperator !== "(" && currOperator !== "[") {
+          if (currOperator === undefined) {
+            throw new FormulaParsingError("Formula contains mismatched "
+                + "parentheses.");
+          }
+          processOperator(currOperator, formulaStack, variableStack);
+          currOperator = operatorStack.pop();
+        }
+      } else {
+        /* Return invalid formula if an unknown operator is encountered */
+        throw new FormulaParsingError("Formula contains an unknown operator "
+            + `'${tokenString}'.`);
+      }
+    } else {
+      /* Get pushed operator data */
+      let operatorData = operatorDataDict[tokenString];
+      /* Process operators with lower priority */
+      while (operatorStack.length > 0) {
+        let topOperator = operatorStack.pop();
+        if (topOperator === "(" || topOperator === "[") {
+          operatorStack.push(topOperator);
+          break;
+        }
+        let topOperatorData = operatorDataDict[topOperator];
+        if (topOperatorData === null) {
+          throw new FormulaParsingError("Parsing of the formula failed in an "
+              + "unexpected way. Please contact the developer stating the "
+              + "formula which you used. Sorry... Cause: Failed to "
+              + "retrieve specification of top operator on operatorStack.");
+        }
+        if (topOperatorData.priority > operatorData.priority) {
+          operatorStack.push(topOperator);
+          break;
+        }
+        processOperator(topOperator, formulaStack, variableStack);
+      }
+      /* Push new operator to the stack */
+      operatorStack.push(tokenString);
+      /* Consume the pushed operator */
+      formulaString = formulaString.substr(tokenString.length);
+      if (operatorData.parseType === parseTypes.QUANTIFIER) {
+        /* Add quantifier variable to the stack and consume its string */
+        let variable = QUANTIFIER_VAR_REGEX.exec(formulaString)
+        if (variable === null) {
+          throw new FormulaParsingError("Formula contains quantifier without "
+              + "quantified variable.");
+        }
+        variable = variable[0];
+        variableStack.push(variable);
+        processedChars += variable.length;
+      }
+    }
+  } else {
+    /* Parse operand */
+    if (tokenString.includes("=")) {
+      /* Parse equality */
+      let terms = tokenString.split("=");
+      if (terms.length !== 2) {
+        throw new FormulaParsingError("Formula contains invalid equality.");
+      }
+      /* Parse terms in the equality */
+      let term1 = parseTerm(terms[0]);
+      let term2 = parseTerm(terms[1]);
+      /* Add equality to the formula stack */
+      formulaStack.push(new Equality(term1, term2));
+    } else if (tokenString.includes("(")) {
+      /* Parse relation */
+      /* Extract relation name */
+      let relationName = RELATION_OR_FUNCTION_NAME_REGEX.exec(tokenString);
+      if (relationName == null) {
+        throw new FormulaParsingError("Parsing of the formula failed in an "
+            + "unexpected way. Please contact the developer stating the "
+            + "formula which you used. Sorry... Cause: Failed to extract "
+            + "relationName.");
+      }
+      relationName = relationName[0];
+      /* Consume the relation name */
+      tokenString = tokenString.substr(relationName.length);
+      /* Parse the terms in the relation and check arity */
+      try {
+        var relationTerms = parseCommaSeparatedTerms(tokenString,
+            variableStack, signature);
+      } catch (error) {
+        if (error instanceof FormulaParsingError) {
+          throw new FormulaParsingError(`Relation '${relationName}' is `
+              + `malformed: ${error.message}`);
+        } else {
+          throw error;
+        }
+      }
+      if (!(relationName in signature.relationArities)) {
+        signature.relationArities[relationName] = relationTerms.length;
+      } else if (relationTerms.length
+            !== signature.relationArities[relationName]) {
+        throw new FormulaParsingError(`Relation '${relationName}' in the `
+            + "formula is used with conflicting arities.");
+      }
+      /* Add relation to the formula stack */
+      formulaStack.push(new Relation(relationName, relationTerms));
+    } else if (tokenString === "⊤") {
+      /* Parse top */
+      formulaStack.push(new Top());
+    } else if (tokenString === "⊥") {
+      /* Parse bottom */
+      formulaStack.push(new Bottom());
+    } else {
+      /* Parse propositional variable */
+      formulaStack.push(new PropositionalVariable(tokenString));
+    }
+  }
+  return processedChars;
+}
+
+function parseFormula(formulaString, signature) {
+  var operatorStack = [];
+  var formulaStack = [];
+  var variableStack = [];
+
+  /* Trim spaces */
+  formulaString = formulaString.replace(/ /g, "");
+  while (formulaString !== "") {
+    /* Determine the next token */
+    let token = extractToken(formulaString);
+
+    /* Process token */
+    let processedChars = processToken(formulaString, token, operatorStack,
+        formulaStack, variableStack);
+
+    /* Consume processed part of the formula string */
+    formulaString = formulaString.substr(processedChars);
+  }
+
+  /* Process operators remaining in the stack */
+  while (operatorStack.length > 0) {
+    let processedOperator = operatorStack.pop();
+    if (processedOperator === "(" || processedOperator === "["
+        || processedOperator === ")" || processedOperator === "]") {
+      throw new FormulaParsingError("Parsed formula contains mismatched "
+          + "parentheses.")
+    }
+    processOperator(processedOperator, formulaStack, variableStack);
+  }
+  if (formulaStack.length !== 1) {
+    throw new FormulaParsingError("Parsing of the formula failed in an "
+        + "unexpected way. Please contact the developer stating the formula "
+        + "which you used. Sorry... Cause: Unexpected formula.Stack.length "
+        + "after parsing.");
+  }
+  return formulaStack.pop();
+}
+
+var signature = {
+  constants: [],
+  relationArities: {},
+  functionArities: {}
+}
+var parsedFormula = parseFormula("(A|B)^C->(E)item[red(item, function(inner(constant), anotherconstant))]&D&E", signature);
+console.log(parsedFormula);
+console.log(parsedFormula.stringRep);
+console.log(signature);
