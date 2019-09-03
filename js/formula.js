@@ -8,7 +8,7 @@ class Term {
   }
 
   get stringRep() {
-    return "Generic term";
+    return "<<Generic term>>";
   }
 }
 
@@ -56,6 +56,7 @@ class Function extends Term {
 
 class Formula {
   constructor() {
+    this.isQuantifier = false;
     this.isPropositionalVariable = false;
     this.isRelation = false;
     this.isEquality = false;
@@ -72,7 +73,7 @@ class Formula {
   }
 
   get stringRep() {
-    return "Generic formula";
+    return "<<Generic formula>>";
   }
 }
 
@@ -155,7 +156,7 @@ class Negation extends Formula {
   }
 
   get stringRep() {
-    str = "¬";
+    var str = "¬";
     if (this.operand.priority <= this.priority) {
       str += this.operand.stringRep;
     } else {
@@ -233,6 +234,7 @@ class Biconditional extends BinaryConnective {
 class Quantifier extends Formula {
   constructor(symbol, variableString, predicate) {
     super();
+    this.isQuantifier = true;
     this.symbol = symbol;
     this.variableString = variableString;
     this.predicate = predicate;
@@ -240,8 +242,13 @@ class Quantifier extends Formula {
   }
 
   get stringRep() {
-    return this.symbol + this.variableString + "[" +
-        this.predicate.stringRep + "]";
+    var str = this.symbol + this.variableString;
+    if (this.predicate.isQuantifier) {
+      str += this.predicate.stringRep;
+    } else {
+      str += "[" + this.predicate.stringRep + "]";
+    }
+    return str;
   }
 }
 
@@ -259,6 +266,7 @@ class Existential extends Quantifier {
   }
 }
 
+/* "Enumeration" representing different types of parse types */
 const parseTypes = Object.freeze({
   UNARY: "unary",
   BINARY: "binary",
@@ -319,25 +327,25 @@ const operatorDataDict = Object.freeze({
   "(E)": existentialData
 })
 
-const OPERATOR_REGEX =
-    /^\(A\)|^\(E\)|^[~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<∀∃]+|^\(|^\[|^\)|^\]/;
-const OPERAND_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<∀∃]+/;
-const QUANTIFIER_VAR_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<∀∃()[\]]+/;
 const RELATION_OR_FUNCTION_NAME_REGEX = /^[^(]+/;
 const BRACKETED_REGEX = /^\((.+?)\)$/;
 
+/*
+ * Parses the formula given as a string with respect to the provided signature
+ * Updates the signature with newly found constants, functions and relations
+ */
 function parseFormula(formulaString, signature) {
-  // TODO
+  /* Initialize auxiliary object holding the data of the parser */
   var parserData = {
     operatorStack: [],
     formulaStack: [],
     variableStack: [],
     signature: signature,
     formulaString: formulaString,
-    token: {}
+    token: { str: null, isOperator: null }
   }
 
-  /* Trim spaces */
+  /* Trim spaces from the formula */
   parserData.formulaString = parserData.formulaString.replace(/ /g, "");
   while (parserData.formulaString !== "") {
     /* Determine the next token */
@@ -347,6 +355,7 @@ function parseFormula(formulaString, signature) {
     processToken(parserData);
   }
 
+  /* Extract operatorStack and formulaStack for convenience */
   var operatorStack = parserData.operatorStack;
   var formulaStack = parserData.formulaStack;
   /* Process operators remaining in the stack */
@@ -360,15 +369,18 @@ function parseFormula(formulaString, signature) {
     commitOperator(processedOperator, parserData);
   }
   if (formulaStack.length !== 1) {
-    throw new FormulaParsingError("Parsing of the formula failed in an "
-        + "unexpected way. Please contact the developer stating the formula "
-        + "which you used. Sorry... Cause: Unexpected formula.Stack.length "
-        + "after parsing.");
+    throw new FormulaParsingError("Inputted formula is empty.");
   }
   return formulaStack.pop();
 }
 
+/*
+ * Extracts next token from the formulaString wrapped in parserData
+ */
 function extractToken(parserData) {
+  const OPERATOR_REGEX =
+      /^\(A\)|^\(E\)|^[∧^.·&∨+|→⇒⊃\->↔⇔≡<∀∃]+|^\(|^\[|^\)|^\]|^~|^˜|^¬|^!/;
+  const OPERAND_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<∀∃]+/;
   /* Extract parser data */
   var formulaString = parserData.formulaString;
 
@@ -383,7 +395,10 @@ function extractToken(parserData) {
           + "formula which you used. Sorry... Cause: Failed to extract token.");
     }
     token = token[0];
-    /* Identify excess brackets and trim them off */
+    /* Identify excess brackets and trim them off
+     * Regex for operands can match additional closing bracktes matching
+       opening bracktes that have already been parsed.
+     * Example: function(a, b, c) = another(d, e))) */
     var index = 0;
     var openedBrackets = 0;
     var bracketEncountered = false;
@@ -411,6 +426,9 @@ function extractToken(parserData) {
   parserData.token = { str: token[0], isOperator: true }
 }
 
+/*
+ * Processes token wrapped in parserData
+ */
 function processToken(parserData) {
   /* Extract parser data */
   var token = parserData.token;
@@ -454,17 +472,28 @@ function processToken(parserData) {
         throw new FormulaParsingError("Formula contains invalid equality.");
       }
       /* Parse terms in the equality */
-      let term1 = parseTerm(terms[0]);
-      let term2 = parseTerm(terms[1]);
+      let term1;
+      let term2;
+      try {
+        term1 = parseTerm(terms[0], parserData);
+        term2 = parseTerm(terms[1], parserData);
+      } catch (error) {
+        if (error instanceof FormulaParsingError) {
+          throw new FormulaParsingError("Formula contains invalid equality: "
+              + error.message);
+        } else {
+          throw error;
+        }
+      }
       /* Add equality to the formula stack */
       formulaStack.push(new Equality(term1, term2));
     } else if (tokenString.includes("(")) {
       /* Parse relation */
       processRelation(tokenString, parserData);
-    } else if (tokenString === "⊤") {
+    } else if (tokenString === "⊤" || tokenString === "top") {
       /* Parse top */
       formulaStack.push(new Top());
-    } else if (tokenString === "⊥") {
+    } else if (tokenString === "⊥" || tokenString === "bottom") {
       /* Parse bottom */
       formulaStack.push(new Bottom());
     } else {
@@ -476,6 +505,64 @@ function processToken(parserData) {
   }
 }
 
+/*
+ * Processes encountered operator token
+ * Adds operator and possibly quantifier variable to the operatorStack
+   and variableStack, but doesn't construct subformula representation of
+   the operator and its operands
+ */
+function processOperator(operatorString, parserData) {
+  /* Extract parser data */
+  var operatorStack = parserData.operatorStack;
+  var variableStack = parserData.variableStack;
+
+  /* Get pushed operator data */
+  let operatorData = operatorDataDict[operatorString];
+  /* Process operators with greater or equal priority */
+  while (operatorStack.length > 0) {
+    let topOperator = operatorStack.pop();
+    if (topOperator === "(" || topOperator === "[") {
+      operatorStack.push(topOperator);
+      break;
+    }
+    let topOperatorData = operatorDataDict[topOperator];
+    if (topOperatorData === undefined) {
+      throw new FormulaParsingError("Parsing of the formula failed in an "
+          + "unexpected way. Please contact the developer stating the "
+          + "formula which you used. Sorry... Cause: Failed to "
+          + "retrieve specification of top operator on operatorStack.");
+    }
+    /* Note: Higher priority value = lower priority */
+    if (topOperatorData.priority > operatorData.priority) {
+      operatorStack.push(topOperator);
+      break;
+    }
+    // TODO: Fix overly eager parsing of unary operators
+    commitOperator(topOperator, parserData);
+  }
+  /* Push new operator to the stack */
+  operatorStack.push(operatorString);
+  /* Consume the pushed operator */
+  parserData.formulaString =
+      parserData.formulaString.substr(operatorString.length);
+  if (operatorData.parseType === parseTypes.QUANTIFIER) {
+    /* Add quantifier variable to the stack and consume processed characters */
+    const QUANTIFIER_VAR_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<∀∃()[\]]+/;
+    let variable = QUANTIFIER_VAR_REGEX.exec(parserData.formulaString)
+    if (variable === null) {
+      throw new FormulaParsingError("Formula contains quantifier without "
+          + "quantified variable.");
+    }
+    variable = variable[0];
+    variableStack.push(variable);
+    parserData.formulaString = parserData.formulaString.substr(variable.length);
+  }
+}
+
+/*
+ * Constructs subformula representation of the given operator and its
+   operands
+ */
 function commitOperator(operator, parserData) {
   /* Extract parser data */
   var formulaStack = parserData.formulaStack;
@@ -495,68 +582,26 @@ function commitOperator(operator, parserData) {
       if (formulaStack.length === 0) {
         throw new FormulaParsingError("Formula is incomplete");
       }
-      formulaStack.push(new operatorData.representingClass(formulaStack.pop()));
+      let negatedFormula = formulaStack.pop()
+      formulaStack.push(new operatorData.representingClass(negatedFormula));
       break;
     case parseTypes.BINARY:
       if (formulaStack.length <= 1) {
         throw new FormulaParsingError("Formula is incomplete.");
       }
-      var operand2 = formulaStack.pop();
-      var operand1 = formulaStack.pop();
+      let operand2 = formulaStack.pop();
+      let operand1 = formulaStack.pop();
       formulaStack.push(new operatorData.representingClass(operand1, operand2));
       break;
     case parseTypes.QUANTIFIER:
       if (variableStack.length === 0 || formulaStack.length === 0) {
         throw new FormulaParsingError("Formula is incomplete.");
       }
-      formulaStack.push(new operatorData.representingClass(variableStack.pop(),
-          formulaStack.pop()));
+      let variable = variableStack.pop();
+      let quantifiedFormula = formulaStack.pop();
+      formulaStack.push(new operatorData.representingClass(variable,
+          quantifiedFormula));
       break;
-  }
-}
-
-function processOperator(operatorString, parserData) {
-  /* Extract parser data */
-  var operatorStack = parserData.operatorStack;
-  var variableStack = parserData.variableStack;
-
-  /* Get pushed operator data */
-  let operatorData = operatorDataDict[operatorString];
-  /* Process operators with lower priority */
-  while (operatorStack.length > 0) {
-    let topOperator = operatorStack.pop();
-    if (topOperator === "(" || topOperator === "[") {
-      operatorStack.push(topOperator);
-      break;
-    }
-    let topOperatorData = operatorDataDict[topOperator];
-    if (topOperatorData === undefined) {
-      throw new FormulaParsingError("Parsing of the formula failed in an "
-          + "unexpected way. Please contact the developer stating the "
-          + "formula which you used. Sorry... Cause: Failed to "
-          + "retrieve specification of top operator on operatorStack.");
-    }
-    if (topOperatorData.priority > operatorData.priority) {
-      operatorStack.push(topOperator);
-      break;
-    }
-    commitOperator(topOperator, parserData);
-  }
-  /* Push new operator to the stack */
-  operatorStack.push(operatorString);
-  /* Consume the pushed operator */
-  parserData.formulaString =
-      parserData.formulaString.substr(operatorString.length);
-  if (operatorData.parseType === parseTypes.QUANTIFIER) {
-    /* Add quantifier variable to the stack and return number of processed characters */
-    let variable = QUANTIFIER_VAR_REGEX.exec(parserData.formulaString)
-    if (variable === null) {
-      throw new FormulaParsingError("Formula contains quantifier without "
-          + "quantified variable.");
-    }
-    variable = variable[0];
-    variableStack.push(variable);
-    parserData.formulaString = parserData.formulaString.substr(variable.length);
   }
 }
 
@@ -610,9 +655,6 @@ function parseCommaSeparatedTerms(termsString, parserData) {
   while (termsString !== "") {
     if (termsString.charAt(0) === ",") {
       termsString = termsString.substr(1);
-      if (termsString === "") {
-        throw new FormulaParsingError("Incomplete term.");
-      }
     }
     let openedBrackets = 0;
     let index = 0;
@@ -635,6 +677,9 @@ function parseCommaSeparatedTerms(termsString, parserData) {
 }
 
 function parseTerm(termString, parserData) {
+  if (termString === "") {
+    throw new FormulaParsingError("Encountered empty string term.");
+  }
   /* Extract parser data */
   var variableStack = parserData.variableStack;
   var signature = parserData.signature;
@@ -665,21 +710,13 @@ function parseTerm(termString, parserData) {
     }
     return new Function(functionName, functionTerms);
   } else if (variableStack.includes(termString)) {
+    /* Parse variable */
     return new Variable(termString);
   } else {
+    /* Parse constant */
     if (!signature.constants.includes(termString)) {
       signature.constants.push(termString);
     }
     return new Constant(termString);
   }
 }
-
-var signature = {
-  constants: [],
-  relationArities: {},
-  functionArities: {}
-}
-var parsedFormula = parseFormula("(A|B)^C->(E)item[red(item, function(inner(constant), anotherconstant))]&D&E", signature);
-console.log(parsedFormula);
-console.log(parsedFormula.stringRep);
-console.log(signature);
