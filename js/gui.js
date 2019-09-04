@@ -6,7 +6,7 @@ jQuery(function($) {
     constants: [],
     relationArities: {},
     functionArities: {}
-  }
+  };
 
   $("#formulaInput").on("input", function(inputEvent) {
     let parsedFormula;
