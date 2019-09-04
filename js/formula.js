@@ -1,10 +1,16 @@
 "use strict";
 
+/* "Enumeration" representing different types of terms */
+const termTypes = Object.freeze({
+  GENERIC: "generic",
+  CONSTANT: "constant",
+  VARIABLE: "variable",
+  FUNCTION: "function"
+});
+
 class Term {
   constructor() {
-    this.isConstant = false;
-    this.isVariable = false;
-    this.isFunction = false;
+    this.type = termTypes.GENERIC;
   }
 
   get stringRep() {
@@ -15,7 +21,7 @@ class Term {
 class Constant extends Term {
   constructor(name) {
     super();
-    this.isConstant = true;
+    this.type = termTypes.CONSTANT;
     this.name = name;
   }
 
@@ -27,7 +33,7 @@ class Constant extends Term {
 class Variable extends Term {
   constructor(name) {
     super();
-    this.isVariable = true;
+    this.type = termTypes.VARIABLE;
     this.name = name;
   }
 
@@ -39,7 +45,7 @@ class Variable extends Term {
 class Function extends Term {
   constructor(name, terms) {
     super();
-    this.isFunction = true;
+    this.type = termTypes.FUNCTION;
     this.name = name;
     this.terms = terms;
   }
@@ -54,21 +60,26 @@ class Function extends Term {
   }
 }
 
+/* "Enumeration" representing different types of formulas */
+const formulaTypes = Object.freeze({
+  GENERIC: "generic",
+  PROPOSITIONAL_VARIABLE: "propositional variable",
+  RELATION: "relation",
+  EQUALITY: "equality",
+  TOP: "top",
+  BOTTOM: "bottom",
+  NEGATION: "negation",
+  CONJUNCTION: "conjunction",
+  DISJUNCTION: "disjunction",
+  IMPLICATION: "implication",
+  BICONDITIONAL: "biconditional",
+  EXISTENTIAL: "existential",
+  UNIVERSAL: "universal"
+});
+
 class Formula {
   constructor() {
-    this.isQuantifier = false;
-    this.isPropositionalVariable = false;
-    this.isRelation = false;
-    this.isEquality = false;
-    this.isTop = false;
-    this.isBottom = false;
-    this.isNegation = false;
-    this.isConjunction = false;
-    this.isDisjunction = false;
-    this.isImplication = false;
-    this.isBiconditional = false;
-    this.isUniversal= false;
-    this.isExistential = false;
+    this.type = formulaTypes.GENERIC
     this.priority = -1;
   }
 
@@ -80,7 +91,7 @@ class Formula {
 class PropositionalVariable extends Formula {
   constructor(name) {
     super();
-    this.isPropositionalVariable = true;
+    this.type = formulaTypes.PROPOSITIONAL_VARIABLE;
     this.name = name;
     this.priority = 0;
   }
@@ -93,7 +104,7 @@ class PropositionalVariable extends Formula {
 class Relation extends Formula {
   constructor(name, terms) {
     super();
-    this.isRelation = true;
+    this.type = formulaTypes.RELATION;
     this.name = name;
     this.terms = terms;
     this.priority = 0;
@@ -112,7 +123,7 @@ class Relation extends Formula {
 class Equality extends Formula {
   constructor(term1, term2) {
     super();
-    this.isEquality = true;
+    this.type = formulaTypes.EQUALITY;
     this.term1 = term1;
     this.term2 = term2;
     this.priority = 0;
@@ -126,7 +137,7 @@ class Equality extends Formula {
 class Top extends Formula {
   constructor() {
     super();
-    this.isTop = true;
+    this.type = formulaTypes.TOP;
     this.priority = 0;
   }
 
@@ -138,7 +149,7 @@ class Top extends Formula {
 class Bottom extends Formula {
   constructor() {
     super();
-    this.isBottom = true;
+    this.type = formulaTypes.BOTTOM;
     this.priority = 0;
   }
 
@@ -150,7 +161,7 @@ class Bottom extends Formula {
 class Negation extends Formula {
   constructor(operand) {
     super();
-    this.isNegation = true;
+    this.type = formulaTypes.NEGATION;
     this.operand = operand;
     this.priority = 1;
   }
@@ -201,7 +212,7 @@ class BinaryConnective extends Formula {
 class Conjunction extends BinaryConnective {
   constructor(conjunct1, conjunct2) {
     super("∧", conjunct1, conjunct2);
-    this.isConjunction = true;
+    this.type = formulaTypes.CONJUNCTION;
     this.priority = 2;
   }
 }
@@ -209,7 +220,7 @@ class Conjunction extends BinaryConnective {
 class Disjunction extends BinaryConnective {
   constructor(disjunct1, disjunct2) {
     super("∨", disjunct1, disjunct2);
-    this.isDisjunction = true;
+    this.type = formulaTypes.DISJUNCTION;
     this.priority = 3;
   }
 }
@@ -217,7 +228,7 @@ class Disjunction extends BinaryConnective {
 class Implication extends BinaryConnective {
   constructor(antecedent, consequent) {
     super("→", antecedent, consequent);
-    this.isImplication = true;
+    this.type = formulaTypes.IMPLICATION;
     this.isAssociative = false;
     this.priority = 4;
   }
@@ -226,7 +237,7 @@ class Implication extends BinaryConnective {
 class Biconditional extends BinaryConnective {
   constructor(operand1, operand2) {
     super("↔", operand1, operand2);
-    this.isBiconditional = true;
+    this.type = formulaTypes.BICONDITIONAL;
     this.priority = 5;
   }
 }
@@ -234,7 +245,6 @@ class Biconditional extends BinaryConnective {
 class Quantifier extends Formula {
   constructor(symbol, variableString, predicate) {
     super();
-    this.isQuantifier = true;
     this.symbol = symbol;
     this.variableString = variableString;
     this.predicate = predicate;
@@ -243,7 +253,8 @@ class Quantifier extends Formula {
 
   get stringRep() {
     var str = this.symbol + this.variableString;
-    if (this.predicate.isQuantifier) {
+    if (this.predicate.type == formulaTypes.UNIVERSAL
+        || this.predicate.type == formulaTypes.EXISTENTIAL) {
       str += this.predicate.stringRep;
     } else {
       str += "[" + this.predicate.stringRep + "]";
@@ -255,14 +266,14 @@ class Quantifier extends Formula {
 class Universal extends Quantifier {
   constructor(variable, predicate) {
     super("∀", variable, predicate);;
-    this.isUniversal = true;
+    this.type = formulaTypes.UNIVERSAL;
   }
 }
 
 class Existential extends Quantifier {
   constructor(variable, predicate) {
     super("∃", variable, predicate);
-    this.isExistential = true;
+    this.type = formulaTypes.EXISTENTIAL;
   }
 }
 
@@ -270,21 +281,14 @@ class Existential extends Quantifier {
 const parseTypes = Object.freeze({
   UNARY: "unary",
   BINARY: "binary",
-  QUANTIFIER: "quantifier",
-})
+  QUANTIFIER: "quantifier"
+});
 
 class OperatorData {
   constructor(representingClass, parseType, priority) {
     this.representingClass = representingClass;
     this.parseType = parseType;
     this.priority = priority;
-  }
-}
-
-class FormulaParsingError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'FormulaParsingError';
   }
 }
 
@@ -326,7 +330,21 @@ const operatorDataDict = Object.freeze({
   "(A)": universalData,
   "∃": existentialData,
   "(E)": existentialData
-})
+});
+
+const operandRepresentingClass = Object.freeze({
+  "⊤": Top,
+  "top": Top,
+  "⊥": Bottom,
+  "bottom": Bottom
+});
+
+class FormulaParsingError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'FormulaParsingError';
+  }
+}
 
 const OPERATOR_REGEX = new RegExp(''
     + /^\(A\)|^\(E\)|^->|^<->|^\(|^\[|^\)|^\]|^~|^˜|^¬|^!|^-|/.source
@@ -498,12 +516,9 @@ function processToken(parserData) {
     } else if (tokenString.includes("(")) {
       /* Parse relation */
       processRelation(tokenString, parserData);
-    } else if (tokenString === "⊤" || tokenString === "top") {
-      /* Parse top */
-      formulaStack.push(new Top());
-    } else if (tokenString === "⊥" || tokenString === "bottom") {
-      /* Parse bottom */
-      formulaStack.push(new Bottom());
+    } else if (tokenString in operandRepresentingClass) {
+      /* Parse top or bottom */
+      formulaStack.push(new operandRepresentingClass[tokenString]());
     } else {
       /* Parse propositional variable */
       formulaStack.push(new PropositionalVariable(tokenString));
@@ -542,8 +557,8 @@ function processOperator(operatorString, parserData) {
     }
     /* Note: Higher priority value = lower priority */
     if (topOperatorData.priority > operatorData.priority ||
-        (topOperatorData.parseType == parseTypes.UNARY &&
-            operatorData.parseType == parseTypes.UNARY)) {
+        (topOperatorData.parseType != parseTypes.BINARY &&
+            operatorData.parseType != parseTypes.BINARY)) {
       operatorStack.push(topOperator);
       break;
     }
@@ -588,14 +603,18 @@ function commitOperator(operator, parserData) {
   switch(operatorData.parseType) {
     case parseTypes.UNARY:
       if (formulaStack.length === 0) {
-        throw new FormulaParsingError("Formula is incomplete");
+        throw new FormulaParsingError("Cannot match operand to the operator "
+            + `'${operator}', please check whether the formula is complete `
+            + "and well-formed.");
       }
-      let negatedFormula = formulaStack.pop()
-      formulaStack.push(new operatorData.representingClass(negatedFormula));
+      let unary_operand = formulaStack.pop()
+      formulaStack.push(new operatorData.representingClass(unary_operand));
       break;
     case parseTypes.BINARY:
       if (formulaStack.length <= 1) {
-        throw new FormulaParsingError("Formula is incomplete.");
+        throw new FormulaParsingError("Cannot match operand(s) to the operator "
+            + `'${operator}', please check whether the formula is complete `
+            + "and well-formed.")
       }
       let operand2 = formulaStack.pop();
       let operand1 = formulaStack.pop();
@@ -603,7 +622,9 @@ function commitOperator(operator, parserData) {
       break;
     case parseTypes.QUANTIFIER:
       if (variableStack.length === 0 || formulaStack.length === 0) {
-        throw new FormulaParsingError("Formula is incomplete.");
+        throw new FormulaParsingError("Cannot match variable or operand to the "
+            + `operator '${operator}', please check whether the formula is `
+            + "complete and well-formed.")
       }
       let variable = variableStack.pop();
       let quantifiedFormula = formulaStack.pop();
