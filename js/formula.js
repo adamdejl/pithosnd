@@ -446,10 +446,10 @@ function extractToken(parserData) {
       }
       index++;
     }
-    parserData.token = { str: token.substr(0, index), isOperator: false };
+    parserData.token = {str: token.substr(0, index), isOperator: false};
     return;
   }
-  parserData.token = { str: token[0], isOperator: true }
+  parserData.token = {str: token[0], isOperator: true};
 }
 
 /*
