@@ -516,4 +516,51 @@ describe('Formula', function() {
       assert.deepEqual(signature.functionArities, {funct: 3, another: 1});
     });
   });
+
+  describe('Combined', function() {
+    it('Parsing of "(A | B) ^ C -> (E)item[red(item, '
+           + 'function(inner(constant), anotherconstant))] & D & E"',
+        function() {
+      let formula = "(A | B) ^ C -> (E)item[red(item, "
+             + "function(inner(constant), anotherconstant))] & D & E";
+      let signature = {
+        constants: [],
+        relationArities: {},
+        functionArities: {}
+      }
+      let parsedFormula = parseFormula(formula, signature);
+      /* Correct type */
+      assert.equal(parsedFormula.type, formulaTypes.IMPLICATION);
+
+      /* Correct string representation */
+      assert.equal(parsedFormula.stringRep, "(A ∨ B) ∧ C → ∃item[red(item, "
+               + "function(inner(constant), anotherconstant))] ∧ D ∧ E");
+      /* Correct result of the parsing */
+      let propositionalVariableA = new PropositionalVariable("A");
+      let propositionalVariableB = new PropositionalVariable("B");
+      let propositionalVariableC = new PropositionalVariable("C");
+      let propositionalVariableD = new PropositionalVariable("D");
+      let propositionalVariableE = new PropositionalVariable("E");
+      let variableItem = new Variable("item");
+      let constant = new Constant("constant");
+      let anotherconstant = new Constant("anotherconstant")
+      let disjunction
+          = new Disjunction(propositionalVariableA, propositionalVariableB);
+      let conjunction1 = new Conjunction(disjunction, propositionalVariableC);
+      let inner = new Function("inner", [constant]);
+      let funct = new Function("function", [inner, anotherconstant]);
+      let red = new Relation("red", [variableItem, funct]);
+      let existential = new Existential("item", red);
+      let conjunction2 = new Conjunction(existential, propositionalVariableD);
+      let conjunction3 = new Conjunction(conjunction2, propositionalVariableE);
+      let implication = new Implication(conjunction1, conjunction3);
+      assert.deepEqual(parsedFormula, implication);
+
+      /* Unchanged signature */
+      assert.deepEqual(signature.constants,
+          ["constant", "anotherconstant"]);
+      assert.deepEqual(signature.relationArities, {red: 2});
+      assert.deepEqual(signature.functionArities, {function: 2, inner: 1});
+    });
+  });
 });
