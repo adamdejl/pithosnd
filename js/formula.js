@@ -428,9 +428,9 @@ function extractToken(parserData) {
     var index = 0;
     var openedBrackets = 0;
     var bracketEncountered = false;
+    var equality = false;
     while (index < token.length
-        && (openedBrackets !== 0 || !bracketEncountered
-            || token.charAt(index) === "=")) {
+        && (openedBrackets !== 0 || !bracketEncountered || equality)) {
       if (token.charAt(index) === "("
           || token.charAt(index) === "[") {
         if (!bracketEncountered) {
@@ -445,6 +445,9 @@ function extractToken(parserData) {
         openedBrackets--;
       }
       index++;
+      if (index < token.length && token.charAt(index) === "=") {
+        equality = true;
+      }
     }
     parserData.token = {str: token.substr(0, index), isOperator: false};
     return;
