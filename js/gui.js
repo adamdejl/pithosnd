@@ -8,19 +8,21 @@ jQuery(function($) {
     functionArities: {}
   };
 
-  $("#formulaInput").on("input", function(inputEvent) {
+  $("#formulaGivenInput1").on("input", function(inputEvent) {
     let parsedFormula;
     try {
       parsedFormula = parseFormula(inputEvent.target.value, signature);
       console.log(parsedFormula)
     } catch (error) {
       if (error instanceof FormulaParsingError) {
-        $("#parsedOutput").text(error.message);
+        $("#formulaGivenParsed1").text(error.message);
+        $("#formulaGivenParsed1").removeClass("alert-dark alert-success").addClass("alert-danger");
         return;
       } else {
         throw error;
       }
     }
-    $("#parsedOutput").text(parsedFormula.stringRep);
+    $("#formulaGivenParsed1").text(parsedFormula.stringRep);
+    $("#formulaGivenParsed1").removeClass("alert-dark alert-danger").addClass("alert-success");
   });
 });

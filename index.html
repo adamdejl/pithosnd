@@ -1,15 +1,56 @@
 <!DOCTYPE html>
+<html lang="en">
 	<head>
 		<title>Pithos ND</title>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+		<link rel="stylesheet" href="./lib/bootstrap/css/bootstrap.min.css">
+		<link rel="stylesheet" href="./css/custom.css">
 	</head>
-	<body>
+	<body class="bg-light">
 		<script src="./lib/jquery-3.4.1.min.js"></script>
+		<script src="./lib/popper.min.js"></script>
+		<script src="./lib/bootstrap/js/bootstrap.min.js"></script>
 		<script src="./js/formula.js"></script>
 		<script src="./js/gui.js"></script>
-		<h1>Pithos ND</h1>
-		<input id="formulaInput" type="text" placeholder="Please type your formula here." size="100" autocomplete="off">
-		<p id="parsedOutput"></p>
+		<nav class="navbar navbar-expand-sm  navbar-dark bg-primary">
+		  <a class="navbar-brand" href="#">Pithos ND</a>
+		  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarContent">
+		    <span class="navbar-toggler-icon"></span>
+		  </button>
+
+		  <div class="collapse navbar-collapse" id="navbarContent">
+		    <ul class="navbar-nav mr-auto">
+		      <li class="nav-item active">
+		        <a class="nav-link" href="#">Application</a>
+		      </li>
+		      <li class="nav-item">
+		        <a class="nav-link" href="#">Help</a>
+		      </li>
+					<li class="nav-item">
+		        <a class="nav-link" href="#">About</a>
+		      </li>
+				</ul>
+		  </div>
+		</nav>
+		<div class="container">
+			<div class="py-3 text-center">
+				<h1>New proof</h1>
+			</div>
+			<div class="row">
+				<div class="col-md-12">
+					<h4 class="mb-2">Givens</h4>
+					<form>
+						<div id="formulaGiven1" class="form-group formula-given">
+							<label for="formulaGivenInput1">#1</label>
+							<input id="formulaGivenInput1" class="formula-given-input form-control mb-2" type="text" placeholder="Please type your formula here." autocomplete="off">
+							<div id="formulaGivenParsed1" class="formula-given-parsed alert alert-dark" role="alert" style="word-wrap: break-word; ">
+								The result of the parsing will appear here.
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
 	</body>
 </html>
