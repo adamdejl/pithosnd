@@ -380,7 +380,7 @@ describe('Formula', function() {
         let universal = new Universal("item", relation)
         assert.deepEqual(parsedFormula, universal);
 
-        /* Unchanged signature */
+        /* Correctly updated signature */
         assert.equal(signature.constants.length, 0);
         assert.deepEqual(signature.relationArities, {computer: 1});
         assert.deepEqual(signature.functionArities, {});
@@ -413,7 +413,7 @@ describe('Formula', function() {
         let universal1 = new Universal("x", universal2);
         assert.deepEqual(parsedFormula, universal1);
 
-        /* Unchanged signature */
+        /* Correctly updated signature */
         assert.equal(signature.constants.length, 0);
         assert.deepEqual(signature.relationArities, {related: 3});
         assert.deepEqual(signature.functionArities, {});
@@ -442,7 +442,7 @@ describe('Formula', function() {
         let existential = new Existential("being", relation)
         assert.deepEqual(parsedFormula, existential);
 
-        /* Unchanged signature */
+        /* Correctly updated signature */
         assert.equal(signature.constants.length, 0);
         assert.deepEqual(signature.relationArities, {alien: 1});
         assert.deepEqual(signature.functionArities, {});
@@ -475,7 +475,7 @@ describe('Formula', function() {
         let existential1 = new Existential("x", existential2);
         assert.deepEqual(parsedFormula, existential1);
 
-        /* Unchanged signature */
+        /* Correctly updated signature */
         assert.equal(signature.constants.length, 0);
         assert.deepEqual(signature.relationArities, {related: 3});
         assert.deepEqual(signature.functionArities, {});
@@ -509,7 +509,7 @@ describe('Formula', function() {
       let equality = new Equality(funct, some);
       assert.deepEqual(parsedFormula, equality);
 
-      /* Unchanged signature */
+      /* Correctly updated signature */
       assert.deepEqual(signature.constants,
           ["const", "further", "additional", "some"]);
       assert.deepEqual(signature.relationArities, {});
@@ -556,7 +556,7 @@ describe('Formula', function() {
       let implication = new Implication(conjunction1, conjunction3);
       assert.deepEqual(parsedFormula, implication);
 
-      /* Unchanged signature */
+      /* Correctly updated signature */
       assert.deepEqual(signature.constants,
           ["constant", "anotherconstant"]);
       assert.deepEqual(signature.relationArities, {red: 2});
