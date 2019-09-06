@@ -352,8 +352,8 @@ const OPERATOR_REGEX = new RegExp(''
 );
 const OPERAND_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<∀∃]+/;
 const QUANTIFIER_VAR_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<∀∃()[\]]+/;
-const RELATION_OR_FUNCTION_NAME_REGEX = /^[^(]+/;
-const BRACKETED_REGEX = /^\((.+?)\)$/;
+const RELATION_OR_FUNCTION_NAME_REGEX = /(^[^(]+?)(?:\[|\()/;
+const BRACKETED_REGEX = /^(?:\[|\()(.+?)(?:\]|\))$/;
 
 /*
  * Parses the formula given as a string with respect to the provided signature
@@ -516,7 +516,7 @@ function processToken(parserData) {
       }
       /* Add equality to the formula stack */
       formulaStack.push(new Equality(term1, term2));
-    } else if (tokenString.includes("(")) {
+    } else if (tokenString.includes("(") || tokenString.includes("[")) {
       /* Parse relation */
       processRelation(tokenString, parserData);
     } else if (tokenString in operandRepresentingClass) {
@@ -650,7 +650,7 @@ function processRelation(relationString, parserData) {
         + "formula which you used. Sorry... Cause: Failed to extract "
         + "relationName.");
   }
-  relationName = relationName[0];
+  relationName = relationName[1];
   /* Consume the relation name */
   relationString = relationString.substr(relationName.length);
   /* Parse the terms in the relation and check arity */
@@ -716,7 +716,7 @@ function parseTerm(termString, parserData) {
   var variableStack = parserData.variableStack;
   var signature = parserData.signature;
 
-  if (termString.includes("(")) {
+  if (termString.includes("(") || termString.includes("[")) {
     /* Parse function */
     let functionName = RELATION_OR_FUNCTION_NAME_REGEX.exec(termString);
     if (functionName == null) {
@@ -725,7 +725,7 @@ function parseTerm(termString, parserData) {
           + "formula which you used. Sorry... Cause: Failed to extract "
           + "function name.");
     }
-    functionName = functionName[0];
+    functionName = functionName[1];
     /* Consume the function name */
     termString = termString.substr(functionName.length);
     /* Parse the terms in the function and check arity */
