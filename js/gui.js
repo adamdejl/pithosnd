@@ -118,14 +118,18 @@ jQuery(function($) {
     let focusElement = $(":focus");
     if (focusElement.hasClass("given-input")
         || focusElement.hasClass("goal-input")) {
+      /* Insert character at the correct place */
       let cursorPosition = focusElement.prop('selectionStart');
       let value = focusElement[0].value;
       let textBeforeCursor = value.substring(0, cursorPosition);
       let textAfterCursor = value.substring(cursorPosition, value.length);
-
       focusElement[0].value = textBeforeCursor
           + mouseDownEvent.target.innerText + textAfterCursor;
+
+      /* Set cursor correctly */
       focusElement[0].selectionEnd = cursorPosition + 1;
+
+      /* Trigger parsing of all formulas */
       parseAll();
     }
   });
