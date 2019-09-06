@@ -669,8 +669,8 @@ function processRelation(relationString, parserData) {
     signature.relationArities[relationName] = relationTerms.length;
   } else if (relationTerms.length
         !== signature.relationArities[relationName]) {
-    throw new FormulaParsingError(`Relation '${relationName}' in the `
-        + "formula is used with conflicting arities.");
+    throw new FormulaParsingError(`Relation '${relationName}' `
+        + "is used with conflicting arities.");
   }
   /* Add relation to the formula stack */
   formulaStack.push(new Relation(relationName, relationTerms));
@@ -737,8 +737,8 @@ function parseTerm(termString, parserData) {
       signature.functionArities[functionName] = functionTerms.length;
     } else if (functionTerms.length
           !== signature.functionArities[functionName]) {
-      throw new FormulaParsingError(`Function '${functionName}' in the `
-          + "formula is used with conflicting arities.");
+      throw new FormulaParsingError(`Function '${functionName}' `
+          + "is used with conflicting arities.");
     }
     return new Function(functionName, functionTerms);
   } else if (variableStack.includes(termString)) {
