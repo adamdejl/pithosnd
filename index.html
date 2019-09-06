@@ -37,6 +37,21 @@
 			<div class="py-3 text-center">
 				<h1>New proof</h1>
 			</div>
+			<div class="py-2 text-center sticky-top bg-light">
+				<div class="btn-group" role="group" aria-label="Basic example">
+					<button type="button" class="btn btn-secondary insert-char-btn">¬</button>
+					<button type="button" class="btn btn-secondary insert-char-btn">∧</button>
+					<button type="button" class="btn btn-secondary insert-char-btn">∨</button>
+					<button type="button" class="btn btn-secondary insert-char-btn">→</button>
+					<button type="button" class="btn btn-secondary insert-char-btn">↔</button>
+					<button type="button" class="btn btn-secondary insert-char-btn">∀</button>
+					<button type="button" class="btn btn-secondary insert-char-btn">∃</button>
+					<button type="button" class="btn btn-secondary insert-char-btn">(</button>
+					<button type="button" class="btn btn-secondary insert-char-btn">)</button>
+					<button type="button" class="btn btn-secondary insert-char-btn">[</button>
+					<button type="button" class="btn btn-secondary insert-char-btn">]</button>
+				</div>
+		  </div>
 			<div class="row">
 				<div id="inputArea" class="col-md-12">
 					<h4 class="mb-2">Givens</h4>
@@ -47,7 +62,7 @@
 					<button id="removeGiven" typ="button" class="btn btn-outline-danger" disabled>Remove last given</button>
 					<h4 class="my-2">Goal</h4>
 					<div id="goal" class="form-group goal-group">
-						<input id="goalInput" class="form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
+						<input id="goalInput" class="goal-input form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
 						<div id="goalParsed" class="goal-parsed alert alert-dark" role="alert" style="word-wrap: break-word; ">
 							The result of the parsing will appear here.
 						</div>

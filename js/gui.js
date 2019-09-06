@@ -2,53 +2,10 @@
 
 jQuery(function($) {
 
-  let globalNumGivens = 0;
-
-  /*
-   * Add new field for a given
-   */
-  $("#addGiven").click(function() {
-    /* Disable the Start proof button */
-    $("#startProof").attr("disabled", true);
-
-    if (globalNumGivens === 0) {
-      /* Add first given - hide no givens message and enable remove button */
-      $("#noGiven").hide();
-      $("#removeGiven").attr("disabled", false);
-    }
-
-    /* Insert form for new given */
-    const givenCode =
-      `<div id="given${globalNumGivens}" class="form-group given-group">
-        <label for="givenInput${globalNumGivens}">#${globalNumGivens + 1}</label>
-        <input id="givenInput${globalNumGivens}" class="given-input form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
-        <div id="givenParsed${globalNumGivens}" class="given-parsed alert alert-dark" role="alert" style="word-wrap: break-word; ">
-          The result of the parsing will appear here.
-        </div>
-      </div>`
-    $(givenCode).insertBefore("#addGiven");
-    globalNumGivens++;
-  });
-
-  /*
-   * Remove the most recently added field for a given
-   */
-  $("#removeGiven").click(function() {
-    if (globalNumGivens === 0) {
-      return;
-    }
-    $("#given" + (globalNumGivens - 1)).remove();
-    globalNumGivens--;
-    if (globalNumGivens === 0) {
-      $("#noGiven").show();
-      $("#removeGiven").attr("disabled", true);
-    }
-  })
-
   /*
    * Parse all formulas and report the results of the parsing
    */
-  $("#inputArea").on("input", ".given-input, #goalInput", function(inputEvent) {
+  function parseAll() {
     let signature = {
       constants: [],
       relationArities: {},
@@ -102,6 +59,66 @@ jQuery(function($) {
     } else {
       $("#startProof").attr("disabled", false);
     }
-    console.log(signature);
+  }
+
+  let globalNumGivens = 0;
+
+  /*
+   * Add new field for a given
+   */
+  $("#addGiven").click(function() {
+    /* Disable the Start proof button */
+    $("#startProof").attr("disabled", true);
+
+    if (globalNumGivens === 0) {
+      /* Add first given - hide no givens message and enable remove button */
+      $("#noGiven").hide();
+      $("#removeGiven").attr("disabled", false);
+    }
+
+    /* Insert form for new given */
+    const givenCode =
+      `<div id="given${globalNumGivens}" class="form-group given-group">
+        <label for="givenInput${globalNumGivens}">#${globalNumGivens + 1}</label>
+        <input id="givenInput${globalNumGivens}" class="given-input form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
+        <div id="givenParsed${globalNumGivens}" class="given-parsed alert alert-dark" role="alert" style="word-wrap: break-word; ">
+          The result of the parsing will appear here.
+        </div>
+      </div>`
+    $(givenCode).insertBefore("#addGiven");
+    globalNumGivens++;
+  });
+
+  /*
+   * Remove the most recently added field for a given
+   */
+  $("#removeGiven").click(function() {
+    if (globalNumGivens === 0) {
+      return;
+    }
+    $("#given" + (globalNumGivens - 1)).remove();
+    globalNumGivens--;
+    if (globalNumGivens === 0) {
+      $("#noGiven").show();
+      $("#removeGiven").attr("disabled", true);
+    }
+  })
+
+  /*
+   * Parse all formulas on input
+   */
+  $("#inputArea").on("input", ".given-input, #goalInput", parseAll);
+
+  /*
+   * Insert special character and parse all formulas
+   */
+  $(".insert-char-btn").on('mousedown', function(mouseDownEvent) {
+    mouseDownEvent.preventDefault();
+    let focusElement = $(":focus");
+    if (focusElement.hasClass("given-input")
+        || focusElement.hasClass("goal-input")) {
+      focusElement[0].value += mouseDownEvent.target.innerText;
+      parseAll();
+    }
   });
 });
