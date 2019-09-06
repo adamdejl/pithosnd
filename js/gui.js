@@ -118,7 +118,14 @@ jQuery(function($) {
     let focusElement = $(":focus");
     if (focusElement.hasClass("given-input")
         || focusElement.hasClass("goal-input")) {
-      focusElement[0].value += mouseDownEvent.target.innerText;
+      let cursorPosition = focusElement.prop('selectionStart');
+      let value = focusElement[0].value;
+      let textBeforeCursor = value.substring(0, cursorPosition);
+      let textAfterCursor = value.substring(cursorPosition, value.length);
+
+      focusElement[0].value = textBeforeCursor
+          + mouseDownEvent.target.innerText + textAfterCursor;
+      focusElement[0].selectionEnd = cursorPosition + 1;
       parseAll();
     }
   });
