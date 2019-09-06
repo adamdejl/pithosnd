@@ -102,6 +102,7 @@ jQuery(function($) {
       $("#noGiven").show();
       $("#removeGiven").attr("disabled", true);
     }
+    parseAll();
   })
 
   /*
