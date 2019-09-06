@@ -38,17 +38,21 @@
 				<h1>New proof</h1>
 			</div>
 			<div class="row">
-				<div class="col-md-12">
+				<div id="inputArea" class="col-md-12">
 					<h4 class="mb-2">Givens</h4>
-					<form>
-						<div id="formulaGiven1" class="form-group formula-given">
-							<label for="formulaGivenInput1">#1</label>
-							<input id="formulaGivenInput1" class="formula-given-input form-control mb-2" type="text" placeholder="Please type your formula here." autocomplete="off">
-							<div id="formulaGivenParsed1" class="formula-given-parsed alert alert-dark" role="alert" style="word-wrap: break-word; ">
-								The result of the parsing will appear here.
-							</div>
+					<div id="noGiven" class="alert alert-primary" role="alert" style="word-wrap: break-word; ">
+						No givens specified.
+					</div>
+					<button id="addGiven" type="button" class="btn btn-outline-primary">Add given</button>
+					<button id="removeGiven" typ="button" class="btn btn-outline-danger" disabled>Remove last given</button>
+					<h4 class="my-2">Goal</h4>
+					<div id="goal" class="form-group goal-group">
+						<input id="goalInput" class="form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
+						<div id="goalParsed" class="goal-parsed alert alert-dark" role="alert" style="word-wrap: break-word; ">
+							The result of the parsing will appear here.
 						</div>
-					</form>
+					</div>
+					<button id="startProof" type="button" class="btn btn-primary btn-lg" disabled>Start proof</button>
 				</div>
 			</div>
 		</div>
