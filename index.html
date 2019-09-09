@@ -3,7 +3,7 @@
 	<head>
 		<title>Pithos ND</title>
 		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0,-to-fit=no">
 		<link rel="stylesheet" href="./lib/bootstrap/css/bootstrap.min.css">
 		<link rel="stylesheet" href="./css/custom.css">
 	</head>
@@ -12,13 +12,14 @@
 		<script src="./lib/popper.min.js"></script>
 		<script src="./lib/bootstrap/js/bootstrap.min.js"></script>
 		<script src="./js/formula.js"></script>
+		<script src="./js/proof.js"></script>
 		<script src="./js/gui.js"></script>
+
 		<nav class="navbar navbar-expand-sm  navbar-dark bg-primary">
 		  <a class="navbar-brand" href="#">Pithos ND</a>
 		  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarContent">
 		    <span class="navbar-toggler-icon"></span>
 		  </button>
-
 		  <div class="collapse navbar-collapse" id="navbarContent">
 		    <ul class="navbar-nav mr-auto">
 		      <li class="nav-item active">
@@ -33,12 +34,10 @@
 				</ul>
 		  </div>
 		</nav>
+
 		<div id="inputArea" class="container">
-			<div class="py-3 text-center">
-				<h1>New proof</h1>
-			</div>
 			<div class="py-2 text-center sticky-top bg-light">
-				<div class="btn-group" role="group" aria-label="Insert logical connectives">
+				<div class="btn-group pb-1" role="group" aria-label="Insert logical connectives">
 					<button type="button" class="btn btn-secondary insert-char-btn">¬</button>
 					<button type="button" class="btn btn-secondary insert-char-btn">∧</button>
 					<button type="button" class="btn btn-secondary insert-char-btn">∨</button>
@@ -47,7 +46,11 @@
 					<button type="button" class="btn btn-secondary insert-char-btn">∀</button>
 					<button type="button" class="btn btn-secondary insert-char-btn">∃</button>
 				</div>
-				<div class="btn-group mr-2" role="group" aria-label="Insert brackets">
+				<div class="btn-group pb-1" role="group" aria-label="Insert top or bottom">
+					<button type="button" class="btn btn-secondary insert-char-btn">⊤</button>
+					<button type="button" class="btn btn-secondary insert-char-btn">⊥</button>
+				</div>
+				<div class="btn-group pb-1" role="group" aria-label="Insert brackets">
 					<button type="button" class="btn btn-secondary insert-char-btn">(</button>
 					<button type="button" class="btn btn-secondary insert-char-btn">)</button>
 					<button type="button" class="btn btn-secondary insert-char-btn">[</button>
@@ -69,7 +72,165 @@
 							The result of the parsing will appear here.
 						</div>
 					</div>
-					<button id="startProof" type="button" class="btn btn-primary btn-lg" disabled>Start proof</button>
+					<button id="startProof" type="button" class="btn btn-primary btn-lg mb-2" disabled>Start proof</button>
+				</div>
+			</div>
+		</div>
+
+		<div id="proofArea" class="container">
+			<div class="py-2 text-center sticky-top bg-light">
+				<div class="btn-group pb-1" role="group" aria-label="Conjunction natural deduction rules">
+					<button type="button" class="btn btn-secondary">∧I</button>
+					<button type="button" class="btn btn-secondary">∧E</button>
+				</div>
+				<div class="btn-group pb-1" role="group" aria-label="Disjunction natural deduction rules">
+					<button type="button" class="btn btn-secondary">∨I</button>
+					<button type="button" class="btn btn-secondary">∨E</button>
+				</div>
+				<div class="btn-group pb-1" role="group" aria-label="Implication natural deduction rules">
+					<button type="button" class="btn btn-secondary">→I</button>
+					<button type="button" class="btn btn-secondary">→E</button>
+				</div>
+				<div class="btn-group pb-1" role="group" aria-label="Negation natural deduction rules">
+					<button type="button" class="btn btn-secondary">¬I</button>
+					<button type="button" class="btn btn-secondary">¬E</button>
+					<button type="button" class="btn btn-secondary">¬¬E</button>
+				</div>
+				<div class="btn-group pb-1" role="group" aria-label="Top / bottom natural deduction rules">
+					<button type="button" class="btn btn-secondary">⊤I</button>
+					<button type="button" class="btn btn-secondary">⊥I</button>
+					<button type="button" class="btn btn-secondary">⊥E</button>
+				</div>
+				<div class="btn-group pb-1" role="group" aria-label="Biconditional natural deduction rules">
+					<button type="button" class="btn btn-secondary">↔I</button>
+					<button type="button" class="btn btn-secondary">↔E</button>
+					<button type="button" class="btn btn-secondary">↔I2</button>
+					<button type="button" class="btn btn-secondary">↔E2</button>
+				</div>
+				<div class="btn-group pb-1" role="group" aria-label="Natural deduction derived rules">
+					<button type="button" class="btn btn-secondary">EM</button>
+					<button type="button" class="btn btn-secondary">PC</button>
+				</div>
+				<div class="btn-group pb-1" role="group" aria-label="Existential natural deduction rules">
+					<button type="button" class="btn btn-secondary">∃I</button>
+					<button type="button" class="btn btn-secondary">∃E</button>
+				</div>
+				<div class="btn-group pb-1" role="group" aria-label="Universal natural deduction rules">
+					<button type="button" class="btn btn-secondary">∀I</button>
+					<button type="button" class="btn btn-secondary">∀E</button>
+					<button type="button" class="btn btn-secondary">∀→I</button>
+					<button type="button" class="btn btn-secondary">∀→E</button>
+				</div>
+				<div class="btn-group pb-1" role="group" aria-label="Tick natural deduction rule">
+					<button type="button" class="btn btn-secondary">✓</button>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-12">
+					<h4 class="mb-2">Proof</h4>
+					<div id="proofContainer">
+						<table class="table table-borderless table-sm table-responsive">
+						  <tbody>
+						    <tr>
+									<td class="box-cell">
+										<table class="proof-table">
+											<tbody>
+												<tr class="proof-line">
+										      <th class="shrink" scope="row">1</th>
+										      <td>A | B</td>
+													<td class="shrink justification-cell">given</td>
+										    </tr>
+										    <tr>
+										      <td class="box-cell" colspan="3">
+														<table class="proof-box">
+															<tbody>
+																<tr class="proof-line">
+																	<th class="shrink" scope="row">2</th>
+																	<td>A</td>
+																	<td class="shrink justification-cell">ass</td>
+																</tr>
+																<tr class="proof-line">
+																	<th class="shrink" scope="row">3</th>
+																	<td>((A -> B) -> C) -> D</td>
+																	<td class="shrink justification-cell">goal</td>
+																</tr>
+															</tbody>
+														</table>
+														<table class="proof-box">
+															<tbody>
+																<tr class="proof-line">
+																	<th class="shrink" scope="row">4</th>
+																	<td>B</td>
+																	<td class="shrink justification-cell">ass</td>
+																</tr>
+																<tr>
+																	<td class="box-cell" colspan="3">
+																		<table class="proof-box box-checked">
+																			<tbody>
+																				<tr class="proof-line">
+																					<th class="shrink" scope="row">5</th>
+																					<td>-B & -D -> E</td>
+																					<td class="shrink justification-cell">ass</td>
+																				</tr>
+																				<tr class="proof-line">
+																					<th class="shrink" scope="row">6</th>
+																					<td>A | B | C | D</td>
+																					<td class="shrink justification-cell">goal</td>
+																				</tr>
+																			</tbody>
+																		</table>
+																		<table class="proof-box">
+																			<tbody>
+																				<tr class="proof-line">
+																					<th class="shrink" scope="row">7</th>
+																					<td>R -> S</td>
+																					<td class="shrink justification-cell">ass</td>
+																				</tr>
+																			</tbody>
+																		</table>
+																	</td>
+																</tr>
+																<tr class="proof-line">
+																	<th class="shrink" scope="row">8</th>
+																	<td>W ^ X ^ Y ^ Z</td>
+																	<td class="shrink justification-cell">goal</td>
+																</tr>
+															</tbody>
+														</table>
+													</td>
+										    </tr>
+										    <tr class="proof-line">
+										      <th class="shrink" scope="row">9</th>
+										      <td>A -> B</td>
+													<td class="shrink justification-cell">goal</td>
+										    </tr>
+										  </tbody>
+										</table>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					<button id="restartProof" type="button" class="btn btn-danger btn-lg mb-2" data-toggle="modal" data-target="#confirmRestartDialog">Modify input</button>
+					<div id="confirmRestartDialog" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="confirmRestartLabel" aria-hidden="true">
+					  <div class="modal-dialog" role="document">
+					    <div class="modal-content">
+					      <div class="modal-header">
+					        <h5 class="modal-title" id="confirmRestartLabel">Confirmation required</h5>
+					        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					          <span aria-hidden="true">&times;</span>
+					        </button>
+					      </div>
+					      <div class="modal-body">
+					        Do you really wish to discard your proof and modify the givens or the goal?
+					      </div>
+					      <div class="modal-footer">
+									<button id="confirmRestart" type="button" class="btn btn-outline-danger" data-dismiss="modal">Yes</button>
+					        <button type="button" class="btn btn-outline-primary" data-dismiss="modal">No</button>
+					      </div>
+					    </div>
+					  </div>
+					</div>
 				</div>
 			</div>
 		</div>
