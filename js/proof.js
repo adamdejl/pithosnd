@@ -61,7 +61,6 @@ class SpecialJustification {
 class ProofItem {
   constructor() {
     this.parent = null;
-    this.complete = false;
   }
 }
 
@@ -90,8 +89,11 @@ class EmptyProofLine extends ProofLine {
 class ProofBox extends ProofItem {
   constructor(numColumns, initialLine, goalLine, nextAdjacent) {
     super();
+    /* Initially mark as incomplete */
+    this.complete = false;
     /* Add initial line to the box components */
     this.components = [initialLine];
+    initialLine.parent = this;
     if (JSON.stringify(initialLine.formula)
         === JSON.stringify(goalLine.formula)) {
       /* Justify immediately if the initial and goal line carry identical
@@ -99,10 +101,14 @@ class ProofBox extends ProofItem {
       let justification = new Justification(justTypes.TICK, [initialLine]);
       let tickLine = new JustifiedProofLine(initialLine.formula, justification);
       this.components.push(tickLine);
+      tickLine.parent = this;
     } else {
       /* Add empty line and the goal line */
-      this.components.push(new EmptyProofLine());
+      let emptyLine = new EmptyProofLine();
+      this.components.push(emptyLine);
+      emptyLine.parent = this;
       this.components.push(goalLine);
+      goalLine.parent = this;
     }
     this.nextAdjacent = nextAdjacent;
   }
@@ -113,6 +119,13 @@ class Proof extends ProofItem {
     super();
     this.components = initialProofLines;
     this.signature = signature;
+  }
+}
+
+class ProofProcessingError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'ProofProcessingError';
   }
 }
 
@@ -146,7 +159,7 @@ function initializeProof(parsingResults) {
   }
   /* Construct proof and set correct parent for all proof lines */
   let proof = new Proof(initialProofLines, signature);
-  initialProofLines.map(x => x.parent = proof);
+  initialProofLines.forEach(x => x.parent = proof);
   return proof;
 }
 
@@ -188,8 +201,7 @@ function updateLines(proof) {
   function updateLinesHelper(proofItem, lineNumber) {
     let components = proofItem.components;
     for (let i = 0; i < components.length; i++) {
-      if (components[i] instanceof JustifiedProofLine
-          || components[i] instanceof EmptyProofLine) {
+      if (components[i] instanceof ProofLine) {
         /* Update line number */
         components[i].lineNumber = lineNumber;
         lineNumber++;
@@ -276,5 +288,91 @@ function proofToHTML(proof) {
       }
     }
     return proofHTML;
+  }
+}
+
+/*
+ * Attempts to retrieve lines identified by set of line numbers from the
+   proof object
+ * Justification lines are returned in the order in which they have been
+   inserted into the set
+ * The function checks whether the justification lines are in scope for the
+   target (goal or empty) line
+ */
+function retrieveLines(proof, linesSet) {
+  let retrievedLines = {
+    justificationLines: [],
+    targetLine: null,
+  }
+  let extractedLines = {};
+  extractLines(proof, linesSet, extractedLines);
+  for (let lineNumber of linesSet.values()) {
+    if (!(lineNumber in extractedLines)) {
+      retrievedLines.success = false;
+      throw new ProofProcessingError("Processing of the proof failed in an "
+          + "unexpected way. Please contact the developer stating the actions "
+          + "that you performed. Sorry... Cause: Failed to extract selected "
+          + "proof line(s).");
+    }
+    if (extractedLines[lineNumber] instanceof JustifiedProofLine
+        && extractedLines[lineNumber].justification.type !== justTypes.GOAL) {
+      retrievedLines.justificationLines.push(extractedLines[lineNumber]);
+    } else {
+      if (retrievedLines.targetLine !== null) {
+        throw new ProofProcessingError("Only one target (goal or empty) line "
+            + "should be selected.")
+      }
+      retrievedLines.targetLine = extractedLines[lineNumber];
+    }
+  }
+  if (retrievedLines.targetLine === null) {
+    throw new ProofProcessingError("No target (goal or empty) line has been "
+        + "selected.")
+  }
+  for (let justificationLine of retrievedLines.justificationLines) {
+    if (!checkScope(justificationLine, retrievedLines.targetLine)) {
+      throw new ProofProcessingError("One or more of the justification lines "
+          + "selected is out of scope for the chosen target (goal or empty) "
+          + "line. Please make sure that you are not using formulas outside "
+          + "of their boxes.");
+    }
+  }
+  return retrievedLines;
+
+  /*
+   * Extracts all proof lines with line numbers in linesSet to
+     extractionTarget (in form lineNumber: lineObject)
+   */
+  function extractLines(proofItem, linesSet, extractionTarget) {
+    let components = proofItem.components;
+    for (let component of components) {
+      if (component instanceof ProofLine
+          && linesSet.has(component.lineNumber)) {
+        extractionTarget[component.lineNumber] = component;
+      }
+      if (component instanceof ProofBox) {
+        extractLines(component, linesSet, extractionTarget);
+      }
+    }
+  }
+
+  /*
+   * Checks whether a provided justification line is in scope for the
+     given target line
+   */
+  function checkScope(justificationLine, targetLine) {
+    if (justificationLine.lineNumber >= targetLine.lineNumber) {
+      return false;
+    }
+    let currProofItem = targetLine.parent;
+    while (currProofItem !== null) {
+      for (let component of currProofItem.components) {
+        if (component instanceof ProofLine && component === justificationLine) {
+          return true;
+        }
+      }
+      currProofItem = currProofItem.parent;
+    }
+    return false;
   }
 }

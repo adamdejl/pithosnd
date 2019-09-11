@@ -126,7 +126,17 @@ function resetSelectedLines() {
    afterwards
  */
 function updateProof() {
-  PithosData.proof = PithosData.selectedRuleData.handler();
+  try {
+    PithosData.selectedRuleData.handler();
+  } catch (error) {
+    if (error instanceof ProofProcessingError) {
+      showAlert("Error", `<p>An error occured during application of the rule `
+          + `${PithosData.selectedRuleData.name}:</p> <p>${error.message}</p>`,
+          PithosData.selectedRuleData.hint);
+    } else {
+      throw error;
+    }
+  }
   updateLines(PithosData.proof);
   resetSelectedLines();
   $("#proofContainer").html(proofToHTML(PithosData.proof));
