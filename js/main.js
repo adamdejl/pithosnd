@@ -84,6 +84,14 @@ jQuery(function($) {
   $("#startProof").click(function() {
     let parsingResults = parseAll();
     if (parsingResults !== null) {
+      /* Reset all data */
+      PithosData.selectedLinesSet = new Set([]);
+      PithosData.lineNumToSelector = {};
+      PithosData.selectedRuleData = null;
+      PithosData.selectedButton = null;
+      PithosData.freeSelection = true;
+      $(".apply-rule").removeClass("btn-primary").addClass("btn-secondary");
+      /* Initialize proof */
       PithosData.proof = initializeProof(parsingResults);
       updateLines(PithosData.proof);
       $("#proofContainer").html(proofToHTML(PithosData.proof));

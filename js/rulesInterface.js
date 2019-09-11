@@ -74,34 +74,28 @@ const rulesData = Object.freeze({
 function introduceConjunction() {
   let retrievedLines
       = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
-  console.log(retrievedLines);
-  // let justificationLines = retrievedLines.justificationLines;
-  // let targetLine = retrievedLines.targetLine;
-  // let newConjunction = new Conjunction(justificationsLines[0].formula,
-  //     justificationLines[1].formula);
-  // if (targetLine.justification.type === justTypes.GOAL) {
-  //   let swappedConjunction = new Conjunction(justificationslines[1].formula,
-  //       justificationLines[0].formula);
-  //   if (!limitedDeepEqual(targetLine.formula, newConjunction)
-  //       && !limitedDeepEqual(targetLine.formula, swappedConjunction)) {
-  //     throw new ProofProcessingError("The selected goal does not correspond "
-  //         + "to the conjunction of the remaining formulas.");
-  //   }
-  //   targetLine.justification = new Justification(CON_INTRO, justificationLines);
-  // } else {
-  //   // TODO: Insert newly constructed proof line
-  // }
+  let justificationLines = retrievedLines.justificationLines;
+  let targetLine = retrievedLines.targetLine;
+  let newConjunction = new Conjunction(justificationLines[0].formula,
+      justificationLines[1].formula);
+  let justification
+      = new Justification(justTypes.CON_INTRO, justificationLines);
+  if (targetLine instanceof EmptyProofLine) {
+    let newLine = new JustifiedProofLine(newConjunction, justification);
+    targetLine.prepend(newLine);
+  } else {
+    /* Target line is a goal line */
+    let swappedConjunction = new Conjunction(justificationLines[1].formula,
+        justificationLines[0].formula);
+    if (!formulasDeepEqual(targetLine.formula, newConjunction)
+        && !formulasDeepEqual(targetLine.formula, swappedConjunction)) {
+      throw new ProofProcessingError("The selected goal does not correspond "
+          + "to the conjunction of the remaining formulas.");
+    }
+    targetLine.justification = justification;
+  }
 }
 
 function eliminateConjunction() {
   alert("Conjunction elim handled");
-}
-
-/*
- * Checks for deep equality using JSON.stringify
- * May not work correctly for objects with different order of attributes
-   or more complex objects (such as HTML elements)
- */
-function limitedDeepEqual(object1, object2) {
-  return JSON.stringify(object1) === JSON.stringify(object2);
 }

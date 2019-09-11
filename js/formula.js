@@ -752,3 +752,10 @@ function parseTerm(termString, parserData) {
     return new Constant(termString);
   }
 }
+
+/*
+ * Checks for formula equality using string representation
+ */
+function formulasDeepEqual(formula1, formula2) {
+  return formula1.stringRep === formula2.stringRep;
+}

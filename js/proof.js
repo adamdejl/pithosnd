@@ -74,16 +74,17 @@ class ProofItem {
     } else {
       this.parent.components = proofItem;
     }
+    this.prev = proofItem;
   }
 
   append(proofItem) {
     proofItem.parent = this.parent;
     proofItem.next = this.next;
     proofItem.prev = this;
-    this.next = proofItem;
     if (this.next !== null) {
       this.next.prev = proofItem;
     }
+    this.next = proofItem;
   }
 
   delete() {
@@ -128,19 +129,10 @@ class ProofBox extends ProofItem {
     /* Add initial line to the box components */
     this.components = initialLine;
     initialLine.parent = this;
-    if (JSON.stringify(initialLine.formula)
-        === JSON.stringify(goalLine.formula)) {
-      /* Justify immediately if the initial and goal line carry identical
-         formulas */
-      let justification = new Justification(justTypes.TICK, [initialLine]);
-      let tickLine = new JustifiedProofLine(initialLine.formula, justification);
-      initialLine.append(tickLine);
-    } else {
-      /* Add empty line and the goal line */
-      let emptyLine = new EmptyProofLine();
-      initialLine.append(emptyLine);
-      emptyLine.append(goalLine);
-    }
+    /* Add empty line and the goal line */
+    let emptyLine = new EmptyProofLine();
+    initialLine.append(emptyLine);
+    emptyLine.append(goalLine);
     this.nextAdjacent = nextAdjacent;
   }
 }
@@ -215,6 +207,29 @@ function updateLines(proof) {
   function checkCompletion(proofItem) {
     let components = proofItem.components;
     let complete = true;
+    /* Automatically justify goal if the goal formula has been proven
+       right above the empty line above goal. */
+    for (let component = components; component !== null;
+        component = component.next) {
+      if (component.next !== null && component.next.next !== null
+          && component instanceof JustifiedProofLine
+          && component.next.next instanceof JustifiedProofLine
+          && component.next.next.justification.type === justTypes.GOAL) {
+        let goalLine = component.next.next;
+        if (formulasDeepEqual(component.formula, goalLine.formula)) {
+          /* The formulas are identical */
+          if (component.justification.type === justTypes.GIVEN
+              || component.justification.type === justTypes.ASS) {
+            let newJustification
+                = new Justification(justTypes.TICK, [component])
+            goalLine.justification = newJustification;
+          } else {
+            goalLine.delete();
+          }
+        }
+      }
+    }
+    /* Determine whether any goal line remains in the current proof item */
     for (let component = components; component !== null;
         component = component.next) {
       if (component instanceof JustifiedProofLine
@@ -227,6 +242,7 @@ function updateLines(proof) {
       }
     }
     if (complete) {
+      /* Trim out relict empty lines in completed part of the proof */
       for (let component = components; component !== null;
           component = component.next) {
         if (component instanceof EmptyProofLine) {
