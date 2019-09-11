@@ -1,32 +1,60 @@
 "use strict";
 
-/* Dictionary associating rule descriptions to the corresponding
-   handling functions */
-// TODO
-const rulesDict = Object.freeze({
+/* Different types of special justifications */
+const justTypes = Object.freeze({
+  GIVEN: "given",
+  ASS: "ass",
+  ALLI_CONST: "∀I const",
+  GOAL: "&lt;goal&gt;",
+  CON_INTRO: "∧I",
+  CON_ELIM: "∧E",
+  DIS_INTRO: "∨I",
+  DIS_ELIM: "∨E",
+  IMP_INTRO: "→I",
+  IMP_ELIM: "→E",
+  NEG_INTRO: "¬I",
+  NEG_ELIM: "¬E",
+  DOUBLE_NEG_ELIM: "¬¬E",
+  TOP_INTRO: "⊤I",
+  BOT_INTRO: "⊥I",
+  BOT_ELIM: "⊥E",
+  BICONDL_INTRO: "↔I",
+  BICONDL_ELIM: "↔E",
+  EM: "EM",
+  PC: "PC",
+  EXIS_INTRO: "∃I",
+  EXIS_ELIM: "∃E",
+  UNIV_INTRO: "∀I",
+  UNIV_ELIM: "∀E",
+  UNIV_IMP_INTRO: "∀→I",
+  UNIV_IMP_ELIM: "∀→E",
+  EQ_SUB: "=sub",
+  EQ_REFL: "refl",
+  EQ_SYM: "=sym",
+  TICK: "✓"
+});
 
-})
 
 class Justification {
-  constructor(rule, linesArray) {
-    this.rule = rule;
+  constructor(type, linesArray) {
+    this.type = type;
     this.linesArray = linesArray;
   }
 
   get stringRep() {
     let lineNumbers = this.linesArray.map(x => x.lineNumber);
     lineNumbers.sort();
-    return `${this.rule} (${lineNumbers.join(", ")})`
+    return `${this.type} (${lineNumbers.join(", ")})`
   }
 }
 
-class TextJustification {
-  constructor(textJustification) {
-    this.textJustification = textJustification;
+class SpecialJustification {
+  constructor(type) {
+    this.type = type;
   }
 
   get stringRep() {
-    return this.textJustification;
+    return this.type;
   }
 }
 
@@ -37,17 +65,23 @@ class ProofItem {
   }
 }
 
-class JustifiedProofLine extends ProofItem {
-  constructor(formula, justification) {
-    /* Line number to be updated on request */
+class ProofLine extends ProofItem {
+  constructor() {
     super();
+    /* Line number to be updated on request using updateLines */
     this.lineNumber = 0;
+  }
+}
+
+class JustifiedProofLine extends ProofLine {
+  constructor(formula, justification) {
+    super();
     this.formula = formula;
     this.justification = justification;
   }
 }
 
-class EmptyProofLine extends ProofItem {
+class EmptyProofLine extends ProofLine {
   constructor() {
     super();
   }
@@ -62,7 +96,7 @@ class ProofBox extends ProofItem {
         === JSON.stringify(goalLine.formula)) {
       /* Justify immediately if the initial and goal line carry identical
          formulas */
-      let justification = new Justification("✓", [initialLine]);
+      let justification = new Justification(justTypes.TICK, [initialLine]);
       let tickLine = new JustifiedProofLine(initialLine.formula, justification);
       this.components.push(tickLine);
     } else {
@@ -97,12 +131,14 @@ function initializeProof(parsingResults) {
     }
   }
   let initialProofLines = parsedFormulas
-      .map(x => new JustifiedProofLine(x, new TextJustification("given")));
+      .map(x => new JustifiedProofLine(x,
+          new SpecialJustification(justTypes.GIVEN)));
   if (i === parsedFormulas.length) {
     /* Givens do not include the goal */
     initialProofLines.push(new EmptyProofLine());
     initialProofLines.push(
-        new JustifiedProofLine(parsedGoal, new TextJustification("goal")));
+        new JustifiedProofLine(parsedGoal,
+            new SpecialJustification(justTypes.GOAL)));
   } else {
     /* Givens contain the goal, automatically complete proof with tick rule */
     let justification = new Justification("✓", [initialProofLines[i]]);
@@ -119,29 +155,51 @@ function initializeProof(parsingResults) {
    completeness
  */
 function updateLines(proof) {
+  checkCompletion(proof);
   updateLinesHelper(proof, 1);
-}
 
-/*
- * Helper function for updateLines
- */
-function updateLinesHelper(proofItem, lineNumber) {
-  let components = proofItem.components;
-  let complete = true;
-  for (let i = 0; i < components.length; i++) {
-    if (components[i] instanceof JustifiedProofLine) {
-      /* Update line number */
-      components[i].lineNumber = lineNumber;
-      lineNumber++;
-    } else if (components[i] instanceof EmptyProofLine) {
-      complete = false;
-    } else if (components[i] instanceof ProofBox) {
-      lineNumber = updateLinesHelper(components[i], lineNumber);
-      complete &= components[i].complete;
+  /*
+   * Checks the individual proof items for completion and trims out
+     unnecessary empty lines
+   */
+  function checkCompletion(proofItem) {
+    let components = proofItem.components;
+    let complete = true;
+    for (let i = 0; i < components.length; i++) {
+      if (components[i] instanceof JustifiedProofLine
+          && components[i].justification.type === justTypes.GOAL) {
+        complete = false
+      }
+      if (components[i] instanceof ProofBox) {
+        checkCompletion(components[i]);
+        complete &= components[i].complete;
+      }
     }
+    if (complete) {
+      proofItem.components
+          = components.filter(x => !(x instanceof EmptyProofLine));
+    }
+    proofItem.complete = complete;
   }
-  proofItem.complete = complete;
-  return lineNumber;
+
+  /*
+   * Helper function for updateLines
+   */
+  function updateLinesHelper(proofItem, lineNumber) {
+    let components = proofItem.components;
+    for (let i = 0; i < components.length; i++) {
+      if (components[i] instanceof JustifiedProofLine
+          || components[i] instanceof EmptyProofLine) {
+        /* Update line number */
+        components[i].lineNumber = lineNumber;
+        lineNumber++;
+      }
+      if (components[i] instanceof ProofBox) {
+        lineNumber = updateLinesHelper(components[i], lineNumber);
+      }
+    }
+    return lineNumber;
+  }
 }
 
 /*
@@ -157,66 +215,66 @@ function proofToHTML(proof) {
       `<table class="table table-borderless table-sm table-responsive">
          <tbody>
            <tr>
-         		 <td class="box-cell">
-        			 <table class="proof-table${complete}">
-        				 <tbody>
+             <td class="box-cell">
+               <table class="proof-table${complete}">
+                 <tbody>
                    ${innerHTML}
-        			   </tbody>
-        			 </table>
-        		 </td>
-        	 </tr>
+                 </tbody>
+               </table>
+             </td>
+           </tr>
          </tbody>
        </table>`
   return proofHTML;
-}
 
-/*
- * Helper function for proofToHTML
- */
-function proofToHTMLHelper(proofItem) {
-  let proofHTML = "";
-  let components = proofItem.components;
-  let prevAdjacent = false;
-  for (let i = 0; i < components.length; i++) {
-    if (components[i] instanceof JustifiedProofLine) {
-      proofHTML +=
-          `<tr class="proof-line">
-             <th class="shrink" scope="row">${components[i].lineNumber}</th>
-             <td>${components[i].formula.stringRep}</td>
-             <td class="shrink justification-cell">${components[i].justification.stringRep}</td>
-           </tr>`;
-    } else if (components[i] instanceof EmptyProofLine) {
-      proofHTML +=
-          `<tr colspan="3" class="proof-line">
-             <th class="shrink" scope="row">–</th>
-             <td>&lt;empty line&gt;</td>
-             <td class="shrink justification-cell"></td>
-           </tr>`;
-    } else if (components[i] instanceof ProofBox) {
-      if (!prevAdjacent) {
+  /*
+   * Helper function for proofToHTML
+   */
+  function proofToHTMLHelper(proofItem) {
+    let proofHTML = "";
+    let components = proofItem.components;
+    let prevAdjacent = false;
+    for (let i = 0; i < components.length; i++) {
+      if (components[i] instanceof JustifiedProofLine) {
         proofHTML +=
-            `<tr>
-               <td class="box-cell" colspan="3">
-                 <table class="proof-box">
-                   <tbody>`;
-      } else {
+            `<tr class="proof-line" tabindex="0">
+               <th class="shrink" scope="row">${components[i].lineNumber}</th>
+               <td>${components[i].formula.stringRep}</td>
+               <td class="shrink justification-cell">${components[i].justification.stringRep}</td>
+             </tr>`;
+      } else if (components[i] instanceof EmptyProofLine) {
         proofHTML +=
-            `<table class="proof-box">
-               <tbody>`;
-        prevAdjacent = false;
-      }
-      proofHTML += proofToHTMLHelper(components[i]);
-      if (!components[i].nextAdjacent) {
-        proofHTML += `</tbody>
-                    </table>
-                  </td>
-                </tr>`;
-      } else {
-        proofHTML += `</tbody>
-                    </table>`;
-        prevAdjacent = true;
+            `<tr colspan="3" class="proof-line" tabindex="0">
+               <th class="shrink" scope="row">${components[i].lineNumber}</th>
+               <td>&lt;empty line&gt;</td>
+               <td class="shrink justification-cell"></td>
+             </tr>`;
+      } else if (components[i] instanceof ProofBox) {
+        if (!prevAdjacent) {
+          proofHTML +=
+              `<tr>
+                 <td class="box-cell" colspan="3">
+                   <table class="proof-box">
+                     <tbody>`;
+        } else {
+          proofHTML +=
+              `<table class="proof-box">
+                 <tbody>`;
+          prevAdjacent = false;
+        }
+        proofHTML += proofToHTMLHelper(components[i]);
+        if (!components[i].nextAdjacent) {
+          proofHTML += `</tbody>
+                      </table>
+                    </td>
+                  </tr>`;
+        } else {
+          proofHTML += `</tbody>
+                      </table>`;
+          prevAdjacent = true;
+        }
       }
     }
+    return proofHTML;
   }
-  return proofHTML;
 }

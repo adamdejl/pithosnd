@@ -2,81 +2,9 @@
 
 jQuery(function($) {
 
-  /* Set up global object for status variables */
-  let PithosData = {
-    numGivens: 0,
-    selectedLinesSet: new Set([])
-  }
-
   /* Disable invalid buttons on reload */
   $("#removeGiven").attr("disabled", true);
   $("#startProof").attr("disabled", true);
-
-  /*
-   * Parse all formulas and report the results of the parsing
-   * Returns true on success, false on failure
-   */
-  function parseAll() {
-    let signature = {
-      constants: [],
-      relationArities: {},
-      functionArities: {}
-    };
-    let errors = false;
-    let parsingResults = {
-      signature: signature,
-      formulas: []
-    }
-
-    /* Parse all givens */
-    for (let i = 0; i <= PithosData.numGivens; i++) {
-      /* Backup signature in case of error in parsing */
-      let signatureCopy = $.extend(true, {}, signature);
-      let parsedFormula;
-      let inputElement;
-      let outputElement;
-      if (i < PithosData.numGivens) {
-        /* Process given formula */
-        inputElement = $("#givenInput" + i);
-        outputElement = $("#givenParsed" + i);
-      } else {
-        /* Process goal formula */
-        inputElement = $("#goalInput");
-        outputElement = $("#goalParsed");
-      }
-      try {
-        parsedFormula = parseFormula(inputElement[0].value, signature);
-        parsingResults.formulas.push(parsedFormula);
-      } catch (error) {
-        if (error instanceof FormulaParsingError) {
-          /* Show result and log error */
-          errors = true;
-          outputElement.text(error.message);
-          outputElement
-              .removeClass("alert-dark alert-success")
-              .addClass("alert-danger");
-          /* Restore original signature */
-          signature = signatureCopy;
-          continue;
-        } else {
-          throw error;
-        }
-      }
-      /* Show result */
-      outputElement.text(parsedFormula.stringRep);
-      outputElement
-          .removeClass("alert-dark alert-danger")
-          .addClass("alert-success");
-    }
-
-    /* Disable or enable Start proof button depending on errors */
-    if (errors) {
-      $("#startProof").attr("disabled", true);
-      return null;
-    }
-    $("#startProof").attr("disabled", false);
-    return parsingResults;
-  }
 
   /*
    * Add new field for a given
@@ -126,7 +54,8 @@ jQuery(function($) {
   $("#inputArea").on("input", ".given-input, #goalInput", parseAll);
 
   /*
-   * Insert special character and parse all formulas
+   * Insert special character and parse all formulas after pressing
+     toolbar button
    */
   $(".insert-char-btn").on('mousedown', function(mouseDownEvent) {
     mouseDownEvent.preventDefault();
@@ -155,11 +84,9 @@ jQuery(function($) {
   $("#startProof").click(function() {
     let parsingResults = parseAll();
     if (parsingResults !== null) {
-      let proof = initializeProof(parsingResults);
-      updateLines(proof);
-      console.log(proof);
-      let proofHTML = proofToHTML(proof);
-      $("#proofContainer").html(proofHTML);
+      PithosData.proof = initializeProof(parsingResults);
+      updateLines(PithosData.proof);
+      $("#proofContainer").html(proofToHTML(PithosData.proof));
       $("#inputArea").hide();
       $("#proofArea").show();
     }
@@ -178,18 +105,82 @@ jQuery(function($) {
    */
   $("#proofContainer").on("click", ".proof-line", function(clickEvent) {
     let target = clickEvent.target;
+    /* Locate the whole line element */
     while (target.tagName != "TR") {
       target = target.parentElement;
     }
     let targetSelector = $(target);
+    /* Extract line number */
     let lineNumberElement = targetSelector.find("th")[0];
     let lineNumber = Number(lineNumberElement.innerText);
     if (PithosData.selectedLinesSet.has(lineNumber)) {
+      /* Deselect line */
       PithosData.selectedLinesSet.delete(lineNumber);
+      delete PithosData.lineNumToSelector[lineNumber];
       targetSelector.removeClass("text-primary");
     } else {
+      /* Select line */
       PithosData.selectedLinesSet.add(lineNumber);
+      PithosData.lineNumToSelector[lineNumber] = targetSelector;
       targetSelector.addClass("text-primary");
+    }
+    if (!PithosData.freeSelection && PithosData.selectedLinesSet.size
+        === PithosData.selectedRuleData.numLines) {
+      /* Update proof if certain rule is activated and the required number of
+         proof lines has been selected */
+      updateProof();
+    }
+  });
+
+  /*
+   * Select or deselect a line on enter keypress
+   */
+  $("#proofContainer").on("keypress", ".proof-line", function(keypressEvent) {
+    const enterKey = 13;
+    if (keypressEvent.which === enterKey) {
+      $(keypressEvent.target).click();
+    }
+  });
+
+  /*
+   * Attempt to apply activated rule.
+   */
+  $(".apply-rule").click(function(clickEvent) {
+    let target = clickEvent.target;
+    if ($(target).hasClass("btn-primary")) {
+      /* Deactivate selection of the rule */
+      PithosData.freeSelection = true;
+      $(target).removeClass("btn-primary").addClass("btn-secondary");
+      return;
+    }
+    if (PithosData.selectedButton !== null) {
+      /* Deactivate possible previous rule selection */
+      $(PithosData.selectedButton)
+          .removeClass("btn-primary")
+          .addClass("btn-secondary");
+    }
+    /* Attempt to activate rule and save the information globally */
+    $(target).removeClass("btn-secondary").addClass("btn-primary");
+    let ruleData = rulesData[target.innerText];
+    PithosData.freeSelection = false;
+    PithosData.selectedRuleData = ruleData;
+    PithosData.selectedButton = target;
+    if (PithosData.selectedLinesSet.size === ruleData.numLines) {
+      updateProof();
+    } else if (PithosData.selectedLinesSet.size > ruleData.numLines) {
+      showAlert("Error", "You have selected too many lines for the "
+          + `application of the rule ${target.innerText}. Please deselect `
+          + "some of the lines or cancel the application of the current rule. "
+          + "Expected number of selected lines for this rule is "
+          +  `${ruleData.numLines}.`,
+          ruleData.hint);
+    } else if (PithosData.selectedLinesSet.size !== 0) {
+      showAlert("Warning", "You have selected too few lines for the "
+          + `application of the rule ${target.innerText}. Expected number `
+          + `of selected lines for this rule is ${ruleData.numLines}. `
+          + "Please select additional lines or cancel the application of the "
+          + "current rule.",
+          ruleData.hint);
     }
   });
 });

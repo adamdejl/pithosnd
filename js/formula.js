@@ -14,7 +14,7 @@ class Term {
   }
 
   get stringRep() {
-    return "<<Generic term>>";
+    return "<Generic term>";
   }
 }
 
@@ -84,7 +84,7 @@ class Formula {
   }
 
   get stringRep() {
-    return "<<Generic formula>>";
+    return "<Generic formula>";
   }
 }
 
