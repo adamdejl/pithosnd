@@ -292,7 +292,7 @@ describe('Formula', function() {
 
   describe('Biconditional', function() {
     it('Parsing of "A ↔ B" and equivalent', function() {
-      let formulas = ["A ↔ B", "A ⇔ B", "A ≡ B", "A <-> B", "A <> B"]
+      let formulas = ["A ↔ B", "A ⇔ B", "A ≡ B", "A <-> B", "A <> B", "A # B"];
       formulas.forEach(function(formula) {
         let signature = {
           constants: [],
@@ -322,7 +322,7 @@ describe('Formula', function() {
     it('Parsing of "A ↔ B ↔ C ↔ D ↔ E" and equivalent', function() {
       let formulas = ["A ↔ B ↔ C ↔ D ↔ E", "A ⇔ B ⇔ C ⇔ D ⇔ E",
                       "A ≡ B ≡ C ≡ D ≡ E", "A <-> B <-> C <-> D <-> E",
-                      "A <> B <> C <> D <> E"]
+                      "A <> B <> C <> D <> E", "A # B # C # D # E"];
       formulas.forEach(function(formula) {
         let signature = {
           constants: [],
@@ -561,6 +561,45 @@ describe('Formula', function() {
           ["constant", "anotherconstant"]);
       assert.deepEqual(signature.relationArities, {red: 2});
       assert.deepEqual(signature.functionArities, {function: 2, inner: 1});
+    });
+
+    it('Parsing of "A ∧ B ∧ C ∧ D ∧ (D → E) & ∀x[computer(x)]"', function() {
+      let formula = "A ∧ B ∧ C ∧ D ∧ (D → E) & ∀x[computer(x)]";
+      let signature = {
+        constants: [],
+        relationArities: {},
+        functionArities: {}
+      }
+      let parsedFormula = parseFormula(formula, signature);
+      /* Correct type */
+      assert.equal(parsedFormula.type, formulaTypes.CONJUNCTION);
+
+      /* Correct string representation */
+      assert.equal(parsedFormula.stringRep,
+          "A ∧ B ∧ C ∧ D ∧ (D → E) ∧ ∀x[computer(x)]");
+      /* Correct result of the parsing */
+      let propositionalVariableA = new PropositionalVariable("A");
+      let propositionalVariableB = new PropositionalVariable("B");
+      let propositionalVariableC = new PropositionalVariable("C");
+      let propositionalVariableD = new PropositionalVariable("D");
+      let propositionalVariableE = new PropositionalVariable("E");
+      let variableX = new Variable("x");
+      let conjunction1
+          = new Conjunction(propositionalVariableA, propositionalVariableB);
+      let conjunction2 = new Conjunction(conjunction1, propositionalVariableC);
+      let conjunction3 = new Conjunction(conjunction2, propositionalVariableD);
+      let implication
+          = new Implication(propositionalVariableD, propositionalVariableE);
+      let conjunction4 = new Conjunction(conjunction3, implication);
+      let computer = new Relation("computer", [variableX]);
+      let universal = new Universal("x", computer);
+      let conjunction5 = new Conjunction(conjunction4, universal);
+      assert.deepEqual(parsedFormula, conjunction5);
+
+      /* Correctly updated signature */
+      assert.deepEqual(signature.constants, []);
+      assert.deepEqual(signature.relationArities, {computer: 1});
+      assert.deepEqual(signature.functionArities, {});
     });
   });
 });
