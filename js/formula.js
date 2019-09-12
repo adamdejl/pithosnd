@@ -326,6 +326,7 @@ const operatorDataDict = Object.freeze({
   "≡": biconditionalData,
   "<->": biconditionalData,
   "<>": biconditionalData,
+  "#": biconditionalData,
   "∀": universalData,
   "(A)": universalData,
   "∃": existentialData,
@@ -347,11 +348,11 @@ class FormulaParsingError extends Error {
 }
 
 const OPERATOR_REGEX = new RegExp(''
-    + /^\(A\)|^\(E\)|^->|^<->|^\(|^\[|^\)|^\]|^~|^˜|^¬|^!|^-|/.source
-    + /^[∧^.·&∨+|→⇒⊃>↔⇔≡<∀∃]+/.source
+    + /^\(A\)|^\(E\)|^->|^<->|^\(|^\[|^\)|^\]|^~|^˜|^¬|^!|^-|^∧|^\^|^\.|/.source
+    + /^·|^&&|^&|^∨|^\+|^\|\||^\||^→|^⇒|^⊃|^>|^↔|^⇔|^≡|^<>|^#|^∀|^∃/.source
 );
-const OPERAND_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<∀∃]+/;
-const QUANTIFIER_VAR_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<∀∃()[\]]+/;
+const OPERAND_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<#∀∃]+/;
+const QUANTIFIER_VAR_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<#∀∃()[\]]+/;
 const RELATION_OR_FUNCTION_NAME_REGEX = /(^[^(]+?)(?:\[|\()/;
 const BRACKETED_REGEX = /^(?:\[|\()(.+?)(?:\]|\))$/;
 
