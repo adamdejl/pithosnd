@@ -8,7 +8,7 @@ let PithosData = {
   lineNumToSelector: {},
   selectedRuleData: null,
   selectedButton: null,
-  freeSelection: true
+  freeSelection: true,
 }
 
 /*
@@ -80,13 +80,18 @@ function parseAll() {
 /*
  * Shows modal alert
  */
-function showAlert(title, message, hint) {
+function showAlert(title, message, hint, buttonId) {
   let hintHTML = "";
   if (hint !== undefined) {
     hintHTML =
       `<hr>
        <h5>Hint</h5>
        ${hint}`
+  }
+  let buttonIdHTML = ""
+  if (buttonId != undefined) {
+    buttonIdHTML =
+        ` id="${buttonId}"`
   }
   let template =
       `<div id="dynamicModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dynamicModalLabel" aria-hidden="true">
@@ -102,7 +107,7 @@ function showAlert(title, message, hint) {
   						 ${message}${hintHTML}
   					 </div>
   					 <div class="modal-footer">
-  						 <button type="button" class="btn btn-outline-primary" data-dismiss="modal">OK</button>
+  						 <button${buttonIdHTML} type="button" class="btn btn-outline-primary" data-dismiss="modal">OK</button>
   					 </div>
   				 </div>
   			 </div>
@@ -144,4 +149,12 @@ function updateProof() {
   $(PithosData.selectedButton)
       .removeClass("btn-primary")
       .addClass("btn-secondary");
+}
+
+/*
+ * Completes update of the proof in case of rules requiring additional input
+ */
+function completeProofUpdate() {
+  updateLines(PithosData.proof);
+  $("#proofContainer").html(proofToHTML(PithosData.proof));
 }

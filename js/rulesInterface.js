@@ -71,6 +71,9 @@ const rulesData = Object.freeze({
   //     + "of a formula and an empty or goal line.", name: "✓"}
 });
 
+/*
+ * Function handling conjunction introduction
+ */
 function introduceConjunction() {
   let retrievedLines
       = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
@@ -96,6 +99,73 @@ function introduceConjunction() {
   }
 }
 
+/*
+ * Function handling conjunction elimination
+ */
 function eliminateConjunction() {
-  alert("Conjunction elim handled");
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  if (justificationLines[0].formula.type !== formulaTypes.CONJUNCTION) {
+    throw new ProofProcessingError("The selected justification formula is "
+        + "not a conjunction.");
+  }
+  let targetLine = retrievedLines.targetLine;
+  let conjuncts = [];
+  extractConjuncts(justificationLines[0].formula, conjuncts);
+  if (targetLine instanceof EmptyProofLine) {
+    let message
+        = "Please select the conjunct(s) that you would like to eliminate:";
+    for (let i = 0; i < conjuncts.length; i++) {
+      message +=
+          `<div class="custom-control custom-checkbox">
+             <input type="checkbox" class="custom-control-input" id="${"conjunctCheckbox" + i}">
+             <label class="custom-control-label" for="${"conjunctCheckbox" + i}">${conjuncts[i].stringRep}</label>
+           </div>`
+    }
+    showAlert("Input required", message, undefined,
+        "eliminateConjunctionComplete");
+  } else {
+    /* Target line is a goal line */
+    for (var i = 0; i < conjuncts.length; i++) {
+      if (formulasDeepEqual(conjuncts[i], targetLine.formula)) {
+        let justification
+            = new Justification(justTypes.CON_ELIM, justificationLines);
+        targetLine.justification = justification;
+        return;
+      }
+    }
+    throw new ProofProcessingError("Neither of the conjuncts in the "
+        + "justification formula matches the goal formula.")
+  }
+
+  /*
+   * Complete rule application by eliminating selected conjuncts
+   */
+  /* Unbind possible previously bound event */
+  $("#dynamicModalArea").off("click", "#eliminateConjunctionComplete");
+  $("#dynamicModalArea").on("click", "#eliminateConjunctionComplete",
+      function() {
+    for (let i = 0; i < conjuncts.length; i++) {
+      if ($("#conjunctCheckbox" + i).is(":checked")) {
+        let justification
+            = new Justification(justTypes.CON_ELIM, justificationLines)
+        let newLine = new JustifiedProofLine(conjuncts[i], justification);
+        targetLine.prepend(newLine);
+      }
+    }
+    completeProofUpdate();
+  });
+
+  /*
+   * Extracts individual conjuncts from a conjunction formula
+   */
+  function extractConjuncts(formula, extractionTarget) {
+    if (formula.type !== formulaTypes.CONJUNCTION) {
+      extractionTarget.push(formula);
+    } else {
+      extractConjuncts(formula.operand1, extractionTarget);
+      extractConjuncts(formula.operand2, extractionTarget);
+    }
+  }
 }
