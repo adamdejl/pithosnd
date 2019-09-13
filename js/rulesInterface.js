@@ -16,9 +16,9 @@ const rulesData = Object.freeze({
       + "selection of one disjuction and an empty or goal line.", name: "∨E"},
   "→I": {handler: introduceImplication, numLines: 1, hint: "→I requires "
       + "selection of an empty or goal line.", name: "→I"},
-  // "→E": {handler: eliminateImplication, numLines: 3, hint: "→E requires "
-  //     + "selection of an implication, formula matching the antecedent of the "
-  //     + "implication and an empty or goal line.", name: "→E"},
+  "→E": {handler: eliminateImplication, numLines: 3, hint: "→E requires "
+      + "selection of an implication, formula matching the antecedent of the "
+      + "implication and an empty or goal line.", name: "→E"},
   // "¬I": {handler: introduceNegation, numLines: 1, hint: "¬I requires "
   //     + "selection of an empty or goal line.", name: "¬I"},
   // "¬E": {handler: eliminateNegation, numLines: 3, hint: "¬E requires "
@@ -326,6 +326,9 @@ function eliminateDisjunction() {
   });
 }
 
+/*
+ * Function handling implication introduction
+ */
 function introduceImplication() {
   let retrievedLines
       = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
@@ -381,6 +384,46 @@ function introduceImplication() {
     newEmptyLine.prepend(newJustifiedLine);
     completeProofUpdate();
   });
+}
+
+/*
+ * Function handling implication elimination
+ */
+function eliminateImplication() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  let implicationFormula;
+  let antecedentFormula;
+  if (justificationLines[0].formula.type === formulaTypes.IMPLICATION) {
+    implicationFormula = justificationLines[0].formula;
+    antecedentFormula = justificationLines[1].formula;
+  } else if (justificationLines[1].formula.type === formulaTypes.IMPLICATION) {
+    implicationFormula = justificationLines[1].formula;
+    antecedentFormula = justificationLines[0].formula;
+  } else {
+    throw new ProofProcessingError("Neither of the selected justification "
+        + "formulas is an implication.")
+  }
+  if (!formulasDeepEqual(implicationFormula.operand1, antecedentFormula)) {
+    throw new ProofProcessingError("The antecedent of the implication does "
+        + "not match the additional justification formula.");
+  }
+  let consequent = implicationFormula.operand2;
+  let targetLine = retrievedLines.targetLine;
+  if (targetLine instanceof EmptyProofLine) {
+    let justification
+        = new Justification(justTypes.IMP_ELIM, justificationLines);
+    let newJustifiedLine = new JustifiedProofLine(consequent, justification);
+    targetLine.prepend(newJustifiedLine);
+  } else {
+    if (!formulasDeepEqual(targetLine.formula, consequent)) {
+      throw new ProofProcessingError("The consequent of the implication does "
+          + "not match the selected goal formula.")
+    }
+    targetLine.justification
+        = new Justification(justTypes.IMP_ELIM, justificationLines);
+  }
 }
 
 /*
