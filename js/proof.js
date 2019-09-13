@@ -140,6 +140,7 @@ class ProofBox extends ProofItem {
 class Proof extends ProofItem {
   constructor(initialProofLine, signature) {
     super();
+    this.complete = false;
     this.components = initialProofLine;
     this.signature = signature;
   }
@@ -213,11 +214,14 @@ function updateLines(proof) {
         component = component.next) {
       if (component.next !== null && component.next.next !== null
           && component instanceof JustifiedProofLine
+          && component.next instanceof EmptyProofLine
           && component.next.next instanceof JustifiedProofLine
           && component.next.next.justification.type === justTypes.GOAL) {
+        let emptyLine = component.next;
         let goalLine = component.next.next;
         if (formulasDeepEqual(component.formula, goalLine.formula)) {
           /* The formulas are identical */
+          emptyLine.delete();
           if (component.justification.type === justTypes.GIVEN
               || component.justification.type === justTypes.ASS) {
             let newJustification
@@ -238,7 +242,7 @@ function updateLines(proof) {
       }
       if (component instanceof ProofBox) {
         checkCompletion(component);
-        complete &= component.complete;
+        complete = complete && component.complete;
       }
     }
     if (complete) {
@@ -395,10 +399,10 @@ function retrieveLines(proof, linesSet) {
   }
   for (let justificationLine of retrievedLines.justificationLines) {
     if (!checkScope(justificationLine, retrievedLines.targetLine)) {
-      throw new ProofProcessingError("One or more of the justification lines "
-          + "selected is out of scope for the chosen target (goal or empty) "
-          + "line. Please make sure that you are not using formulas outside "
-          + "of their boxes.");
+      throw new ProofProcessingError("One or more of the selected "
+          + "justification lines is out of scope for the chosen target (goal "
+          + "or empty) line. Please make sure that you are not using formulas "
+          + "outside of their boxes.");
     }
   }
   return retrievedLines;
