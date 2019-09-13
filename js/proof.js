@@ -43,7 +43,7 @@ class Justification {
 
   get stringRep() {
     let lineNumbers = this.linesArray.map(x => x.lineNumber);
-    lineNumbers.sort();
+    lineNumbers.sort((a, b) => a - b);
     return `${this.type} (${lineNumbers.join(", ")})`
   }
 }
