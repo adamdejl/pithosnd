@@ -57,11 +57,12 @@ jQuery(function($) {
    * Insert special character and parse all formulas after pressing
      toolbar button
    */
-  $(".insert-char-btn").on('mousedown', function(mouseDownEvent) {
+  $(document).on("mousedown", ".insert-char-btn", function(mouseDownEvent) {
     mouseDownEvent.preventDefault();
     let focusElement = $(":focus");
     if (focusElement.hasClass("given-input")
-        || focusElement.hasClass("goal-input")) {
+        || focusElement.hasClass("goal-input")
+        || focusElement.hasClass("additional-formula-input")) {
       /* Insert character at the correct place */
       let cursorPosition = focusElement.prop('selectionStart');
       let value = focusElement[0].value;
@@ -176,14 +177,14 @@ jQuery(function($) {
     if (PithosData.selectedLinesSet.size === ruleData.numLines) {
       updateProof();
     } else if (PithosData.selectedLinesSet.size > ruleData.numLines) {
-      showAlert("Error", "You have selected too many lines for the "
+      showModal("Error", "You have selected too many lines for the "
           + `application of the rule ${target.innerText}. Please deselect `
           + "some of the lines or cancel the application of the current rule. "
           + "Expected number of selected lines for this rule is "
           +  `${ruleData.numLines}.`,
           ruleData.hint);
     } else if (PithosData.selectedLinesSet.size !== 0) {
-      showAlert("Warning", "You have selected too few lines for the "
+      showModal("Warning", "You have selected too few lines for the "
           + `application of the rule ${target.innerText}. Expected number `
           + `of selected lines for this rule is ${ruleData.numLines}. `
           + "Please select additional lines or cancel the application of the "

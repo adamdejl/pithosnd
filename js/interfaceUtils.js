@@ -80,18 +80,23 @@ function parseAll() {
 /*
  * Shows modal alert
  */
-function showAlert(title, message, hint, buttonId) {
+function showModal(title, modalBody, hint, customId, customButtons) {
   let hintHTML = "";
   if (hint !== undefined) {
     hintHTML =
       `<hr>
        <h5>Hint</h5>
-       ${hint}`
+       ${hint}`;
   }
-  let buttonIdHTML = ""
-  if (buttonId != undefined) {
-    buttonIdHTML =
-        ` id="${buttonId}"`
+  let customIdHTML = "";
+  if (customId !== undefined) {
+    customIdHTML = ` id="${customId}"`;
+  }
+  let defaultButton
+      = `<button${customIdHTML} type="button" class="btn btn-outline-primary" data-dismiss="modal">OK</button>`;
+  let buttons = defaultButton;
+  if (customButtons !== undefined) {
+    buttons = customButtons;
   }
   let template =
       `<div id="dynamicModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dynamicModalLabel" aria-hidden="true">
@@ -104,10 +109,10 @@ function showAlert(title, message, hint, buttonId) {
   						 </button>
   					 </div>
   					 <div class="modal-body">
-  						 ${message}${hintHTML}
+  						 ${modalBody}${hintHTML}
   					 </div>
   					 <div class="modal-footer">
-  						 <button${buttonIdHTML} type="button" class="btn btn-outline-primary" data-dismiss="modal">OK</button>
+  						 ${buttons}
   					 </div>
   				 </div>
   			 </div>
@@ -135,7 +140,7 @@ function updateProof() {
     PithosData.selectedRuleData.handler();
   } catch (error) {
     if (error instanceof ProofProcessingError) {
-      showAlert("Error", `<p>An error occured during application of the rule `
+      showModal("Error", `<p>An error occured during application of the rule `
           + `${PithosData.selectedRuleData.name}:</p> <p>${error.message}</p>`,
           PithosData.selectedRuleData.hint);
     } else {

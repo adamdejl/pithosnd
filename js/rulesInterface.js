@@ -9,9 +9,9 @@ const rulesData = Object.freeze({
       + "goal line.", name: "∧I"},
   "∧E": {handler: eliminateConjunction, numLines: 2, hint: "∧E requires "
       + "selection of a conjunction and an empty or goal line.", name: "∧E"},
-  // "∨I": {handler: introduceDisjunction, numLines: 2, hint: "∨I requires "
-  //     + "selection of one formula to become one of the disjuncts and an "
-  //     + "empty or goal line.", name: "∨I"},
+  "∨I": {handler: introduceDisjunction, numLines: 2, hint: "∨I requires "
+      + "selection of one formula to become one of the disjuncts and an "
+      + "empty or goal line.", name: "∨I"},
   // "∨E": {handler: eliminateDisjunction, numLines: 2, hint: "∨E requires "
   //     + "selection of one disjuction and an empty or goal line.", name: "∨E"},
   // "→I": {handler: introduceImplication, numLines: 1, hint: "→I requires "
@@ -112,31 +112,33 @@ function eliminateConjunction() {
   }
   let targetLine = retrievedLines.targetLine;
   let conjuncts = [];
-  extractConjuncts(justificationLines[0].formula, conjuncts);
+  extractOperands(justificationLines[0].formula, conjuncts,
+      formulaTypes.CONJUNCTION);
   if (targetLine instanceof EmptyProofLine) {
-    let message
+    /* Targent line is an empty line - allow user to choose conjuncts to be
+       eliminated */
+    let modalBody
         = "Please select the conjunct(s) that you would like to eliminate:";
     for (let i = 0; i < conjuncts.length; i++) {
-      message +=
+      modalBody +=
           `<div class="custom-control custom-checkbox">
              <input type="checkbox" class="custom-control-input" id="${"conjunctCheckbox" + i}">
              <label class="custom-control-label" for="${"conjunctCheckbox" + i}">${conjuncts[i].stringRep}</label>
            </div>`
     }
-    showAlert("Input required", message, undefined,
+    showModal("Input required", modalBody, undefined,
         "eliminateConjunctionComplete");
   } else {
     /* Target line is a goal line */
     for (var i = 0; i < conjuncts.length; i++) {
       if (formulasDeepEqual(conjuncts[i], targetLine.formula)) {
-        let justification
+        targetLine.justification
             = new Justification(justTypes.CON_ELIM, justificationLines);
-        targetLine.justification = justification;
         return;
       }
     }
-    throw new ProofProcessingError("Neither of the conjuncts in the "
-        + "justification formula matches the goal formula.")
+    throw new ProofProcessingError("Neither of the individiual conjuncts in "
+        + "the justification formula matches the goal formula.")
   }
 
   /*
@@ -156,16 +158,183 @@ function eliminateConjunction() {
     }
     completeProofUpdate();
   });
+}
+
+/*
+ * Function handling disjunction introduction
+ */
+function introduceDisjunction() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  let targetLine = retrievedLines.targetLine;
+  if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - allow user to specify resulting formula */
+    let requestText = "Please enter the additional disjunct of the introduced "
+        + "formula and choose the order of the disjuncts:";
+    let buttons =
+        `<button id="introduceDisjunctionCompleteLeft" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal" disabled>${justificationLines[0].formula.stringRep} ∨ ?</button>
+         <button id="introduceDisjunctionCompleteRight" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal" disabled>? ∨ ${justificationLines[0].formula.stringRep}</button>`
+    requestFormulaInput(requestText, buttons);
+  } else {
+    /* Target line is a goal line - automatically attempt to derive goal
+       formula */
+    if (checkDisjunctionIntroduction(justificationLines[0].formula,
+        targetLine.formula)) {
+      targetLine.justification
+          = new Justification(justTypes.DIS_INTRO, justificationLines);
+      return;
+    }
+    throw new ProofProcessingError("Neither right nor left disjunct(s) "
+        + "match(es) the justification formula and hence the disjunction "
+        + "introduction rule can not be applied.");
+  }
 
   /*
-   * Extracts individual conjuncts from a conjunction formula
+   * Catch user action to complete the rule application
    */
-  function extractConjuncts(formula, extractionTarget) {
-    if (formula.type !== formulaTypes.CONJUNCTION) {
-      extractionTarget.push(formula);
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#introduceDisjunctionCompleteLeft");
+  $("#dynamicModalArea").off("click", "#introduceDisjunctionCompleteRight");
+  $("#dynamicModalArea").on("click", "#introduceDisjunctionCompleteLeft",
+      function() {
+    completeDisjunction(true);
+  });
+  $("#dynamicModalArea").on("click", "#introduceDisjunctionCompleteRight",
+      function() {
+    completeDisjunction(false);
+  });
+
+  /*
+   * Complete rule application by introducing new disjunction
+   */
+  function completeDisjunction(left) {
+    let userDisjunct = parseFormula($("#additionalFormulaInput")[0].value,
+        PithosData.proof.signature);
+    let newDisjunction;
+    if (left) {
+      /* Use justification formula as the left disjunct */
+      newDisjunction = new Disjunction(justificationLines[0].formula,
+          userDisjunct);
     } else {
-      extractConjuncts(formula.operand1, extractionTarget);
-      extractConjuncts(formula.operand2, extractionTarget);
+      /* Use justification formula as the right disjunct */
+      newDisjunction = new Disjunction(userDisjunct,
+          justificationLines[0].formula);
     }
+    let justification
+        = new Justification(justTypes.DIS_INTRO, justificationLines);
+    let newLine = new JustifiedProofLine(newDisjunction, justification);
+    targetLine.prepend(newLine);
+    completeProofUpdate();
+  }
+
+  /*
+   * Checks whether the target formula can be derived from the justification
+     formula using disjunction introduction
+   */
+   function checkDisjunctionIntroduction(justificationFormula, targetFormula) {
+     let targetDisjuncts = [];
+     extractOperands(targetFormula, targetDisjuncts, formulaTypes.DISJUNCTION);
+     let justificationDisjuncts = [];
+     extractOperands(justificationFormula, justificationDisjuncts,
+         formulaTypes.DISJUNCTION);
+     for (var i = 0; i < justificationDisjuncts.length; i++) {
+       if (!formulasDeepEqual(targetDisjuncts[i], justificationDisjuncts[i])) {
+         break;
+       }
+     }
+     if (i === justificationDisjuncts.length) {
+       return true;
+     }
+     for (i = targetDisjuncts.length - justificationDisjuncts.length;
+         i < targetDisjuncts.length; i++) {
+       let j = i - (targetDisjuncts.length - justificationDisjuncts.length);
+       if (!formulasDeepEqual(targetDisjuncts[i], justificationDisjuncts[j])) {
+         return false;
+       }
+     }
+     return true;
+   }
+}
+
+/*
+ * Shows modal prompting user to enter additional formula required for
+   one of the supported natural deduction ruless
+ */
+function requestFormulaInput(requestText, buttons) {
+  let modalBody =
+      `<div class="py-2 text-center sticky-top">
+         <div class="btn-group pb-1" role="group" aria-label="Insert logical connectives">
+           <button type="button" class="btn btn-secondary insert-char-btn">¬</button>
+           <button type="button" class="btn btn-secondary insert-char-btn">∧</button>
+           <button type="button" class="btn btn-secondary insert-char-btn">∨</button>
+           <button type="button" class="btn btn-secondary insert-char-btn">→</button>
+           <button type="button" class="btn btn-secondary insert-char-btn">↔</button>
+           <button type="button" class="btn btn-secondary insert-char-btn">∀</button>
+           <button type="button" class="btn btn-secondary insert-char-btn">∃</button>
+         </div>
+         <div class="btn-group pb-1" role="group" aria-label="Insert top or bottom">
+           <button type="button" class="btn btn-secondary insert-char-btn">⊤</button>
+           <button type="button" class="btn btn-secondary insert-char-btn">⊥</button>
+         </div>
+         <div class="btn-group pb-1" role="group" aria-label="Insert brackets">
+           <button type="button" class="btn btn-secondary insert-char-btn">(</button>
+           <button type="button" class="btn btn-secondary insert-char-btn">)</button>
+           <button type="button" class="btn btn-secondary insert-char-btn">[</button>
+           <button type="button" class="btn btn-secondary insert-char-btn">]</button>
+         </div>
+       </div>
+       <p>${requestText}</p>
+       <input id="additionalFormulaInput" class="form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
+       <div id="additionalFormulaParsed" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
+         The result of the parsing will appear here.
+       </div>`
+    showModal("Input required", modalBody, undefined, undefined, buttons);
+}
+
+/*
+ * Parse additional formulas inputted in modals
+ */
+jQuery(function($) {
+  $("#dynamicModalArea").on("input", "#additionalFormulaInput",
+      function(inputEvent) {
+    /* Backup signature in case of error in parsing */
+    let signatureCopy = $.extend(true, {}, PithosData.proof.signature);
+    let inputElement = inputEvent.target;
+    let outputElement = $("#additionalFormulaParsed");
+    let parsedFormula;
+    try {
+      parsedFormula = parseFormula(inputElement.value, signatureCopy);
+    } catch (error) {
+      if (error instanceof FormulaParsingError) {
+        /* Show result and disable action buttons */
+        $(".disable-parse-error").attr("disabled", true);
+        outputElement.text(error.message);
+        outputElement
+            .removeClass("alert-dark alert-success")
+            .addClass("alert-danger");
+        return;
+      } else {
+        throw error;
+      }
+    }
+    /* Show result on success */
+    $(".disable-parse-error").attr("disabled", false);
+    outputElement.text(parsedFormula.stringRep);
+    outputElement
+        .removeClass("alert-dark alert-danger")
+        .addClass("alert-success");
+  });
+});
+
+/*
+ * Extracts individual operands for associative operators
+ */
+function extractOperands(formula, extractionTarget, type) {
+  if (formula.type !== type) {
+    extractionTarget.push(formula);
+  } else {
+    extractOperands(formula.operand1, extractionTarget, type);
+    extractOperands(formula.operand2, extractionTarget, type);
   }
 }
