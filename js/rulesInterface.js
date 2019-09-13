@@ -19,11 +19,11 @@ const rulesData = Object.freeze({
   "→E": {handler: eliminateImplication, numLines: 3, hint: "→E requires "
       + "selection of an implication, formula matching the antecedent of the "
       + "implication and an empty or goal line.", name: "→E"},
-  // "¬I": {handler: introduceNegation, numLines: 1, hint: "¬I requires "
-  //     + "selection of an empty or goal line.", name: "¬I"},
-  // "¬E": {handler: eliminateNegation, numLines: 3, hint: "¬E requires "
-  //     + "selection of a formula, its negation and an empty or goal line.",
-  //     name: "¬E"},
+  "¬I": {handler: introduceNegation, numLines: 1, hint: "¬I requires "
+      + "selection of an empty or goal line.", name: "¬I"},
+  "¬E": {handler: eliminateNegation, numLines: 3, hint: "¬E requires "
+      + "selection of a formula, its negation and an empty or goal line.",
+      name: "¬E"},
   // "¬¬E": {handler: eliminateDoubleNegation, numLines: 2, hint: "¬¬E requires "
   //     + "selection of a double negation and an empty or goal line.",
   //     name: "¬¬E"},
@@ -423,6 +423,51 @@ function eliminateImplication() {
     }
     targetLine.justification
         = new Justification(justTypes.IMP_ELIM, justificationLines);
+  }
+}
+
+/*
+ * Function handling negation introduction
+ */
+function introduceNegation() {
+
+}
+
+/*
+ * Function handling negation elimination
+ */
+function eliminateNegation() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  let negatedFormula;
+  let formula;
+  if (justificationLines[0].formula.type === formulaTypes.NEGATION
+      && formulasDeepEqual(justificationLines[0].formula.operand,
+          justificationLines[1].formula)) {
+    negatedFormula = justificationLines[0].formula;
+    formula = justificationLines[1].formula;
+  } else if (justificationLines[1].formula.type === formulaTypes.NEGATION
+      && formulasDeepEqual(justificationLines[1].formula.operand,
+          justificationLines[0].formula)) {
+    negatedFormula = justificationLines[1].formula;
+    formula = justificationLines[0].formula;
+  } else {
+    throw new ProofProcessingError("The justification formulas are not a "
+        + "formula and its negation.")
+  }
+  let targetLine = retrievedLines.targetLine;
+  let justification
+      = new Justification(justTypes.NEG_ELIM, justificationLines);
+  if (targetLine instanceof EmptyProofLine) {
+    let newJustifiedLine
+        = new JustifiedProofLine(new Bottom(), justification);
+    targetLine.prepend(newJustifiedLine);
+  } else {
+    if (targetLine.formula.type !== formulaTypes.BOTTOM) {
+      throw new ProofProcessingError("The selected goal line is not bottom.");
+    }
+    targetLine.justification = justification;
   }
 }
 
