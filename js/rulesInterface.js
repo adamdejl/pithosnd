@@ -14,8 +14,8 @@ const rulesData = Object.freeze({
       + "empty or goal line.", name: "∨I"},
   "∨E": {handler: eliminateDisjunction, numLines: 2, hint: "∨E requires "
       + "selection of one disjuction and an empty or goal line.", name: "∨E"},
-  // "→I": {handler: introduceImplication, numLines: 1, hint: "→I requires "
-  //     + "selection of an empty or goal line.", name: "→I"},
+  "→I": {handler: introduceImplication, numLines: 1, hint: "→I requires "
+      + "selection of an empty or goal line.", name: "→I"},
   // "→E": {handler: eliminateImplication, numLines: 3, hint: "→E requires "
   //     + "selection of an implication, formula matching the antecedent of the "
   //     + "implication and an empty or goal line.", name: "→E"},
@@ -326,6 +326,63 @@ function eliminateDisjunction() {
   });
 }
 
+function introduceImplication() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let targetLine = retrievedLines.targetLine;
+  if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - allow user to specify resulting formula */
+    let requestText = "Please enter the formula that you would like to "
+        + "introduce using implication introduction rule:";
+    requestFormulaInput(requestText, "introduceImplicationComplete");
+  } else {
+    /* Target line is a goal line - choose automatically as the goal formula */
+    let targetFormula = targetLine.formula;
+    if (targetFormula.type !== formulaTypes.IMPLICATION) {
+      throw new ProofProcessingError("The selected formula is not an "
+          + "implication.")
+    }
+    let initialLine = new JustifiedProofLine(targetFormula.operand1,
+        new SpecialJustification(justTypes.ASS));
+    let goalLine = new JustifiedProofLine(targetFormula.operand2,
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox = new ProofBox(initialLine, goalLine, false);
+    targetLine.prepend(proofBox);
+    let ruleJustificationLines = [initialLine, goalLine];
+    targetLine.justification
+        = new Justification(justTypes.IMP_INTRO, ruleJustificationLines);
+  }
+
+  /*
+   * Catch user action to complete the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#introduceImplicationComplete");
+  $("#dynamicModalArea").on("click", "#introduceImplicationComplete",
+      function() {
+    let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
+        PithosData.proof.signature);
+    if (targetFormula.type !== formulaTypes.IMPLICATION) {
+      throw new ProofProcessingError("The entered formula is not an "
+          + "implication.");
+    }
+    let initialLine = new JustifiedProofLine(targetFormula.operand1,
+        new SpecialJustification(justTypes.ASS));
+    let goalLine = new JustifiedProofLine(targetFormula.operand2,
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let newEmptyLine = new EmptyProofLine();
+    targetLine.append(newEmptyLine);
+    newEmptyLine.prepend(proofBox);
+    let ruleJustificationLines = [initialLine, goalLine];
+    let justification
+        = new Justification(justTypes.IMP_INTRO, ruleJustificationLines);
+    let newJustifiedLine = new JustifiedProofLine(targetFormula, justification);
+    newEmptyLine.prepend(newJustifiedLine);
+    completeProofUpdate();
+  });
+}
+
 /*
  * Shows modal prompting user to enter additional formula required for
    one of the supported natural deduction ruless
@@ -354,7 +411,7 @@ function requestFormulaInput(requestText, customId, buttons) {
          </div>
        </div>
        <p>${requestText}</p>
-       <input id="additionalFormulaInput" class="form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
+       <input id="additionalFormulaInput" class="additional-formula-input form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
        <div id="additionalFormulaParsed" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
          The result of the parsing will appear here.
        </div>`
@@ -366,35 +423,40 @@ function requestFormulaInput(requestText, customId, buttons) {
  */
 jQuery(function($) {
   $("#dynamicModalArea").on("input", "#additionalFormulaInput",
-      function(inputEvent) {
-    /* Backup signature in case of error in parsing */
-    let signatureCopy = $.extend(true, {}, PithosData.proof.signature);
-    let inputElement = inputEvent.target;
-    let outputElement = $("#additionalFormulaParsed");
-    let parsedFormula;
-    try {
-      parsedFormula = parseFormula(inputElement.value, signatureCopy);
-    } catch (error) {
-      if (error instanceof FormulaParsingError) {
-        /* Show result and disable action buttons */
-        $(".disable-parse-error").attr("disabled", true);
-        outputElement.text(error.message);
-        outputElement
-            .removeClass("alert-dark alert-success")
-            .addClass("alert-danger");
-        return;
-      } else {
-        throw error;
-      }
-    }
-    /* Show result on success */
-    $(".disable-parse-error").attr("disabled", false);
-    outputElement.text(parsedFormula.stringRep);
-    outputElement
-        .removeClass("alert-dark alert-danger")
-        .addClass("alert-success");
-  });
+      parseAdditionalFormula);
 });
+
+/*
+ * Parses additional formula entered to the input field in a modal
+ */
+function parseAdditionalFormula() {
+  /* Backup signature in case of error in parsing */
+  let signatureCopy = $.extend(true, {}, PithosData.proof.signature);
+  let inputSelector = $("#additionalFormulaInput");
+  let outputSelector = $("#additionalFormulaParsed");
+  let parsedFormula;
+  try {
+    parsedFormula = parseFormula(inputSelector[0].value, signatureCopy);
+  } catch (error) {
+    if (error instanceof FormulaParsingError) {
+      /* Show result and disable action buttons */
+      $(".disable-parse-error").attr("disabled", true);
+      outputSelector.text(error.message);
+      outputSelector
+          .removeClass("alert-dark alert-success")
+          .addClass("alert-danger");
+      return;
+    } else {
+      throw error;
+    }
+  }
+  /* Show result on success */
+  $(".disable-parse-error").attr("disabled", false);
+  outputSelector.text(parsedFormula.stringRep);
+  outputSelector
+      .removeClass("alert-dark alert-danger")
+      .addClass("alert-success");
+}
 
 /*
  * Extracts individual operands for associative operators

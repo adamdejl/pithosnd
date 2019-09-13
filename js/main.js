@@ -74,8 +74,12 @@ jQuery(function($) {
       /* Set cursor correctly */
       focusElement[0].selectionEnd = cursorPosition + 1;
 
-      /* Trigger parsing of all formulas */
-      parseAll();
+      if (focusElement.hasClass("additional-formula-input")) {
+        parseAdditionalFormula();
+      } else {
+        /* Trigger parsing of all formulas */
+        parseAll();
+      }
     }
   });
 
