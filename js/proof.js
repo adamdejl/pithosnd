@@ -122,7 +122,7 @@ class EmptyProofLine extends ProofLine {
 }
 
 class ProofBox extends ProofItem {
-  constructor(numColumns, initialLine, goalLine, nextAdjacent) {
+  constructor(initialLine, goalLine, nextAdjacent) {
     super();
     /* Initially mark as incomplete */
     this.complete = false;
@@ -322,15 +322,19 @@ function proofToHTML(proof) {
                <td class="shrink justification-cell"></td>
              </tr>`;
       } else if (component instanceof ProofBox) {
+        let complete = "";
+        if (component.complete) {
+          complete = " box-checked";
+        }
         if (!prevAdjacent) {
           proofHTML +=
               `<tr>
                  <td class="box-cell" colspan="3">
-                   <table class="proof-box">
+                   <table class="proof-box${complete}">
                      <tbody>`;
         } else {
           proofHTML +=
-              `<table class="proof-box">
+              `<table class="proof-box${complete}">
                  <tbody>`;
           prevAdjacent = false;
         }
