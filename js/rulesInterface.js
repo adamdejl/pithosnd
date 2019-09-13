@@ -12,8 +12,8 @@ const rulesData = Object.freeze({
   "∨I": {handler: introduceDisjunction, numLines: 2, hint: "∨I requires "
       + "selection of one formula to become one of the disjuncts and an "
       + "empty or goal line.", name: "∨I"},
-  // "∨E": {handler: eliminateDisjunction, numLines: 2, hint: "∨E requires "
-  //     + "selection of one disjuction and an empty or goal line.", name: "∨E"},
+  "∨E": {handler: eliminateDisjunction, numLines: 2, hint: "∨E requires "
+      + "selection of one disjuction and an empty or goal line.", name: "∨E"},
   // "→I": {handler: introduceImplication, numLines: 1, hint: "→I requires "
   //     + "selection of an empty or goal line.", name: "→I"},
   // "→E": {handler: eliminateImplication, numLines: 3, hint: "→E requires "
@@ -175,7 +175,7 @@ function introduceDisjunction() {
     let buttons =
         `<button id="introduceDisjunctionCompleteLeft" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal" disabled>${justificationLines[0].formula.stringRep} ∨ ?</button>
          <button id="introduceDisjunctionCompleteRight" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal" disabled>? ∨ ${justificationLines[0].formula.stringRep}</button>`
-    requestFormulaInput(requestText, buttons);
+    requestFormulaInput(requestText, undefined, buttons);
   } else {
     /* Target line is a goal line - automatically attempt to derive goal
        formula */
@@ -258,10 +258,79 @@ function introduceDisjunction() {
 }
 
 /*
+ * Function handling disjunction elimination
+ */
+function eliminateDisjunction() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  if (justificationLines[0].formula.type !== formulaTypes.DISJUNCTION) {
+    throw new ProofProcessingError("The selected justification formula is "
+        + "not a disjunction.");
+  }
+  let targetLine = retrievedLines.targetLine;
+  let disjunct1 = justificationLines[0].formula.operand1;
+  let initialLine1 = new JustifiedProofLine(disjunct1,
+      new SpecialJustification(justTypes.ASS));
+  let disjunct2 = justificationLines[0].formula.operand2;
+  let initialLine2 = new JustifiedProofLine(disjunct2,
+      new SpecialJustification(justTypes.ASS));
+  if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - allow user to specify resulting formula */
+    let requestText = "Please enter the formula that you would like to derive "
+        + "using disjunction elimination rule:";
+    requestFormulaInput(requestText, "eliminateDisjunctionComplete");
+  } else {
+    /* Target line is a goal line - choose automatically as the goal formula */
+    let targetFormula = targetLine.formula;
+    let goalLine1 = new JustifiedProofLine(targetFormula,
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox1 = new ProofBox(initialLine1, goalLine1, true);
+    let goalLine2 = new JustifiedProofLine(targetFormula,
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox2 = new ProofBox(initialLine2, goalLine2, false);
+    targetLine.prepend(proofBox1);
+    targetLine.prepend(proofBox2);
+    let ruleJustificationLines = justificationLines.
+        concat([initialLine1, goalLine1, initialLine2, goalLine2]);
+    targetLine.justification
+        = new Justification(justTypes.DIS_ELIM, ruleJustificationLines);
+  }
+
+  /*
+   * Catch user action to complete the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#eliminateDisjunctionComplete");
+  $("#dynamicModalArea").on("click", "#eliminateDisjunctionComplete",
+      function() {
+    let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
+        PithosData.proof.signature);
+    let goalLine1 = new JustifiedProofLine(targetFormula,
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox1 = new ProofBox(initialLine1, goalLine1, true);
+    let goalLine2 = new JustifiedProofLine(targetFormula,
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox2 = new ProofBox(initialLine2, goalLine2, false);
+    let newEmptyLine = new EmptyProofLine();
+    targetLine.append(newEmptyLine);
+    newEmptyLine.prepend(proofBox1);
+    newEmptyLine.prepend(proofBox2);
+    let ruleJustificationLines = justificationLines.
+        concat([initialLine1, goalLine1, initialLine2, goalLine2]);
+    let justification
+        = new Justification(justTypes.DIS_ELIM, ruleJustificationLines);
+    let newJustifiedLine = new JustifiedProofLine(targetFormula, justification);
+    newEmptyLine.prepend(newJustifiedLine);
+    completeProofUpdate();
+  });
+}
+
+/*
  * Shows modal prompting user to enter additional formula required for
    one of the supported natural deduction ruless
  */
-function requestFormulaInput(requestText, buttons) {
+function requestFormulaInput(requestText, customId, buttons) {
   let modalBody =
       `<div class="py-2 text-center sticky-top">
          <div class="btn-group pb-1" role="group" aria-label="Insert logical connectives">
@@ -289,7 +358,7 @@ function requestFormulaInput(requestText, buttons) {
        <div id="additionalFormulaParsed" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
          The result of the parsing will appear here.
        </div>`
-    showModal("Input required", modalBody, undefined, undefined, buttons);
+    showModal("Input required", modalBody, undefined, customId, buttons);
 }
 
 /*
