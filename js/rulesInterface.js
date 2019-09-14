@@ -34,9 +34,9 @@ const rulesData = Object.freeze({
       name: "⊥I"},
   "⊥E": {handler: eliminateBottom, numLines: 2, hint: "⊥E requires "
       + "selection of a bottom and an empty or goal line.", name: "⊥E"},
-  // "↔I": {handler: introduceBiconditional, numLines: 3, hint: "↔I requires "
-  //     + 'selection of two implications in "opposite" directions and '
-  //     + "an empty or goal line.", name: "↔I"},
+  "↔I": {handler: introduceBiconditional, numLines: 3, hint: "↔I requires "
+      + 'selection of two implications in "opposite" directions and '
+      + "an empty or goal line.", name: "↔I"},
   // "↔E": {handler: eliminateBiconditional, numLines: 3, hint: "↔E requires "
   //     + 'selection of a biconditional, formula matching one of its "sides" '
   //     + "and an empty or goal line.", name: "↔E"},
@@ -96,6 +96,9 @@ function introduceConjunction() {
           + "to the conjunction of the remaining formulas.");
     }
     targetLine.justification = justification;
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
   }
 }
 
@@ -134,6 +137,9 @@ function eliminateConjunction() {
       if (formulasDeepEqual(conjuncts[i], targetLine.formula)) {
         targetLine.justification
             = new Justification(justTypes.CON_ELIM, justificationLines);
+        if (targetLine.prev instanceof EmptyProofLine) {
+          targetLine.prev.delete();
+        }
         return;
       }
     }
@@ -183,11 +189,14 @@ function introduceDisjunction() {
         targetLine.formula)) {
       targetLine.justification
           = new Justification(justTypes.DIS_INTRO, justificationLines);
-      return;
+    } else {
+      throw new ProofProcessingError("Neither right nor left disjunct(s) "
+          + "match(es) the justification formula and hence the disjunction "
+          + "introduction rule can not be applied.");
     }
-    throw new ProofProcessingError("Neither right nor left disjunct(s) "
-        + "match(es) the justification formula and hence the disjunction "
-        + "introduction rule can not be applied.");
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
   }
 
   /*
@@ -423,6 +432,9 @@ function eliminateImplication() {
     }
     targetLine.justification
         = new Justification(justTypes.IMP_ELIM, justificationLines);
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
   }
 }
 
@@ -539,6 +551,9 @@ function introduceTop() {
       throw new ProofProcessingError("The selected goal formula is not top.");
     }
     targetLine.justification = justification;
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
   }
 }
 
@@ -592,6 +607,95 @@ function eliminateBottom() {
     targetLine.prepend(newLine);
     completeProofUpdate();
   });
+}
+
+/*
+ * Function handling biconditional introduction rule
+ */
+function introduceBiconditional() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  let targetLine = retrievedLines.targetLine;
+  if (justificationLines[0].formula.type !== formulaTypes.IMPLICATION
+      && justificationLines[1].formula.type !== formulaTypes.IMPLICATION) {
+    throw new ProofProcessingError("One or both of the selected justification "
+        + "lines are not an implication.");
+  }
+  let antecedent1 = justificationLines[0].formula.operand1;
+  let consequent1 = justificationLines[0].formula.operand2;
+  let antecedent2 = justificationLines[1].formula.operand1;
+  let consequent2 = justificationLines[1].formula.operand2;
+  if (!formulasDeepEqual(antecedent1, consequent2)
+      && formulasDeepEqual(consequent1, antecedent2)) {
+    throw new ProofProcessingError("The antecedent of the first implication "
+        + "does not match the consequent of the second implication or vice "
+        + "versa.");
+  }
+  if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - allow user to specify order */
+    let requestText = "Please choose the order of operands in the introduced "
+        + "formula:";
+    let buttons =
+        `<button id="introduceBiconditionalCompleteFirst" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">${antecedent1.stringRep} ↔ ${consequent1.stringRep}</button>
+         <button id="introduceBiconditionalCompleteSecond" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">${consequent1.stringRep} ↔ ${antecedent1.stringRep}</button>`
+    showModal("Input required", requestText, undefined, undefined, buttons);
+  } else {
+    /* Target line is a goal line - automatically attempt to derive goal
+       formula */
+    if (targetLine.formula.type !== formulaTypes.BICONDITIONAL) {
+      throw new ProofProcessingError("The selected goal formula is not a "
+          + "biconditional.")
+    }
+    if ((formulasDeepEqual(targetLine.formula.operand1, antecedent1)
+            && formulasDeepEqual(targetLine.formula.operand2, consequent1))
+        || (formulasDeepEqual(targetLine.formula.operand1, consequent1)
+            && formulasDeepEqual(targetLine.formula.operand2, antecedent1))) {
+      targetLine.justification
+          = new Justification(justTypes.BICOND_INTRO, justificationLines);
+    } else {
+      throw new ProofProcessingError("The operands of the selected goal "
+          + "formula do not match the antecedents and consequents of "
+          + "the justification implications.")
+    }
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
+  }
+
+  /*
+   * Catch user action to complete the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#introduceBiconditionalCompleteFirst");
+  $("#dynamicModalArea").off("click", "#introduceBiconditionalCompleteSecond");
+  $("#dynamicModalArea").on("click", "#introduceBiconditionalCompleteFirst",
+      function() {
+    completeBiconditional(true);
+  });
+  $("#dynamicModalArea").on("click", "#introduceBiconditionalCompleteSecond",
+      function() {
+    completeBiconditional(false);
+  });
+
+  /*
+   * Complete rule application by introducing new biconditional
+   */
+  function completeBiconditional(orderFirst) {
+    let newBiconditional;
+    if (orderFirst) {
+      /* Use the order in the first selected implication */
+      newBiconditional = new Biconditional(antecedent1, consequent1);
+    } else {
+      /* Use the order in the second selected implication */
+      newBiconditional = new Biconditional(consequent1, antecedent1);
+    }
+    let justification
+        = new Justification(justTypes.BICOND_INTRO, justificationLines);
+    let newLine = new JustifiedProofLine(newBiconditional, justification);
+    targetLine.prepend(newLine);
+    completeProofUpdate();
+  }
 }
 
 /*
