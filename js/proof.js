@@ -228,7 +228,8 @@ function updateLines(proof) {
                 = new Justification(justTypes.TICK, [component])
             goalLine.justification = newJustification;
           } else {
-            goalLine.delete();
+            goalLine.justification = component.justification;
+            component.delete();
           }
         }
       }
