@@ -27,8 +27,8 @@ const rulesData = Object.freeze({
   "¬¬E": {handler: eliminateDoubleNegation, numLines: 2, hint: "¬¬E requires "
       + "selection of a double negation and an empty or goal line.",
       name: "¬¬E"},
-  // "⊤I": {handler: introduceTop, numLines: 1, hint: "⊤I requires "
-  //     + "selection of an empty or goal line.", name: "⊤I"},
+  "⊤I": {handler: introduceTop, numLines: 1, hint: "⊤I requires "
+      + "selection of an empty or goal line.", name: "⊤I"},
   // "⊥I": {handler: introduceBottom, numLines: 3, hint: "⊥I requires "
   //     + "selection of a formula, its negation and an empty or goal line.",
   //     name: "⊥I"},
@@ -546,6 +546,25 @@ function eliminateDoubleNegation() {
     if (!formulasDeepEqual(targetLine.formula, newFormula)) {
       throw new ProofProcessingError("The justification formula is not a "
           + "double negation of the selected goal formula.");
+    }
+    targetLine.justification = justification;
+  }
+}
+
+/*
+ * Function handling top introduction
+ */
+function introduceTop() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let targetLine = retrievedLines.targetLine;
+  let justification = new SpecialJustification(justTypes.TOP_INTRO);
+  if (targetLine instanceof EmptyProofLine) {
+    let newLine = new JustifiedProofLine(new Top(), justification);
+    targetLine.prepend(newLine);
+  } else {
+    if (targetLine.formula.type !== formulaTypes.TOP) {
+      throw new ProofProcessingError("The selected goal formula is not top.");
     }
     targetLine.justification = justification;
   }
