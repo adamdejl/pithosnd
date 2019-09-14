@@ -42,8 +42,8 @@ const rulesData = Object.freeze({
       + "and an empty or goal line.", name: "↔E"},
   "EM": {handler: applyExcludedMiddle, numLines: 1, hint: "EM requires "
       + "selection of an empty or goal line.", name: "EM"},
-  // "PC": {handler: applyProofByContradicition, numLines: 1, hint: "PC requires "
-  //     + "selection of an empty or goal line.", name: "PC"},
+  "PC": {handler: applyProofByContradiction, numLines: 1, hint: "PC requires "
+      + "selection of an empty or goal line.", name: "PC"},
   // "∃I": {handler: introduceExistential, numLines: 2, hint: "∃I requires "
   //     + "selection of a formula with a term to be replaced by the "
   //     + "quantified variable and an empty or goal line.", name: "∃I"},
@@ -823,6 +823,58 @@ function applyExcludedMiddle() {
     targetLine.prepend(newLine);
     completeProofUpdate();
   }
+}
+
+/*
+ * Function handling proof by contradiction application
+ */
+function applyProofByContradiction() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let targetLine = retrievedLines.targetLine;
+  if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - allow user to specify resulting formula */
+    let requestText = "Please enter the formula that you would like to "
+        + "introduce using proof by contradiction:";
+    requestFormulaInput(requestText, "proofByContradictionComplete");
+  } else {
+    /* Target line is a goal line - choose target formula automatically */
+    let targetFormula = targetLine.formula;
+    let initialLine = new JustifiedProofLine(new Negation(targetFormula),
+        new SpecialJustification(justTypes.ASS));
+    let goalLine = new JustifiedProofLine(new Bottom(),
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox = new ProofBox(initialLine, goalLine, false);
+    targetLine.prepend(proofBox);
+    let ruleJustificationLines = [initialLine, goalLine];
+    targetLine.justification
+        = new Justification(justTypes.PC, ruleJustificationLines);
+  }
+
+  /*
+   * Catch user action to complete the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#proofByContradictionComplete");
+  $("#dynamicModalArea").on("click", "#proofByContradictionComplete",
+      function() {
+    let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
+        PithosData.proof.signature);
+    let initialLine = new JustifiedProofLine(new Negation(targetFormula),
+        new SpecialJustification(justTypes.ASS));
+    let goalLine = new JustifiedProofLine(new Bottom(),
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let newEmptyLine = new EmptyProofLine();
+    targetLine.append(newEmptyLine);
+    newEmptyLine.prepend(proofBox);
+    let ruleJustificationLines = [initialLine, goalLine];
+    let justification
+        = new Justification(justTypes.PC, ruleJustificationLines);
+    let newJustifiedLine = new JustifiedProofLine(targetFormula, justification);
+    newEmptyLine.prepend(newJustifiedLine);
+    completeProofUpdate();
+  });
 }
 
 /*
