@@ -24,9 +24,9 @@ const rulesData = Object.freeze({
   "¬E": {handler: eliminateNegation, numLines: 3, hint: "¬E requires "
       + "selection of a formula, its negation and an empty or goal line.",
       name: "¬E"},
-  // "¬¬E": {handler: eliminateDoubleNegation, numLines: 2, hint: "¬¬E requires "
-  //     + "selection of a double negation and an empty or goal line.",
-  //     name: "¬¬E"},
+  "¬¬E": {handler: eliminateDoubleNegation, numLines: 2, hint: "¬¬E requires "
+      + "selection of a double negation and an empty or goal line.",
+      name: "¬¬E"},
   // "⊤I": {handler: introduceTop, numLines: 1, hint: "⊤I requires "
   //     + "selection of an empty or goal line.", name: "⊤I"},
   // "⊥I": {handler: introduceBottom, numLines: 3, hint: "⊥I requires "
@@ -339,7 +339,7 @@ function introduceImplication() {
         + "introduce using implication introduction rule:";
     requestFormulaInput(requestText, "introduceImplicationComplete");
   } else {
-    /* Target line is a goal line - choose automatically as the goal formula */
+    /* Target line is a goal line - choose the goal formula automatically */
     let targetFormula = targetLine.formula;
     if (targetFormula.type !== formulaTypes.IMPLICATION) {
       throw new ProofProcessingError("The selected formula is not an "
@@ -430,7 +430,58 @@ function eliminateImplication() {
  * Function handling negation introduction
  */
 function introduceNegation() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let targetLine = retrievedLines.targetLine;
+  if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - allow user to specify resulting formula */
+    let requestText = "Please enter the formula that you would like to "
+        + "introduce using negation introduction rule:";
+    requestFormulaInput(requestText, "introduceNegationComplete");
+  } else {
+    /* Target line is a goal line - choose target formula automatically */
+    let targetFormula = targetLine.formula;
+    if (targetFormula.type !== formulaTypes.NEGATION) {
+      throw new ProofProcessingError("The selected formula is not a negation.");
+    }
+    let initialLine = new JustifiedProofLine(targetFormula.operand,
+        new SpecialJustification(justTypes.ASS));
+    let goalLine = new JustifiedProofLine(new Bottom(),
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox = new ProofBox(initialLine, goalLine, false);
+    targetLine.prepend(proofBox);
+    let ruleJustificationLines = [initialLine, goalLine];
+    targetLine.justification
+        = new Justification(justTypes.NEG_INTRO, ruleJustificationLines);
+  }
 
+  /*
+   * Catch user action to complete the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#introduceNegationComplete");
+  $("#dynamicModalArea").on("click", "#introduceNegationComplete",
+      function() {
+    let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
+        PithosData.proof.signature);
+    if (targetFormula.type !== formulaTypes.NEGATION) {
+      throw new ProofProcessingError("The entered formula is not a negation.");
+    }
+    let initialLine = new JustifiedProofLine(targetFormula.operand,
+        new SpecialJustification(justTypes.ASS));
+    let goalLine = new JustifiedProofLine(new Bottom(),
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let newEmptyLine = new EmptyProofLine();
+    targetLine.append(newEmptyLine);
+    newEmptyLine.prepend(proofBox);
+    let ruleJustificationLines = [initialLine, goalLine];
+    let justification
+        = new Justification(justTypes.NEG_INTRO, ruleJustificationLines);
+    let newJustifiedLine = new JustifiedProofLine(targetFormula, justification);
+    newEmptyLine.prepend(newJustifiedLine);
+    completeProofUpdate();
+  });
 }
 
 /*
@@ -466,6 +517,35 @@ function eliminateNegation() {
   } else {
     if (targetLine.formula.type !== formulaTypes.BOTTOM) {
       throw new ProofProcessingError("The selected goal line is not bottom.");
+    }
+    targetLine.justification = justification;
+  }
+}
+
+/*
+ * Function handling double negation elimination
+ */
+function eliminateDoubleNegation() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  let justificationFormula = justificationLines[0].formula;
+  if (justificationFormula.type !== formulaTypes.NEGATION
+      || justificationFormula.operand.type !== formulaTypes.NEGATION) {
+    throw new ProofProcessingError("The justification formula is not a double "
+        + "negation.");
+  }
+  let targetLine = retrievedLines.targetLine;
+  let newFormula = justificationFormula.operand.operand;
+  let justification
+      = new Justification(justTypes.DOUBLE_NEG_ELIM, justificationLines);
+  if (targetLine instanceof EmptyProofLine) {
+    let newLine = new JustifiedProofLine(newFormula, justification);
+    targetLine.prepend(newLine);
+  } else {
+    if (!formulasDeepEqual(targetLine.formula, newFormula)) {
+      throw new ProofProcessingError("The justification formula is not a "
+          + "double negation of the selected goal formula.");
     }
     targetLine.justification = justification;
   }
