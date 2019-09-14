@@ -270,11 +270,7 @@ function eliminateDisjunction() {
   }
   let targetLine = retrievedLines.targetLine;
   let disjunct1 = justificationLines[0].formula.operand1;
-  let initialLine1 = new JustifiedProofLine(disjunct1,
-      new SpecialJustification(justTypes.ASS));
   let disjunct2 = justificationLines[0].formula.operand2;
-  let initialLine2 = new JustifiedProofLine(disjunct2,
-      new SpecialJustification(justTypes.ASS));
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
     let requestText = "Please enter the formula that you would like to derive "
@@ -283,12 +279,9 @@ function eliminateDisjunction() {
   } else {
     /* Target line is a goal line - choose automatically as the goal formula */
     let targetFormula = targetLine.formula;
-    let goalLine1 = new JustifiedProofLine(targetFormula,
-        new SpecialJustification(justTypes.GOAL));
-    let proofBox1 = new ProofBox(initialLine1, goalLine1, true);
-    let goalLine2 = new JustifiedProofLine(targetFormula,
-        new SpecialJustification(justTypes.GOAL));
-    let proofBox2 = new ProofBox(initialLine2, goalLine2, false);
+    let proofBox1 = new ProofBox(disjunct1, justTypes.ASS, targetFormula, true);
+    let proofBox2
+        = new ProofBox(disjunct2, justTypes.ASS, targetFormula, false);
     targetLine.prepend(proofBox1);
     targetLine.prepend(proofBox2);
     let ruleJustificationLines = justificationLines.
@@ -306,12 +299,9 @@ function eliminateDisjunction() {
       function() {
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
         PithosData.proof.signature);
-    let goalLine1 = new JustifiedProofLine(targetFormula,
-        new SpecialJustification(justTypes.GOAL));
-    let proofBox1 = new ProofBox(initialLine1, goalLine1, true);
-    let goalLine2 = new JustifiedProofLine(targetFormula,
-        new SpecialJustification(justTypes.GOAL));
-    let proofBox2 = new ProofBox(initialLine2, goalLine2, false);
+    let proofBox1 = new ProofBox(disjunct1, justTypes.ASS, targetFormula, true);
+    let proofBox2
+        = new ProofBox(disjunct2, justTypes.ASS, targetFormula, false);
     let newEmptyLine = new EmptyProofLine();
     targetLine.append(newEmptyLine);
     newEmptyLine.prepend(proofBox1);
@@ -345,11 +335,8 @@ function introduceImplication() {
       throw new ProofProcessingError("The selected formula is not an "
           + "implication.")
     }
-    let initialLine = new JustifiedProofLine(targetFormula.operand1,
-        new SpecialJustification(justTypes.ASS));
-    let goalLine = new JustifiedProofLine(targetFormula.operand2,
-        new SpecialJustification(justTypes.GOAL));
-    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let proofBox = new ProofBox(targetFormula.operand1, justTypes.ASS,
+        targetFormula.operand2, false);
     targetLine.prepend(proofBox);
     let ruleJustificationLines = [initialLine, goalLine];
     targetLine.justification
@@ -369,11 +356,8 @@ function introduceImplication() {
       throw new ProofProcessingError("The entered formula is not an "
           + "implication.");
     }
-    let initialLine = new JustifiedProofLine(targetFormula.operand1,
-        new SpecialJustification(justTypes.ASS));
-    let goalLine = new JustifiedProofLine(targetFormula.operand2,
-        new SpecialJustification(justTypes.GOAL));
-    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let proofBox = new ProofBox(targetFormula.operand1, justTypes.ASS,
+        targetFormula.operand2, false);
     let newEmptyLine = new EmptyProofLine();
     targetLine.append(newEmptyLine);
     newEmptyLine.prepend(proofBox);
@@ -444,11 +428,8 @@ function introduceNegation() {
     if (targetFormula.type !== formulaTypes.NEGATION) {
       throw new ProofProcessingError("The selected formula is not a negation.");
     }
-    let initialLine = new JustifiedProofLine(targetFormula.operand,
-        new SpecialJustification(justTypes.ASS));
-    let goalLine = new JustifiedProofLine(new Bottom(),
-        new SpecialJustification(justTypes.GOAL));
-    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let proofBox = new ProofBox(targetFormula.operand, justTypes.ASS,
+        new Bottom(), false);
     targetLine.prepend(proofBox);
     let ruleJustificationLines = [initialLine, goalLine];
     targetLine.justification
@@ -467,11 +448,8 @@ function introduceNegation() {
     if (targetFormula.type !== formulaTypes.NEGATION) {
       throw new ProofProcessingError("The entered formula is not a negation.");
     }
-    let initialLine = new JustifiedProofLine(targetFormula.operand,
-        new SpecialJustification(justTypes.ASS));
-    let goalLine = new JustifiedProofLine(new Bottom(),
-        new SpecialJustification(justTypes.GOAL));
-    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let proofBox = new ProofBox(targetFormula.operand, justTypes.ASS,
+        new Bottom(), false);
     let newEmptyLine = new EmptyProofLine();
     targetLine.append(newEmptyLine);
     newEmptyLine.prepend(proofBox);
