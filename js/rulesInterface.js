@@ -37,9 +37,9 @@ const rulesData = Object.freeze({
   "↔I": {handler: introduceBiconditional, numLines: 3, hint: "↔I requires "
       + 'selection of two implications in "opposite" directions and '
       + "an empty or goal line.", name: "↔I"},
-  // "↔E": {handler: eliminateBiconditional, numLines: 3, hint: "↔E requires "
-  //     + 'selection of a biconditional, formula matching one of its "sides" '
-  //     + "and an empty or goal line.", name: "↔E"},
+  "↔E": {handler: eliminateBiconditional, numLines: 3, hint: "↔E requires "
+      + 'selection of a biconditional, formula matching one of its "sides" '
+      + "and an empty or goal line.", name: "↔E"},
   // "EM": {handler: applyExcludedMiddle, numLines: 1, hint: "EM requires "
   //     + "selection of an empty or goal line.", name: "EM"},
   // "PC": {handler: applyProofByContradicition, numLines: 1, hint: "PC requires "
@@ -402,21 +402,21 @@ function eliminateImplication() {
   let retrievedLines
       = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
+  let formula1 = justificationLines[0].formula;
+  let formula2 = justificationLines[1].formula;
   let implicationFormula;
   let antecedentFormula;
-  if (justificationLines[0].formula.type === formulaTypes.IMPLICATION) {
-    implicationFormula = justificationLines[0].formula;
-    antecedentFormula = justificationLines[1].formula;
-  } else if (justificationLines[1].formula.type === formulaTypes.IMPLICATION) {
-    implicationFormula = justificationLines[1].formula;
-    antecedentFormula = justificationLines[0].formula;
+  if (formula1.type === formulaTypes.IMPLICATION
+      && formulasDeepEqual(formula1.operand1, formula2)) {
+    implicationFormula = formula1;
+    antecedentFormula = formula2;
+  } else if (formula2.type === formulaTypes.IMPLICATION
+      && formulasDeepEqual(formula2.operand1, formula1)) {
+    implicationFormula = formula2;
+    antecedentFormula = formula1;
   } else {
-    throw new ProofProcessingError("Neither of the selected justification "
-        + "formulas is an implication.")
-  }
-  if (!formulasDeepEqual(implicationFormula.operand1, antecedentFormula)) {
-    throw new ProofProcessingError("The antecedent of the implication does "
-        + "not match the additional justification formula.");
+    throw new ProofProcessingError("The selected lines cannot be "
+        + "used as a justification for implication elimination.");
   }
   let consequent = implicationFormula.operand2;
   let targetLine = retrievedLines.targetLine;
@@ -695,6 +695,58 @@ function introduceBiconditional() {
     let newLine = new JustifiedProofLine(newBiconditional, justification);
     targetLine.prepend(newLine);
     completeProofUpdate();
+  }
+}
+
+/*
+ * Function handling biconditional elimination
+ */
+function eliminateBiconditional() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  let formula1 = justificationLines[0].formula;
+  let formula2 = justificationLines[1].formula;
+  let biconditionalFormula;
+  let newFormula;
+  if (formula1.type === formulaTypes.BICONDITIONAL
+      && (formulasDeepEqual(formula1.operand1, formula2)
+          || formulasDeepEqual(formula1.operand2, formula2))) {
+    biconditionalFormula = formula1;
+    if (formulasDeepEqual(formula1.operand1, formula2)) {
+      newFormula = formula1.operand2;
+    } else {
+      newFormula = formula1.operand1;
+    }
+  } else if (formula2.type === formulaTypes.BICONDITIONAL
+      && (formulasDeepEqual(formula2.operand1, formula1)
+          || formulasDeepEqual(formula2.operand2, formula1))) {
+    biconditionalFormula = formula2;
+    if (formulasDeepEqual(formula2.operand1, formula1)) {
+      newFormula = formula2.operand2;
+    } else {
+      newFormula = formula2.operand1;
+    }
+  } else {
+    throw new ProofProcessingError("The selected lines cannot be "
+        + "used as a justification for biconditional elimination.");
+  }
+  let targetLine = retrievedLines.targetLine;
+  if (targetLine instanceof EmptyProofLine) {
+    let justification
+        = new Justification(justTypes.BICOND_ELIM, justificationLines);
+    let newJustifiedLine = new JustifiedProofLine(newFormula, justification);
+    targetLine.prepend(newJustifiedLine);
+  } else {
+    if (!formulasDeepEqual(targetLine.formula, newFormula)) {
+      throw new ProofProcessingError("The formula derivable by biconditional "
+          + "elimination does not match the selected goal formula.")
+    }
+    targetLine.justification
+        = new Justification(justTypes.BICOND_ELIM, justificationLines);
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
   }
 }
 
