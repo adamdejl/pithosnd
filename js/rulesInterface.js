@@ -32,8 +32,8 @@ const rulesData = Object.freeze({
   "⊥I": {handler: introduceBottom, numLines: 3, hint: "⊥I requires "
       + "selection of a formula, its negation and an empty or goal line.",
       name: "⊥I"},
-  // "⊥E": {handler: eliminateBottom, numLines: 2, hint: "⊥E requires "
-  //     + "selection of a bottom and an empty or goal line.", name: "⊥E"},
+  "⊥E": {handler: eliminateBottom, numLines: 2, hint: "⊥E requires "
+      + "selection of a bottom and an empty or goal line.", name: "⊥E"},
   // "↔I": {handler: introduceBiconditional, numLines: 3, hint: "↔I requires "
   //     + 'selection of two implications in "opposite" directions and '
   //     + "an empty or goal line.", name: "↔I"},
@@ -517,7 +517,9 @@ function eliminateDoubleNegation() {
           + "double negation of the selected goal formula.");
     }
     targetLine.justification = justification;
-    targetLine.prev.delete();
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
   }
 }
 
@@ -545,6 +547,51 @@ function introduceTop() {
  */
 function introduceBottom() {
   addBottom(justTypes.BOT_INTRO);
+}
+
+/*
+ * Function handling bottom elimination
+ */
+function eliminateBottom() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  let justificationFormula = justificationLines[0].formula;
+  if (justificationFormula.type !== formulaTypes.BOTTOM) {
+    throw new ProofProcessingError("The selected justification formula is not "
+        + "bottom.");
+  }
+  let targetLine = retrievedLines.targetLine;
+  if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - allow user to specify resulting formula */
+    let requestText = "Please enter the formula that you would like to "
+        + "introduce using bottom elimination:";
+    requestFormulaInput(requestText, "eliminateBottomComplete");
+  } else {
+    /* Target line is a goal line - choose target formula automatically */
+    let targetFormula = targetLine.formula;
+    targetLine.justification
+        = new Justification(justTypes.BOT_ELIM, justificationLines);
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
+  }
+
+  /*
+   * Catch user action to complete the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#eliminateBottomComplete");
+  $("#dynamicModalArea").on("click", "#eliminateBottomComplete",
+      function() {
+    let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
+        PithosData.proof.signature);
+    let justification
+        = new Justification(justTypes.BOT_ELIM, justificationLines);
+    let newLine = new JustifiedProofLine(targetFormula, justification);
+    targetLine.prepend(newLine);
+    completeProofUpdate();
+  });
 }
 
 /*
