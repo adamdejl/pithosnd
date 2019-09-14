@@ -27,8 +27,8 @@ const rulesData = Object.freeze({
   "¬¬E": {handler: eliminateDoubleNegation, numLines: 2, hint: "¬¬E requires "
       + "selection of a double negation and an empty or goal line.",
       name: "¬¬E"},
-  "⊤I": {handler: introduceTop, numLines: 1, hint: "⊤I requires "
-      + "selection of an empty or goal line.", name: "⊤I"},
+  // "⊤I": {handler: introduceTop, numLines: 1, hint: "⊤I requires "
+  //     + "selection of an empty or goal line.", name: "⊤I"},
   // "⊥I": {handler: introduceBottom, numLines: 3, hint: "⊥I requires "
   //     + "selection of a formula, its negation and an empty or goal line.",
   //     name: "⊥I"},
@@ -270,7 +270,11 @@ function eliminateDisjunction() {
   }
   let targetLine = retrievedLines.targetLine;
   let disjunct1 = justificationLines[0].formula.operand1;
+  let initialLine1 = new JustifiedProofLine(disjunct1,
+      new SpecialJustification(justTypes.ASS));
   let disjunct2 = justificationLines[0].formula.operand2;
+  let initialLine2 = new JustifiedProofLine(disjunct2,
+      new SpecialJustification(justTypes.ASS));
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
     let requestText = "Please enter the formula that you would like to derive "
@@ -279,9 +283,12 @@ function eliminateDisjunction() {
   } else {
     /* Target line is a goal line - choose automatically as the goal formula */
     let targetFormula = targetLine.formula;
-    let proofBox1 = new ProofBox(disjunct1, justTypes.ASS, targetFormula, true);
-    let proofBox2
-        = new ProofBox(disjunct2, justTypes.ASS, targetFormula, false);
+    let goalLine1 = new JustifiedProofLine(targetFormula,
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox1 = new ProofBox(initialLine1, goalLine1, true);
+    let goalLine2 = new JustifiedProofLine(targetFormula,
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox2 = new ProofBox(initialLine2, goalLine2, false);
     targetLine.prepend(proofBox1);
     targetLine.prepend(proofBox2);
     let ruleJustificationLines = justificationLines.
@@ -299,9 +306,12 @@ function eliminateDisjunction() {
       function() {
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
         PithosData.proof.signature);
-    let proofBox1 = new ProofBox(disjunct1, justTypes.ASS, targetFormula, true);
-    let proofBox2
-        = new ProofBox(disjunct2, justTypes.ASS, targetFormula, false);
+    let goalLine1 = new JustifiedProofLine(targetFormula,
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox1 = new ProofBox(initialLine1, goalLine1, true);
+    let goalLine2 = new JustifiedProofLine(targetFormula,
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox2 = new ProofBox(initialLine2, goalLine2, false);
     let newEmptyLine = new EmptyProofLine();
     targetLine.append(newEmptyLine);
     newEmptyLine.prepend(proofBox1);
@@ -335,8 +345,11 @@ function introduceImplication() {
       throw new ProofProcessingError("The selected formula is not an "
           + "implication.")
     }
-    let proofBox = new ProofBox(targetFormula.operand1, justTypes.ASS,
-        targetFormula.operand2, false);
+    let initialLine = new JustifiedProofLine(targetFormula.operand1,
+        new SpecialJustification(justTypes.ASS));
+    let goalLine = new JustifiedProofLine(targetFormula.operand2,
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox = new ProofBox(initialLine, goalLine, false);
     targetLine.prepend(proofBox);
     let ruleJustificationLines = [initialLine, goalLine];
     targetLine.justification
@@ -356,8 +369,11 @@ function introduceImplication() {
       throw new ProofProcessingError("The entered formula is not an "
           + "implication.");
     }
-    let proofBox = new ProofBox(targetFormula.operand1, justTypes.ASS,
-        targetFormula.operand2, false);
+    let initialLine = new JustifiedProofLine(targetFormula.operand1,
+        new SpecialJustification(justTypes.ASS));
+    let goalLine = new JustifiedProofLine(targetFormula.operand2,
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox = new ProofBox(initialLine, goalLine, false);
     let newEmptyLine = new EmptyProofLine();
     targetLine.append(newEmptyLine);
     newEmptyLine.prepend(proofBox);
@@ -428,8 +444,11 @@ function introduceNegation() {
     if (targetFormula.type !== formulaTypes.NEGATION) {
       throw new ProofProcessingError("The selected formula is not a negation.");
     }
-    let proofBox = new ProofBox(targetFormula.operand, justTypes.ASS,
-        new Bottom(), false);
+    let initialLine = new JustifiedProofLine(targetFormula.operand,
+        new SpecialJustification(justTypes.ASS));
+    let goalLine = new JustifiedProofLine(new Bottom(),
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox = new ProofBox(initialLine, goalLine, false);
     targetLine.prepend(proofBox);
     let ruleJustificationLines = [initialLine, goalLine];
     targetLine.justification
@@ -448,8 +467,11 @@ function introduceNegation() {
     if (targetFormula.type !== formulaTypes.NEGATION) {
       throw new ProofProcessingError("The entered formula is not a negation.");
     }
-    let proofBox = new ProofBox(targetFormula.operand, justTypes.ASS,
-        new Bottom(), false);
+    let initialLine = new JustifiedProofLine(targetFormula.operand,
+        new SpecialJustification(justTypes.ASS));
+    let goalLine = new JustifiedProofLine(new Bottom(),
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox = new ProofBox(initialLine, goalLine, false);
     let newEmptyLine = new EmptyProofLine();
     targetLine.append(newEmptyLine);
     newEmptyLine.prepend(proofBox);
@@ -494,8 +516,7 @@ function eliminateNegation() {
     targetLine.prepend(newJustifiedLine);
   } else {
     if (targetLine.formula.type !== formulaTypes.BOTTOM) {
-      throw new ProofProcessingError("The selected goal formula is not "
-          + "bottom.");
+      throw new ProofProcessingError("The selected goal line is not bottom.");
     }
     targetLine.justification = justification;
   }
@@ -525,25 +546,6 @@ function eliminateDoubleNegation() {
     if (!formulasDeepEqual(targetLine.formula, newFormula)) {
       throw new ProofProcessingError("The justification formula is not a "
           + "double negation of the selected goal formula.");
-    }
-    targetLine.justification = justification;
-  }
-}
-
-/*
- * Function handling top introduction
- */
-function introduceTop() {
-  let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
-  let targetLine = retrievedLines.targetLine;
-  let justification = new SpecialJustification(justTypes.TOP_INTRO);
-  if (targetLine instanceof EmptyProofLine) {
-    let newLine = new JustifiedProofLine(new Top(), justification);
-    targetLine.prepend(newLine);
-  } else {
-    if (targetLine.formula.type !== formulaTypes.TOP) {
-      throw new ProofProcessingError("The selected goal formula is not top.");
     }
     targetLine.justification = justification;
   }

@@ -122,21 +122,15 @@ class EmptyProofLine extends ProofLine {
 }
 
 class ProofBox extends ProofItem {
-  constructor(initialFormula, initialJustType, goalFormula, nextAdjacent) {
+  constructor(initialLine, goalLine, nextAdjacent) {
     super();
     /* Initially mark as incomplete */
     this.complete = false;
-    /* Construct new lines */
-    let initialJustification = new SpecialJustification(initialJustType);
-    let initialLine
-        = new JustifiedProofLine(initialFormula, initialJustification);
-    let emptyLine = new EmptyProofLine();
-    let goalLine= new JustifiedProofLine(goalFormula,
-        new SpecialJustification(justTypes.GOAL));
     /* Add initial line to the box components */
     this.components = initialLine;
     initialLine.parent = this;
     /* Add empty line and the goal line */
+    let emptyLine = new EmptyProofLine();
     initialLine.append(emptyLine);
     emptyLine.append(goalLine);
     this.nextAdjacent = nextAdjacent;
