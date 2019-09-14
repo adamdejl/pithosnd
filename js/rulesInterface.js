@@ -40,8 +40,8 @@ const rulesData = Object.freeze({
   "↔E": {handler: eliminateBiconditional, numLines: 3, hint: "↔E requires "
       + 'selection of a biconditional, formula matching one of its "sides" '
       + "and an empty or goal line.", name: "↔E"},
-  // "EM": {handler: applyExcludedMiddle, numLines: 1, hint: "EM requires "
-  //     + "selection of an empty or goal line.", name: "EM"},
+  "EM": {handler: applyExcludedMiddle, numLines: 1, hint: "EM requires "
+      + "selection of an empty or goal line.", name: "EM"},
   // "PC": {handler: applyProofByContradicition, numLines: 1, hint: "PC requires "
   //     + "selection of an empty or goal line.", name: "PC"},
   // "∃I": {handler: introduceExistential, numLines: 2, hint: "∃I requires "
@@ -747,6 +747,81 @@ function eliminateBiconditional() {
     if (targetLine.prev instanceof EmptyProofLine) {
       targetLine.prev.delete();
     }
+  }
+}
+
+/*
+ * Function handling excluded middle application
+ */
+function applyExcludedMiddle() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let targetLine = retrievedLines.targetLine;
+  if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - allow user to specify resulting formula */
+    let requestText = "Please enter the formula for p in p ∨ ¬p and choose "
+        + "the order of the disjuncts:";
+    let buttons =
+        `<button id="applyExcludedMiddleLeft" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">p ∨ ¬p</button>
+         <button id="applyExcludedMiddleRight" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">¬p ∨ p</button>`
+    requestFormulaInput(requestText, undefined, buttons);
+  } else {
+    let targetFormula = targetLine.formula;
+    if (targetFormula.type !== formulaTypes.DISJUNCTION) {
+      throw new ProofProcessingError("The selected target formula is not a "
+          + "disjunction.")
+    }
+    if ((targetFormula.operand2.type === formulaTypes.NEGATION
+            && formulasDeepEqual(targetFormula.operand1,
+                targetFormula.operand2.operand))
+        || (targetFormula.operand1.type === formulaTypes.NEGATION
+            && formulasDeepEqual(targetFormula.operand2,
+                targetFormula.operand1.operand))) {
+      targetLine.justification
+          = new SpecialJustification(justTypes.EM);
+    } else {
+      throw new ProofProcessingError("The selected target formula cannot be "
+          + "derived using rule of the excluded middle.")
+    }
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
+  }
+
+  /*
+   * Catch user action to complete the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#applyExcludedMiddleLeft");
+  $("#dynamicModalArea").off("click", "#applyExcludedMiddleRight");
+  $("#dynamicModalArea").on("click", "#applyExcludedMiddleLeft",
+      function() {
+    completeExcludedMiddle(true);
+  });
+  $("#dynamicModalArea").on("click", "#applyExcludedMiddleRight",
+      function() {
+    completeExcludedMiddle(false);
+  });
+
+  /*
+   * Complete rule application by introducing new EM disjunction
+   */
+  function completeExcludedMiddle(basicLeft) {
+    let pFormula = parseFormula($("#additionalFormulaInput")[0].value,
+        PithosData.proof.signature);
+    let emFormula;
+    if (basicLeft) {
+      /* Use p as the left disjunct */
+      emFormula = new Disjunction(pFormula, new Negation(pFormula));
+    } else {
+      /* Use ~p as the left disjunct */
+      emFormula = new Disjunction(new Negation(pFormula), pFormula);
+    }
+    let justification
+        = new SpecialJustification(justTypes.EM);
+    let newLine = new JustifiedProofLine(emFormula, justification);
+    targetLine.prepend(newLine);
+    completeProofUpdate();
   }
 }
 
