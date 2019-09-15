@@ -67,8 +67,8 @@ const rulesData = Object.freeze({
   // "=sym": {handler: applyEqualitySymmetry, numLines: 2, hint: "=sym "
   //     + "requires selection of an equality and an empty or goal line.",
   //     name: "=sym"},
-  // "✓": {handler: applyTick, numLines: 2, hint: "✓ requires selection"
-  //     + "of a formula and an empty or goal line.", name: "✓"}
+  "✓": {handler: applyTick, numLines: 2, hint: "✓ requires selection"
+      + "of a formula and an empty or goal line.", name: "✓"}
 });
 
 /*
@@ -425,8 +425,8 @@ function eliminateImplication() {
   if (targetLine instanceof EmptyProofLine) {
     let justification
         = new Justification(justTypes.IMP_ELIM, justificationLines);
-    let newJustifiedLine = new JustifiedProofLine(consequent, justification);
-    targetLine.prepend(newJustifiedLine);
+    let newLine = new JustifiedProofLine(consequent, justification);
+    targetLine.prepend(newLine);
   } else {
     if (!formulasDeepEqual(targetLine.formula, consequent)) {
       throw new ProofProcessingError("The consequent of the implication does "
@@ -741,8 +741,8 @@ function eliminateBiconditional() {
   if (targetLine instanceof EmptyProofLine) {
     let justification
         = new Justification(justTypes.BICOND_ELIM, justificationLines);
-    let newJustifiedLine = new JustifiedProofLine(newFormula, justification);
-    targetLine.prepend(newJustifiedLine);
+    let newLine = new JustifiedProofLine(newFormula, justification);
+    targetLine.prepend(newLine);
   } else {
     if (!formulasDeepEqual(targetLine.formula, newFormula)) {
       throw new ProofProcessingError("The formula derivable by biconditional "
@@ -884,6 +884,31 @@ function applyProofByContradiction() {
 }
 
 /*
+ * Function handling tick rule application
+ */
+function applyTick() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  let justificationFormula = justificationLines[0].formula;
+  let targetLine = retrievedLines.targetLine;
+  let justification = new Justification(justTypes.TICK, justificationLines);
+  if (targetLine instanceof EmptyProofLine) {
+    let newLine = new JustifiedProofLine(justificationFormula, justification);
+    targetLine.prepend(newLine);
+  } else {
+    if (!formulasDeepEqual(targetLine.formula, justificationFormula)) {
+      throw new ProofProcessingError("The justification and goal formulas do "
+          + "not match.");
+    }
+    targetLine.justification = justification;
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
+  }
+}
+
+/*
  * Function handling negation elimination and bottom introduction rules
  */
 function addBottom(justType) {
@@ -910,14 +935,17 @@ function addBottom(justType) {
   let justification
       = new Justification(justType, justificationLines);
   if (targetLine instanceof EmptyProofLine) {
-    let newJustifiedLine
+    let newLine
         = new JustifiedProofLine(new Bottom(), justification);
-    targetLine.prepend(newJustifiedLine);
+    targetLine.prepend(newLine);
   } else {
     if (targetLine.formula.type !== formulaTypes.BOTTOM) {
       throw new ProofProcessingError("The selected goal line is not bottom.");
     }
     targetLine.justification = justification;
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
   }
 }
 
