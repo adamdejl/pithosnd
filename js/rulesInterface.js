@@ -375,8 +375,10 @@ function introduceImplication() {
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
         PithosData.proof.signature);
     if (targetFormula.type !== formulaTypes.IMPLICATION) {
-      throw new ProofProcessingError("The entered formula is not an "
+      let error = new ProofProcessingError("The entered formula is not an "
           + "implication.");
+      handleProofProcessingError(error);
+      return;
     }
     let initialLine = new JustifiedProofLine(targetFormula.operand1,
         new SpecialJustification(justTypes.ASS));
@@ -477,7 +479,11 @@ function introduceNegation() {
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
         PithosData.proof.signature);
     if (targetFormula.type !== formulaTypes.NEGATION) {
-      throw new ProofProcessingError("The entered formula is not a negation.");
+      let error
+          = new ProofProcessingError("The entered formula is not a negation.");
+      handleProofProcessingError(error);
+      return;
+
     }
     let initialLine = new JustifiedProofLine(targetFormula.operand,
         new SpecialJustification(justTypes.ASS));

@@ -140,9 +140,7 @@ function updateProof() {
     PithosData.selectedRuleData.handler();
   } catch (error) {
     if (error instanceof ProofProcessingError) {
-      showModal("Error", `<p>An error occured during application of the rule `
-          + `${PithosData.selectedRuleData.name}:</p> <p>${error.message}</p>`,
-          PithosData.selectedRuleData.hint);
+      handleProofProcessingError(error);
     } else {
       throw error;
     }
@@ -162,4 +160,14 @@ function updateProof() {
 function completeProofUpdate() {
   updateLines(PithosData.proof);
   $("#proofContainer").html(proofToHTML(PithosData.proof));
+}
+
+/*
+ * Shows informative error message on error
+ */
+function handleProofProcessingError(error) {
+  $(".modal-backdrop").remove();
+  showModal("Error", `<p>An error occured during application of the rule `
+      + `${PithosData.selectedRuleData.name}:</p> <p>${error.message}</p>`,
+      PithosData.selectedRuleData.hint);
 }
