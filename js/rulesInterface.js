@@ -44,9 +44,9 @@ const rulesData = Object.freeze({
       + "selection of an empty or goal line.", name: "EM"},
   "PC": {handler: applyProofByContradiction, numLines: 1, hint: "PC requires "
       + "selection of an empty or goal line.", name: "PC"},
-  // "∃I": {handler: introduceExistential, numLines: 2, hint: "∃I requires "
-  //     + "selection of a formula with a term to be replaced by the "
-  //     + "quantified variable and an empty or goal line.", name: "∃I"},
+  "∃I": {handler: introduceExistential, numLines: 2, hint: "∃I requires "
+      + "selection of a formula with term(s) to be replaced by the "
+      + "quantified variable and an empty or goal line.", name: "∃I"},
   // "∃E": {handler: eliminateExistential, numLines: 2, hint: "∃E requires "
   //     + "selection of an existentially quantified formula and an empty or "
   //     + "goal line.", name: "∃E"},
@@ -67,7 +67,7 @@ const rulesData = Object.freeze({
   // "=sym": {handler: applyEqualitySymmetry, numLines: 2, hint: "=sym "
   //     + "requires selection of an equality and an empty or goal line.",
   //     name: "=sym"},
-  "✓": {handler: applyTick, numLines: 2, hint: "✓ requires selection"
+  "✓": {handler: applyTick, numLines: 2, hint: "✓ requires selection "
       + "of a formula and an empty or goal line.", name: "✓"}
 });
 
@@ -881,6 +881,244 @@ function applyProofByContradiction() {
     newEmptyLine.prepend(newJustifiedLine);
     completeProofUpdate();
   });
+}
+
+/*
+ * Function handling existential introduction
+ */
+function introduceExistential() {
+  let retrievedLines
+      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  let justificationFormula = justificationLines[0].formula;
+  let targetLine = retrievedLines.targetLine;
+  if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - allow user to specify resulting formula */
+    let requestText = "Please enter the formula that you would like to "
+        + "introduce using existential introduction rule:";
+    requestFormulaInput(requestText, "introduceExistentialComplete");
+  } else {
+    /* Target line is a goal line - choose the goal formula automatically */
+    let targetFormula = targetLine.formula;
+    if (targetFormula.type !== formulaTypes.EXISTENTIAL) {
+      throw new ProofProcessingError("The selected formula is not an "
+          + "existential.");
+    }
+    if (!verifyExistentialIntroduction(justificationFormula, targetFormula)) {
+      throw new ProofProcessingError("The selected target formula cannot be "
+          + "derived from the selected justification formula using existential "
+          + "introduction. Please check that only closed terms have been "
+          + "replaced by quantified variables and that terms replaced by "
+          + "the same variable are identical.")
+    }
+    targetLine.justification
+        = new Justification(justTypes.EXIS_INTRO, justificationLines);
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
+  }
+
+  /*
+   * Catch user action to complete the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#introduceExistentialComplete");
+  $("#dynamicModalArea").on("click", "#introduceExistentialComplete",
+      function() {
+    let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
+        PithosData.proof.signature);
+    if (targetFormula.type !== formulaTypes.EXISTENTIAL) {
+      let error = new ProofProcessingError("The entered formula is not an "
+          + "existential.");
+      handleProofProcessingError(error);
+      return;
+    }
+    if (!verifyExistentialIntroduction(justificationFormula, targetFormula)) {
+      let error = new ProofProcessingError("The selected target formula cannot "
+          + "be derived from the selected justification formula using "
+          + "existential introduction. Please check that only closed terms "
+          + "have been replaced by quantified variables and that terms "
+          + "replaced by the same variable are identical.")
+      handleProofProcessingError(error);
+      return;
+    }
+    let justification
+        = new Justification(justTypes.EXIS_INTRO, justificationLines);
+    let newLine = new JustifiedProofLine(targetFormula, justification);
+    targetLine.prepend(newLine);
+    completeProofUpdate();
+  });
+
+  /*
+   * Function checking existential introduction application
+   */
+  function verifyExistentialIntroduction(justificationFormula, targetFormula) {
+    /* Determine the difference in the number of existential quantifiers */
+    let justificationExistentialCount = 0;
+    let currFormula = justificationFormula;
+    while (currFormula.type === formulaTypes.EXISTENTIAL) {
+      justificationExistentialCount++;
+      currFormula = currFormula.predicate;
+    }
+    let targetExistentialCount = 0;
+    currFormula = targetFormula;
+    while (currFormula.type === formulaTypes.EXISTENTIAL) {
+      targetExistentialCount++;
+      currFormula = currFormula.predicate;
+    }
+    if (targetExistentialCount <= justificationExistentialCount) {
+      /* Fail verification if there are no additional existential quantifiers
+         in the target formula */
+      return false;
+    }
+    /* Attempt to match formulas to verify rule application */
+    let addedExistentialCount
+        = targetExistentialCount - justificationExistentialCount;
+    let existentialVariablesSet = new Set([]);
+    currFormula = targetFormula;
+    for (let i = 0; i < addedExistentialCount; i++) {
+      existentialVariablesSet.add(currFormula.variableString);
+      currFormula = currFormula.predicate;
+    }
+    return existentialIntroductionMatch(justificationFormula, currFormula,
+        existentialVariablesSet, {});
+  }
+
+  /*
+   * Checks whether the trimmed target formula can be matched to the
+     justification formula for the purposes of existential introduction
+   * variablesSet contains textual representation of variables quantified by
+     the introduced existentials
+   */
+  function existentialIntroductionMatch(justification, target, variablesSet,
+      replacements) {
+    if (justification.type !== target.type
+        && !(justification instanceof Term && target instanceof Term)) {
+      return false;
+    }
+    if (justification instanceof Term) {
+      if (formulasDeepEqual(justification, target)) {
+        /* Terms are identical - no replacement occured */
+        return true;
+      }
+      if (justification.type === termTypes.VARIABLE) {
+        /* Variables do not match and hence the formulas do not match (only
+           closed terms can be replaced by a variable) */
+        return false;
+      }
+      if (justification.type === termTypes.CONSTANT) {
+        if (target.type !== termTypes.VARIABLE
+            || !variablesSet.has(target.name)) {
+          /* Constant was not replaced by variable - formulas do not match */
+          return false;
+        }
+        /* Constant has been replaced by variable - check whether the
+           replacement is valid */
+        if (!replacements.hasOwnProperty(target.name)) {
+          /* No previous replacement by the given variable has been encountered
+             - log the first */
+          replacements[target.name] = justification;
+          return true;
+        }
+        /* Replacement by the given variable has already occured - check
+           whether the replaced constants match */
+        if (replacements[target.name].type === termTypes.CONSTANT &&
+            formulasDeepEqual(replacements[target.name], justification)) {
+          /* Successful match */
+          return true;
+        }
+        /* Replaced terms do not match - report failure */
+        return false;
+      }
+      if (justification.type === termTypes.FUNCTION) {
+        if (target.type === termTypes.CONSTANT) {
+          /* Constant in target formula cannot be matched to a function in
+             the justification formula */
+          return false;
+        }
+        if (target.type === termTypes.FUNCTION) {
+          /* Check deep match - possible replacement by variable must have
+             occured inside function */
+          if (justification.name !== target.name) {
+            /* The names of functions do not match */
+            return false;
+          }
+          return _.zipWith(justification.terms, target.terms,
+              (t1, t2) => existentialIntroductionMatch(t1, t2,
+                  variablesSet, replacements))
+              .reduce((b1, b2) => b1 && b2, true);
+        }
+        if (target.type === termTypes.VARIABLE) {
+          /* Function was replaced by a variable - check whether the replacement
+             is valid */
+          if (!variablesSet.has(target.name)) {
+            /* The encountered variable is not quantified by an added
+               existential - report failure */
+            return false;
+          }
+          if (!replacements.hasOwnProperty(target.name)) {
+            /* No previous replacement by the given variable has been
+               encountered - log the first */
+            replacements[target.name] = justification;
+            return true;
+          }
+          /* Replacement by the given variable has already occured - check
+             whether the replaced functions match */
+          if (replacements[target.name].type === termTypes.FUNCTION &&
+              formulasDeepEqual(replacements[target.name], justification)) {
+            /* Successful match */
+            return true;
+          }
+          /* Replaced terms do not match - report failure */
+          return false;
+        }
+      }
+    } else if (justification instanceof Quantifier) {
+      if (justification.variableString !== target.variableString) {
+        return false;
+      }
+      if (variablesSet.has(justification.variableString)) {
+        /* Cannot replace constants by variable that is already
+           quantified at "deeper" level in the given sub-formula */
+        variablesSet.delete(justification.variableString);
+      }
+      return existentialIntroductionMatch(justification.predicate,
+          target.predicate, variablesSet, replacements);
+    } else if (justification.type === formulaTypes.RELATION) {
+      if (justification.name !== target.name) {
+        return false;
+      }
+      return _.zipWith(justification.terms, target.terms,
+          (t1, t2) => existentialIntroductionMatch(t1, t2,
+              variablesSet, replacements))
+          .reduce((b1, b2) => b1 && b2, true);
+    } else if (justification instanceof Equality) {
+      return existentialIntroductionMatch(justification.term1, target.term1)
+          && existentialIntroductionMatch(justification.term2, target.term2);
+    } else if (justification.type === formulaTypes.NEGATION) {
+      return existentialIntroductionMatch(justification.operand,
+          target.operand);
+    } else if (justification instanceof BinaryConnective) {
+      if (justification.isAssociative) {
+        let operandsJustification;
+        extractOperands(justification, justification.type,
+            operandsJustification);
+        let operandsTarget;
+        extractOperands(target, target.type, operandsTarget);
+        return _.zipWith(operandsJustification, operandsTarget,
+            (f1, f2) => existentialIntroductionMatch(f1, f2, variablesSet,
+                replacements))
+            .reduce((b1, b2) => b1 && b2, true);
+      } else {
+        return existentialIntroductionMatch(justification.operand1,
+                target.operand1)
+            && existentialIntroductionMatch(justification.operand2,
+                target.operand2);
+      }
+    } else {
+      return formulasDeepEqual(justification, target);
+    }
+  }
 }
 
 /*
