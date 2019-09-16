@@ -1100,11 +1100,11 @@ function introduceExistential() {
           target.operand);
     } else if (justification instanceof BinaryConnective) {
       if (justification.isAssociative) {
-        let operandsJustification;
-        extractOperands(justification, justification.type,
-            operandsJustification);
-        let operandsTarget;
-        extractOperands(target, target.type, operandsTarget);
+        let operandsJustification = [];
+        extractOperands(justification, operandsJustification,
+            justification.type);
+        let operandsTarget = [];
+        extractOperands(target, operandsTarget, justification.type);
         return _.zipWith(operandsJustification, operandsTarget,
             (f1, f2) => existentialIntroductionMatch(f1, f2, variablesSet,
                 replacements))
