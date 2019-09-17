@@ -1,7 +1,7 @@
 "use strict";
 
 /* Set up global object for status variables */
-let PithosData = {
+let pithosData = {
   numGivens: 0,
   proof: null,
   selectedLinesSet: new Set([]),
@@ -17,7 +17,9 @@ let PithosData = {
  */
 function parseAll() {
   let signature = {
-    constants: [],
+    constants: new Set([]),
+    skolemConstants: new Set([]),
+    skolemNext: 1,
     relationArities: {},
     functionArities: {}
   };
@@ -28,13 +30,13 @@ function parseAll() {
   }
 
   /* Parse all givens */
-  for (let i = 0; i <= PithosData.numGivens; i++) {
+  for (let i = 0; i <= pithosData.numGivens; i++) {
     /* Backup signature in case of error in parsing */
     let signatureCopy = $.extend(true, {}, signature);
     let parsedFormula;
     let inputElement;
     let outputElement;
-    if (i < PithosData.numGivens) {
+    if (i < pithosData.numGivens) {
       /* Process given formula */
       inputElement = $("#givenInput" + i);
       outputElement = $("#givenParsed" + i);
@@ -81,6 +83,7 @@ function parseAll() {
  * Shows modal alert
  */
 function showModal(title, modalBody, hint, customId, customButtons) {
+  $(".modal-backdrop").remove();
   let hintHTML = "";
   if (hint !== undefined) {
     hintHTML =
@@ -125,10 +128,10 @@ function showModal(title, modalBody, hint, customId, customButtons) {
  * Cancells selection of all lines
  */
 function resetSelectedLines() {
-  PithosData.selectedLinesSet
+  pithosData.selectedLinesSet
       .forEach(elem =>
-          PithosData.lineNumToSelector[elem].removeClass("text-primary"));
-  PithosData.selectedLinesSet = new Set([]);
+          pithosData.lineNumToSelector[elem].removeClass("text-primary"));
+  pithosData.selectedLinesSet = new Set([]);
 }
 
 /*
@@ -137,7 +140,7 @@ function resetSelectedLines() {
  */
 function updateProof() {
   try {
-    PithosData.selectedRuleData.handler();
+    pithosData.selectedRuleData.handler();
   } catch (error) {
     if (error instanceof ProofProcessingError) {
       handleProofProcessingError(error);
@@ -145,11 +148,11 @@ function updateProof() {
       throw error;
     }
   }
-  updateLines(PithosData.proof);
+  updateLines(pithosData.proof);
   resetSelectedLines();
-  $("#proofContainer").html(proofToHTML(PithosData.proof));
-  PithosData.freeSelection = true;
-  $(PithosData.selectedButton)
+  $("#proofContainer").html(proofToHTML(pithosData.proof));
+  pithosData.freeSelection = true;
+  $(pithosData.selectedButton)
       .removeClass("btn-primary")
       .addClass("btn-secondary");
 }
@@ -158,16 +161,15 @@ function updateProof() {
  * Completes update of the proof in case of rules requiring additional input
  */
 function completeProofUpdate() {
-  updateLines(PithosData.proof);
-  $("#proofContainer").html(proofToHTML(PithosData.proof));
+  updateLines(pithosData.proof);
+  $("#proofContainer").html(proofToHTML(pithosData.proof));
 }
 
 /*
  * Shows informative error message on error
  */
 function handleProofProcessingError(error) {
-  $(".modal-backdrop").remove();
   showModal("Error", `<p>An error occured during application of the rule `
-      + `${PithosData.selectedRuleData.name}:</p> <p>${error.message}</p>`,
-      PithosData.selectedRuleData.hint);
+      + `${pithosData.selectedRuleData.name}:</p> <p>${error.message}</p>`,
+      pithosData.selectedRuleData.hint);
 }

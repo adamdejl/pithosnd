@@ -47,9 +47,9 @@ const rulesData = Object.freeze({
   "∃I": {handler: introduceExistential, numLines: 2, hint: "∃I requires "
       + "selection of a formula with term(s) to be replaced by the "
       + "quantified variable and an empty or goal line.", name: "∃I"},
-  // "∃E": {handler: eliminateExistential, numLines: 2, hint: "∃E requires "
-  //     + "selection of an existentially quantified formula and an empty or "
-  //     + "goal line.", name: "∃E"},
+  "∃E": {handler: eliminateExistential, numLines: 2, hint: "∃E requires "
+      + "selection of an existentially quantified formula and an empty or "
+      + "goal line.", name: "∃E"},
   // "∀I": {handler: introduceUniversal, numLines: 1, hint: "∀I requires "
   //     + "selection of an empty or goal line.", name: "∀I"},
   // "∀E": {handler: eliminateUniversal, numLines: 2, hint: "∀E requires "
@@ -76,7 +76,7 @@ const rulesData = Object.freeze({
  */
 function introduceConjunction() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let targetLine = retrievedLines.targetLine;
   let newConjunction = new Conjunction(justificationLines[0].formula,
@@ -107,7 +107,7 @@ function introduceConjunction() {
  */
 function eliminateConjunction() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   if (justificationLines[0].formula.type !== formulaTypes.CONJUNCTION) {
     throw new ProofProcessingError("The selected justification formula is "
@@ -171,7 +171,7 @@ function eliminateConjunction() {
  */
 function introduceDisjunction() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let targetLine = retrievedLines.targetLine;
   if (targetLine instanceof EmptyProofLine) {
@@ -219,7 +219,7 @@ function introduceDisjunction() {
    */
   function completeDisjunction(left) {
     let userDisjunct = parseFormula($("#additionalFormulaInput")[0].value,
-        PithosData.proof.signature);
+        pithosData.proof.signature);
     let newDisjunction;
     if (left) {
       /* Use justification formula as the left disjunct */
@@ -271,7 +271,7 @@ function introduceDisjunction() {
  */
 function eliminateDisjunction() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   if (justificationLines[0].formula.type !== formulaTypes.DISJUNCTION) {
     throw new ProofProcessingError("The selected justification formula is "
@@ -314,7 +314,7 @@ function eliminateDisjunction() {
   $("#dynamicModalArea").on("click", "#eliminateDisjunctionComplete",
       function() {
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        PithosData.proof.signature);
+        pithosData.proof.signature);
     let goalLine1 = new JustifiedProofLine(targetFormula,
         new SpecialJustification(justTypes.GOAL));
     let proofBox1 = new ProofBox(initialLine1, goalLine1, true);
@@ -340,7 +340,7 @@ function eliminateDisjunction() {
  */
 function introduceImplication() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
@@ -373,7 +373,7 @@ function introduceImplication() {
   $("#dynamicModalArea").on("click", "#introduceImplicationComplete",
       function() {
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        PithosData.proof.signature);
+        pithosData.proof.signature);
     if (targetFormula.type !== formulaTypes.IMPLICATION) {
       let error = new ProofProcessingError("The entered formula is not an "
           + "implication.");
@@ -402,7 +402,7 @@ function introduceImplication() {
  */
 function eliminateImplication() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let formula1 = justificationLines[0].formula;
   let formula2 = justificationLines[1].formula;
@@ -445,7 +445,7 @@ function eliminateImplication() {
  */
 function introduceNegation() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
@@ -477,7 +477,7 @@ function introduceNegation() {
   $("#dynamicModalArea").on("click", "#introduceNegationComplete",
       function() {
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        PithosData.proof.signature);
+        pithosData.proof.signature);
     if (targetFormula.type !== formulaTypes.NEGATION) {
       let error
           = new ProofProcessingError("The entered formula is not a negation.");
@@ -514,7 +514,7 @@ function eliminateNegation() {
  */
 function eliminateDoubleNegation() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let justificationFormula = justificationLines[0].formula;
   if (justificationFormula.type !== formulaTypes.NEGATION
@@ -546,7 +546,7 @@ function eliminateDoubleNegation() {
  */
 function introduceTop() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
   let justification = new SpecialJustification(justTypes.TOP_INTRO);
   if (targetLine instanceof EmptyProofLine) {
@@ -575,7 +575,7 @@ function introduceBottom() {
  */
 function eliminateBottom() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let justificationFormula = justificationLines[0].formula;
   if (justificationFormula.type !== formulaTypes.BOTTOM) {
@@ -606,7 +606,7 @@ function eliminateBottom() {
   $("#dynamicModalArea").on("click", "#eliminateBottomComplete",
       function() {
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        PithosData.proof.signature);
+        pithosData.proof.signature);
     let justification
         = new Justification(justTypes.BOT_ELIM, justificationLines);
     let newLine = new JustifiedProofLine(targetFormula, justification);
@@ -620,7 +620,7 @@ function eliminateBottom() {
  */
 function introduceBiconditional() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let targetLine = retrievedLines.targetLine;
   if (justificationLines[0].formula.type !== formulaTypes.IMPLICATION
@@ -709,7 +709,7 @@ function introduceBiconditional() {
  */
 function eliminateBiconditional() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let formula1 = justificationLines[0].formula;
   let formula2 = justificationLines[1].formula;
@@ -761,7 +761,7 @@ function eliminateBiconditional() {
  */
 function applyExcludedMiddle() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
@@ -814,7 +814,7 @@ function applyExcludedMiddle() {
    */
   function completeExcludedMiddle(basicLeft) {
     let pFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        PithosData.proof.signature);
+        pithosData.proof.signature);
     let emFormula;
     if (basicLeft) {
       /* Use p as the left disjunct */
@@ -836,7 +836,7 @@ function applyExcludedMiddle() {
  */
 function applyProofByContradiction() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
@@ -865,7 +865,7 @@ function applyProofByContradiction() {
   $("#dynamicModalArea").on("click", "#proofByContradictionComplete",
       function() {
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        PithosData.proof.signature);
+        pithosData.proof.signature);
     let initialLine = new JustifiedProofLine(new Negation(targetFormula),
         new SpecialJustification(justTypes.ASS));
     let goalLine = new JustifiedProofLine(new Bottom(),
@@ -888,7 +888,7 @@ function applyProofByContradiction() {
  */
 function introduceExistential() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let justificationFormula = justificationLines[0].formula;
   let targetLine = retrievedLines.targetLine;
@@ -926,7 +926,7 @@ function introduceExistential() {
   $("#dynamicModalArea").on("click", "#introduceExistentialComplete",
       function() {
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        PithosData.proof.signature);
+        pithosData.proof.signature);
     if (targetFormula.type !== formulaTypes.EXISTENTIAL) {
       let error = new ProofProcessingError("The entered formula is not an "
           + "existential.");
@@ -1122,11 +1122,127 @@ function introduceExistential() {
 }
 
 /*
+ * Function handling existential elimination
+ */
+function eliminateExistential() {
+  let retrievedLines
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  let justificationFormula = justificationLines[0].formula;
+  if (justificationFormula.type !== formulaTypes.EXISTENTIAL) {
+    throw new ProofProcessingError("The selected justification formula is "
+        + "not an existential.");
+  }
+  let targetLine = retrievedLines.targetLine;
+  /* Ask the user how many outer exists quantifiers should be eliminated */
+  let modalBody =
+       "Please choose the number of outer quantifiers that should be "
+       + `eliminated from the formula ${justificationFormula.stringRep}:`;
+  let existentialCount = 0;
+  for (let currFormula = justificationFormula;
+      currFormula.type === formulaTypes.EXISTENTIAL;
+      currFormula = currFormula.predicate) {
+    modalBody +=
+        `<div class="custom-control custom-radio">
+           <input type="radio" id="existentialRadio${existentialCount}" class="custom-control-input">
+           <label class="custom-control-label" for="existentialRadio${existentialCount}">${existentialCount + 1}</label>
+         </div>`
+    existentialCount++;
+  }
+  /* Declared for use by following code */
+  let initialFormula;
+  if (existentialCount === 1) {
+    eliminateExistentialContinue(existentialCount);
+  } else {
+    showModal("Input required", modalBody, undefined,
+        "eliminateExistentialContinue");
+  }
+
+  /*
+   * Catch user action to proceed with the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#eliminateExistentialContinue");
+  $("#dynamicModalArea").on("click", "#eliminateExistentialContinue",
+      function() {
+    let numberEliminated = 0;
+    for (let i = 0; i < existentialCount; i++) {
+      if ($("#existentialRadio" + i).is(":checked")) {
+        numberEliminated = i + 1;
+      }
+    }
+    if (numberEliminated === 0) {
+      numberEliminated = existentialCount;
+    }
+    eliminateExistentialContinue(numberEliminated);
+  })
+
+  function eliminateExistentialContinue(numberEliminated) {
+    let replacements = {};
+    let currFormula = justificationFormula;
+    for (let i = 0; i < numberEliminated;
+        i++) {
+      replacements[currFormula.variableString]
+          = `sk${pithosData.proof.signature.skolemNext}`;
+      pithosData.proof.signature.skolemConstants.add(
+          `sk${pithosData.proof.signature.skolemNext}`);
+      pithosData.proof.signature.skolemNext++;
+      currFormula = currFormula.predicate;
+    }
+    initialFormula = replaceVariables(currFormula, replacements);
+    if (targetLine instanceof EmptyProofLine) {
+      /* Target line is an empty line - allow user to specify resulting formula */
+      let requestText = "Please enter the formula that you would like to "
+          + "introduce using existential elimination rule:";
+      requestFormulaInput(requestText, "eliminateExistentialComplete");
+    } else {
+      /* Target line is a goal line - choose target formula automatically */
+      let targetFormula = targetLine.formula;
+      let initialLine = new JustifiedProofLine(initialFormula,
+          new SpecialJustification(justTypes.ASS));
+      let goalLine = new JustifiedProofLine(targetFormula,
+          new SpecialJustification(justTypes.GOAL));
+      let proofBox = new ProofBox(initialLine, goalLine, false);
+      targetLine.prepend(proofBox);
+      let ruleJustificationLines = [initialLine, goalLine];
+      targetLine.justification
+          = new Justification(justTypes.EXIS_ELIM, ruleJustificationLines);
+      completeProofUpdate();
+    }
+  }
+
+  /*
+   * Catch user action to complete the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#eliminateExistentialComplete");
+  $("#dynamicModalArea").on("click", "#eliminateExistentialComplete",
+      function() {
+    let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
+        pithosData.proof.signature);
+    let initialLine = new JustifiedProofLine(initialFormula,
+        new SpecialJustification(justTypes.ASS));
+    let goalLine = new JustifiedProofLine(targetFormula,
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let newEmptyLine = new EmptyProofLine();
+    targetLine.append(newEmptyLine);
+    newEmptyLine.prepend(proofBox);
+    let ruleJustificationLines = [initialLine, goalLine];
+    let justification
+        = new Justification(justTypes.EXIS_ELIM, ruleJustificationLines);
+    let newJustifiedLine = new JustifiedProofLine(targetFormula, justification);
+    newEmptyLine.prepend(newJustifiedLine);
+    completeProofUpdate();
+  });
+}
+
+/*
  * Function handling tick rule application
  */
 function applyTick() {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let justificationFormula = justificationLines[0].formula;
   let targetLine = retrievedLines.targetLine;
@@ -1151,7 +1267,7 @@ function applyTick() {
  */
 function addBottom(justType) {
   let retrievedLines
-      = retrieveLines(PithosData.proof, PithosData.selectedLinesSet);
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let negatedFormula;
   let formula;
@@ -1235,7 +1351,7 @@ jQuery(function($) {
  */
 function parseAdditionalFormula() {
   /* Backup signature in case of error in parsing */
-  let signatureCopy = $.extend(true, {}, PithosData.proof.signature);
+  let signatureCopy = $.extend(true, {}, pithosData.proof.signature);
   let inputSelector = $("#additionalFormulaInput");
   let outputSelector = $("#additionalFormulaParsed");
   let parsedFormula;
@@ -1271,5 +1387,44 @@ function extractOperands(formula, extractionTarget, type) {
   } else {
     extractOperands(formula.operand1, extractionTarget, type);
     extractOperands(formula.operand2, extractionTarget, type);
+  }
+}
+
+/*
+ * Creates a copy of the supplied formula with variables replaced by constants
+   by the given replacements
+ */
+function replaceVariables(formula, replacements) {
+  let formulaClone = _.cloneDeep(formula);
+  return replaceVariablesHelper(formulaClone, replacements);
+
+  function replaceVariablesHelper(formula, replacements) {
+    if (formula.type === termTypes.VARIABLE
+        && replacements.hasOwnProperty(formula.name)) {
+      return new Constant(replacements[formula.name]);
+    } else if (formula.type === termTypes.FUNCTION) {
+      formula.terms
+          = formula.terms.map(t => replaceVariablesHelper(t, replacements));
+    } else if (formula instanceof Quantifier) {
+      formula.predicate
+          = replaceVariablesHelper(formula.predicate, replacements);
+    } else if (formula instanceof BinaryConnective) {
+      formula.operand1
+          = replaceVariablesHelper(formula.operand1, replacements);
+      formula.operand2
+          = replaceVariablesHelper(formula.operand2, replacements);
+    } else if (formula.type === formulaTypes.NEGATION) {
+      formula.operand
+          = replaceVariablesHelper(formula.operand, replacements);
+    } else if (formula.type === formulaTypes.EQUALITY) {
+      formula.term1
+          = replaceVariablesHelper(formula.term1, replacements);
+      formula.term2
+          = replaceVariablesHelper(formula.term2, replacements);
+    } else if (formula.type === formulaTypes.RELATION) {
+      formula.terms
+          = formula.terms.map(t => replaceVariablesHelper(t, replacements));
+    }
+    return formula;
   }
 }

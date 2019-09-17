@@ -747,9 +747,13 @@ function parseTerm(termString, parserData) {
     return new Variable(termString);
   } else {
     /* Parse constant */
-    if (!signature.constants.includes(termString)) {
-      signature.constants.push(termString);
+    // TODO: Make Skolem constants rejection dependant on stage of parsing
+    if (/^sk[0-9]+$/.test(termString)) {
+      throw new FormulaParsingError("Constants in format sk[number] "
+          + "(such as sk1 or sk1234) are reserved for Skolem constants in "
+          + "proofs. Please choose a different constant name.");
     }
+    signature.constants.add(termString);
     return new Constant(termString);
   }
 }
