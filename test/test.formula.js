@@ -5,10 +5,12 @@ describe('Formula', function() {
     it('Parsing of "my_variable"', function() {
       let formula = "my_variable"
       let signature = {
-        constants: [],
+        constants: new Set([]),
+        skolemConstants: new Set([]),
+        skolemNext: 1,
         relationArities: {},
         functionArities: {}
-      }
+      };
       let parsedFormula = parseFormula(formula, signature)
       /* Correct type */
       assert.equal(parsedFormula.type, formulaTypes.PROPOSITIONAL_VARIABLE);
@@ -20,7 +22,7 @@ describe('Formula', function() {
       assert.deepEqual(parsedFormula, propositionalVariable);
 
       /* Unchanged signature */
-      assert.equal(signature.constants.length, 0);
+      assert.equal(signature.constants.size, 0);
       assert.deepEqual(signature.relationArities, {});
       assert.deepEqual(signature.functionArities, {});
     });
@@ -32,10 +34,12 @@ describe('Formula', function() {
                       "a~", "a˜", "a¬", "a!", "a-"]
       formulas.forEach(function(formula) {
         let signature = {
-          constants: [],
+          constants: new Set([]),
+          skolemConstants: new Set([]),
+          skolemNext: 1,
           relationArities: {},
           functionArities: {}
-        }
+        };
         let parsedFormula = parseFormula(formula, signature);
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.NEGATION);
@@ -48,7 +52,7 @@ describe('Formula', function() {
         assert.deepEqual(parsedFormula, negation);
 
         /* Unchanged signature */
-        assert.equal(signature.constants.length, 0);
+        assert.equal(signature.constants.size, 0);
         assert.deepEqual(signature.relationArities, {});
         assert.deepEqual(signature.functionArities, {});
       });
@@ -59,10 +63,12 @@ describe('Formula', function() {
                       "a~~~", "a˜˜˜", "a¬¬¬", "a!!!", "a---"]
       formulas.forEach(function(formula) {
         let signature = {
-          constants: [],
+          constants: new Set([]),
+          skolemConstants: new Set([]),
+          skolemNext: 1,
           relationArities: {},
           functionArities: {}
-        }
+        };
         let parsedFormula = parseFormula(formula, signature);
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.NEGATION);
@@ -77,7 +83,7 @@ describe('Formula', function() {
         assert.deepEqual(parsedFormula, negation3);
 
         /* Unchanged signature */
-        assert.equal(signature.constants.length, 0);
+        assert.equal(signature.constants.size, 0);
         assert.deepEqual(signature.relationArities, {});
         assert.deepEqual(signature.functionArities, {});
       });
@@ -89,10 +95,12 @@ describe('Formula', function() {
       let formulas = ["A ∧ B", "A ^ B", "A . B", "A · B", "A & B", "A && B"]
       formulas.forEach(function(formula) {
         let signature = {
-          constants: [],
+          constants: new Set([]),
+          skolemConstants: new Set([]),
+          skolemNext: 1,
           relationArities: {},
           functionArities: {}
-        }
+        };
         let parsedFormula = parseFormula(formula, signature);
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.CONJUNCTION);
@@ -107,7 +115,7 @@ describe('Formula', function() {
         assert.deepEqual(parsedFormula, conjunction);
 
         /* Unchanged signature */
-        assert.equal(signature.constants.length, 0);
+        assert.equal(signature.constants.size, 0);
         assert.deepEqual(signature.relationArities, {});
         assert.deepEqual(signature.functionArities, {});
       });
@@ -119,10 +127,12 @@ describe('Formula', function() {
                       "A & B & C & D & E", "A && B && C && D && E"]
       formulas.forEach(function(formula) {
         let signature = {
-          constants: [],
+          constants: new Set([]),
+          skolemConstants: new Set([]),
+          skolemNext: 1,
           relationArities: {},
           functionArities: {}
-        }
+        };
         let parsedFormula = parseFormula(formula, signature);
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.CONJUNCTION);
@@ -146,7 +156,7 @@ describe('Formula', function() {
         assert.deepEqual(parsedFormula, conjunction4);
 
         /* Unchanged signature */
-        assert.equal(signature.constants.length, 0);
+        assert.equal(signature.constants.size, 0);
         assert.deepEqual(signature.relationArities, {});
         assert.deepEqual(signature.functionArities, {});
       });
@@ -158,10 +168,12 @@ describe('Formula', function() {
       let formulas = ["A ∨ B", "A + B", "A | B", "A || B"]
       formulas.forEach(function(formula) {
         let signature = {
-          constants: [],
+          constants: new Set([]),
+          skolemConstants: new Set([]),
+          skolemNext: 1,
           relationArities: {},
           functionArities: {}
-        }
+        };
         let parsedFormula = parseFormula(formula, signature);
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.DISJUNCTION);
@@ -176,7 +188,7 @@ describe('Formula', function() {
         assert.deepEqual(parsedFormula, disjunction);
 
         /* Unchanged signature */
-        assert.equal(signature.constants.length, 0);
+        assert.equal(signature.constants.size, 0);
         assert.deepEqual(signature.relationArities, {});
         assert.deepEqual(signature.functionArities, {});
       });
@@ -187,10 +199,12 @@ describe('Formula', function() {
                       "A | B | C | D | E", "A || B || C || D || E"]
       formulas.forEach(function(formula) {
         let signature = {
-          constants: [],
+          constants: new Set([]),
+          skolemConstants: new Set([]),
+          skolemNext: 1,
           relationArities: {},
           functionArities: {}
-        }
+        };
         let parsedFormula = parseFormula(formula, signature);
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.DISJUNCTION);
@@ -214,7 +228,7 @@ describe('Formula', function() {
         assert.deepEqual(parsedFormula, disjunction4);
 
         /* Unchanged signature */
-        assert.equal(signature.constants.length, 0);
+        assert.equal(signature.constants.size, 0);
         assert.deepEqual(signature.relationArities, {});
         assert.deepEqual(signature.functionArities, {});
       });
@@ -226,10 +240,12 @@ describe('Formula', function() {
       let formulas = ["A → B", "A ⇒ B", "A ⊃ B", "A -> B", "A > B"]
       formulas.forEach(function(formula) {
         let signature = {
-          constants: [],
+          constants: new Set([]),
+          skolemConstants: new Set([]),
+          skolemNext: 1,
           relationArities: {},
           functionArities: {}
-        }
+        };
         let parsedFormula = parseFormula(formula, signature);
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.IMPLICATION);
@@ -244,7 +260,7 @@ describe('Formula', function() {
         assert.deepEqual(parsedFormula, implication);
 
         /* Unchanged signature */
-        assert.equal(signature.constants.length, 0);
+        assert.equal(signature.constants.size, 0);
         assert.deepEqual(signature.relationArities, {});
         assert.deepEqual(signature.functionArities, {});
       });
@@ -256,10 +272,12 @@ describe('Formula', function() {
                       "A > B > C > D > E"]
       formulas.forEach(function(formula) {
         let signature = {
-          constants: [],
+          constants: new Set([]),
+          skolemConstants: new Set([]),
+          skolemNext: 1,
           relationArities: {},
           functionArities: {}
-        }
+        };
         let parsedFormula = parseFormula(formula, signature);
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.IMPLICATION);
@@ -283,7 +301,7 @@ describe('Formula', function() {
         assert.deepEqual(parsedFormula, implication4);
 
         /* Unchanged signature */
-        assert.equal(signature.constants.length, 0);
+        assert.equal(signature.constants.size, 0);
         assert.deepEqual(signature.relationArities, {});
         assert.deepEqual(signature.functionArities, {});
       });
@@ -295,10 +313,12 @@ describe('Formula', function() {
       let formulas = ["A ↔ B", "A ⇔ B", "A ≡ B", "A <-> B", "A <> B", "A # B"];
       formulas.forEach(function(formula) {
         let signature = {
-          constants: [],
+          constants: new Set([]),
+          skolemConstants: new Set([]),
+          skolemNext: 1,
           relationArities: {},
           functionArities: {}
-        }
+        };
         let parsedFormula = parseFormula(formula, signature);
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.BICONDITIONAL);
@@ -313,7 +333,7 @@ describe('Formula', function() {
         assert.deepEqual(parsedFormula, biconditional);
 
         /* Unchanged signature */
-        assert.equal(signature.constants.length, 0);
+        assert.equal(signature.constants.size, 0);
         assert.deepEqual(signature.relationArities, {});
         assert.deepEqual(signature.functionArities, {});
       });
@@ -325,10 +345,12 @@ describe('Formula', function() {
                       "A <> B <> C <> D <> E", "A # B # C # D # E"];
       formulas.forEach(function(formula) {
         let signature = {
-          constants: [],
+          constants: new Set([]),
+          skolemConstants: new Set([]),
+          skolemNext: 1,
           relationArities: {},
           functionArities: {}
-        }
+        };
         let parsedFormula = parseFormula(formula, signature);
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.BICONDITIONAL);
@@ -352,7 +374,7 @@ describe('Formula', function() {
         assert.deepEqual(parsedFormula, biconditional4);
 
         /* Unchanged signature */
-        assert.equal(signature.constants.length, 0);
+        assert.equal(signature.constants.size, 0);
         assert.deepEqual(signature.relationArities, {});
         assert.deepEqual(signature.functionArities, {});
       });
@@ -364,10 +386,12 @@ describe('Formula', function() {
       let formulas = ["∀item[computer(item)]", "(A)item[computer(item)]"]
       formulas.forEach(function(formula) {
         let signature = {
-          constants: [],
+          constants: new Set([]),
+          skolemConstants: new Set([]),
+          skolemNext: 1,
           relationArities: {},
           functionArities: {}
-        }
+        };
         let parsedFormula = parseFormula(formula, signature);
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.UNIVERSAL);
@@ -381,7 +405,7 @@ describe('Formula', function() {
         assert.deepEqual(parsedFormula, universal);
 
         /* Correctly updated signature */
-        assert.equal(signature.constants.length, 0);
+        assert.equal(signature.constants.size, 0);
         assert.deepEqual(signature.relationArities, {computer: 1});
         assert.deepEqual(signature.functionArities, {});
       });
@@ -392,10 +416,12 @@ describe('Formula', function() {
                       "(A)x(A)y(A)z[related(x, y, z)]"]
       formulas.forEach(function(formula) {
         let signature = {
-          constants: [],
+          constants: new Set([]),
+          skolemConstants: new Set([]),
+          skolemNext: 1,
           relationArities: {},
           functionArities: {}
-        }
+        };
         let parsedFormula = parseFormula(formula, signature);
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.UNIVERSAL);
@@ -414,7 +440,7 @@ describe('Formula', function() {
         assert.deepEqual(parsedFormula, universal1);
 
         /* Correctly updated signature */
-        assert.equal(signature.constants.length, 0);
+        assert.equal(signature.constants.size, 0);
         assert.deepEqual(signature.relationArities, {related: 3});
         assert.deepEqual(signature.functionArities, {});
       });
@@ -426,10 +452,12 @@ describe('Formula', function() {
       let formulas = ["∃being[alien(being)]", "(E)being[alien(being)]"]
       formulas.forEach(function(formula) {
         let signature = {
-          constants: [],
+          constants: new Set([]),
+          skolemConstants: new Set([]),
+          skolemNext: 1,
           relationArities: {},
           functionArities: {}
-        }
+        };
         let parsedFormula = parseFormula(formula, signature);
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.EXISTENTIAL);
@@ -443,7 +471,7 @@ describe('Formula', function() {
         assert.deepEqual(parsedFormula, existential);
 
         /* Correctly updated signature */
-        assert.equal(signature.constants.length, 0);
+        assert.equal(signature.constants.size, 0);
         assert.deepEqual(signature.relationArities, {alien: 1});
         assert.deepEqual(signature.functionArities, {});
       });
@@ -454,10 +482,12 @@ describe('Formula', function() {
                       "(E)x(E)y(E)z[related(x, y, z)]"]
       formulas.forEach(function(formula) {
         let signature = {
-          constants: [],
+          constants: new Set([]),
+          skolemConstants: new Set([]),
+          skolemNext: 1,
           relationArities: {},
           functionArities: {}
-        }
+        };
         let parsedFormula = parseFormula(formula, signature);
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.EXISTENTIAL);
@@ -476,7 +506,7 @@ describe('Formula', function() {
         assert.deepEqual(parsedFormula, existential1);
 
         /* Correctly updated signature */
-        assert.equal(signature.constants.length, 0);
+        assert.equal(signature.constants.size, 0);
         assert.deepEqual(signature.relationArities, {related: 3});
         assert.deepEqual(signature.functionArities, {});
       });
@@ -488,10 +518,12 @@ describe('Formula', function() {
         function() {
       let formula = "funct(const, another(further), additional) = some";
       let signature = {
-        constants: [],
+        constants: new Set([]),
+        skolemConstants: new Set([]),
+        skolemNext: 1,
         relationArities: {},
         functionArities: {}
-      }
+      };
       let parsedFormula = parseFormula(formula, signature);
       /* Correct type */
       assert.equal(parsedFormula.type, formulaTypes.EQUALITY);
@@ -511,7 +543,7 @@ describe('Formula', function() {
 
       /* Correctly updated signature */
       assert.deepEqual(signature.constants,
-          ["const", "further", "additional", "some"]);
+          new Set(["const", "further", "additional", "some"]));
       assert.deepEqual(signature.relationArities, {});
       assert.deepEqual(signature.functionArities, {funct: 3, another: 1});
     });
@@ -524,10 +556,12 @@ describe('Formula', function() {
       let formula = "(A | B) ^ C -> (E)item[red(item, "
              + "function(inner(constant), anotherconstant))] & D & E";
       let signature = {
-        constants: [],
+        constants: new Set([]),
+        skolemConstants: new Set([]),
+        skolemNext: 1,
         relationArities: {},
         functionArities: {}
-      }
+      };
       let parsedFormula = parseFormula(formula, signature);
       /* Correct type */
       assert.equal(parsedFormula.type, formulaTypes.IMPLICATION);
@@ -558,7 +592,7 @@ describe('Formula', function() {
 
       /* Correctly updated signature */
       assert.deepEqual(signature.constants,
-          ["constant", "anotherconstant"]);
+          new Set(["constant", "anotherconstant"]));
       assert.deepEqual(signature.relationArities, {red: 2});
       assert.deepEqual(signature.functionArities, {function: 2, inner: 1});
     });
@@ -566,10 +600,12 @@ describe('Formula', function() {
     it('Parsing of "A ∧ B ∧ C ∧ D ∧ (D → E) & ∀x[computer(x)]"', function() {
       let formula = "A ∧ B ∧ C ∧ D ∧ (D → E) & ∀x[computer(x)]";
       let signature = {
-        constants: [],
+        constants: new Set([]),
+        skolemConstants: new Set([]),
+        skolemNext: 1,
         relationArities: {},
         functionArities: {}
-      }
+      };
       let parsedFormula = parseFormula(formula, signature);
       /* Correct type */
       assert.equal(parsedFormula.type, formulaTypes.CONJUNCTION);
@@ -597,7 +633,7 @@ describe('Formula', function() {
       assert.deepEqual(parsedFormula, conjunction5);
 
       /* Correctly updated signature */
-      assert.deepEqual(signature.constants, []);
+      assert.deepEqual(signature.constants.size, 0);
       assert.deepEqual(signature.relationArities, {computer: 1});
       assert.deepEqual(signature.functionArities, {});
     });
