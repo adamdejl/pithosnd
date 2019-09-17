@@ -79,6 +79,7 @@ function introduceConjunction() {
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   let newConjunction = new Conjunction(justificationLines[0].formula,
       justificationLines[1].formula);
   let justification
@@ -114,6 +115,7 @@ function eliminateConjunction() {
         + "not a conjunction.");
   }
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   let conjuncts = [];
   extractOperands(justificationLines[0].formula, conjuncts,
       formulaTypes.CONJUNCTION);
@@ -174,6 +176,7 @@ function introduceDisjunction() {
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
     let requestText = "Please enter the additional disjunct of the introduced "
@@ -218,8 +221,9 @@ function introduceDisjunction() {
    * Complete rule application by introducing new disjunction
    */
   function completeDisjunction(left) {
+    let skolemConstants = getSkolemConstants(targetLine);
     let userDisjunct = parseFormula($("#additionalFormulaInput")[0].value,
-        pithosData.proof.signature);
+        pithosData.proof.signature, skolemConstants);
     let newDisjunction;
     if (left) {
       /* Use justification formula as the left disjunct */
@@ -278,6 +282,7 @@ function eliminateDisjunction() {
         + "not a disjunction.");
   }
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   let disjunct1 = justificationLines[0].formula.operand1;
   let initialLine1 = new JustifiedProofLine(disjunct1,
       new SpecialJustification(justTypes.ASS));
@@ -294,10 +299,10 @@ function eliminateDisjunction() {
     let targetFormula = targetLine.formula;
     let goalLine1 = new JustifiedProofLine(targetFormula,
         new SpecialJustification(justTypes.GOAL));
-    let proofBox1 = new ProofBox(initialLine1, goalLine1, true);
+    let proofBox1 = new ProofBox(initialLine1, goalLine1, true, new Set([]));
     let goalLine2 = new JustifiedProofLine(targetFormula,
         new SpecialJustification(justTypes.GOAL));
-    let proofBox2 = new ProofBox(initialLine2, goalLine2, false);
+    let proofBox2 = new ProofBox(initialLine2, goalLine2, false, new Set([]));
     targetLine.prepend(proofBox1);
     targetLine.prepend(proofBox2);
     let ruleJustificationLines = justificationLines.
@@ -313,14 +318,15 @@ function eliminateDisjunction() {
   $("#dynamicModalArea").off("click", "#eliminateDisjunctionComplete");
   $("#dynamicModalArea").on("click", "#eliminateDisjunctionComplete",
       function() {
+    let skolemConstants = getSkolemConstants(targetLine);
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        pithosData.proof.signature);
+        pithosData.proof.signature, skolemConstants);
     let goalLine1 = new JustifiedProofLine(targetFormula,
         new SpecialJustification(justTypes.GOAL));
-    let proofBox1 = new ProofBox(initialLine1, goalLine1, true);
+    let proofBox1 = new ProofBox(initialLine1, goalLine1, true, new Set([]));
     let goalLine2 = new JustifiedProofLine(targetFormula,
         new SpecialJustification(justTypes.GOAL));
-    let proofBox2 = new ProofBox(initialLine2, goalLine2, false);
+    let proofBox2 = new ProofBox(initialLine2, goalLine2, false, new Set([]));
     let newEmptyLine = new EmptyProofLine();
     targetLine.append(newEmptyLine);
     newEmptyLine.prepend(proofBox1);
@@ -342,6 +348,7 @@ function introduceImplication() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
     let requestText = "Please enter the formula that you would like to "
@@ -358,7 +365,7 @@ function introduceImplication() {
         new SpecialJustification(justTypes.ASS));
     let goalLine = new JustifiedProofLine(targetFormula.operand2,
         new SpecialJustification(justTypes.GOAL));
-    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let proofBox = new ProofBox(initialLine, goalLine, false, new Set([]));
     targetLine.prepend(proofBox);
     let ruleJustificationLines = [initialLine, goalLine];
     targetLine.justification
@@ -372,8 +379,9 @@ function introduceImplication() {
   $("#dynamicModalArea").off("click", "#introduceImplicationComplete");
   $("#dynamicModalArea").on("click", "#introduceImplicationComplete",
       function() {
+    let skolemConstants = getSkolemConstants(targetLine);
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        pithosData.proof.signature);
+        pithosData.proof.signature, skolemConstants);
     if (targetFormula.type !== formulaTypes.IMPLICATION) {
       let error = new ProofProcessingError("The entered formula is not an "
           + "implication.");
@@ -384,7 +392,7 @@ function introduceImplication() {
         new SpecialJustification(justTypes.ASS));
     let goalLine = new JustifiedProofLine(targetFormula.operand2,
         new SpecialJustification(justTypes.GOAL));
-    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let proofBox = new ProofBox(initialLine, goalLine, false, new Set([]));
     let newEmptyLine = new EmptyProofLine();
     targetLine.append(newEmptyLine);
     newEmptyLine.prepend(proofBox);
@@ -422,6 +430,7 @@ function eliminateImplication() {
   }
   let consequent = implicationFormula.operand2;
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     let justification
         = new Justification(justTypes.IMP_ELIM, justificationLines);
@@ -447,6 +456,7 @@ function introduceNegation() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
     let requestText = "Please enter the formula that you would like to "
@@ -462,7 +472,7 @@ function introduceNegation() {
         new SpecialJustification(justTypes.ASS));
     let goalLine = new JustifiedProofLine(new Bottom(),
         new SpecialJustification(justTypes.GOAL));
-    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let proofBox = new ProofBox(initialLine, goalLine, false, new Set([]));
     targetLine.prepend(proofBox);
     let ruleJustificationLines = [initialLine, goalLine];
     targetLine.justification
@@ -476,8 +486,9 @@ function introduceNegation() {
   $("#dynamicModalArea").off("click", "#introduceNegationComplete");
   $("#dynamicModalArea").on("click", "#introduceNegationComplete",
       function() {
+    let skolemConstants = getSkolemConstants(targetLine);
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        pithosData.proof.signature);
+        pithosData.proof.signature, skolemConstants);
     if (targetFormula.type !== formulaTypes.NEGATION) {
       let error
           = new ProofProcessingError("The entered formula is not a negation.");
@@ -489,7 +500,7 @@ function introduceNegation() {
         new SpecialJustification(justTypes.ASS));
     let goalLine = new JustifiedProofLine(new Bottom(),
         new SpecialJustification(justTypes.GOAL));
-    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let proofBox = new ProofBox(initialLine, goalLine, false, new Set([]));
     let newEmptyLine = new EmptyProofLine();
     targetLine.append(newEmptyLine);
     newEmptyLine.prepend(proofBox);
@@ -523,6 +534,7 @@ function eliminateDoubleNegation() {
         + "negation.");
   }
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   let newFormula = justificationFormula.operand.operand;
   let justification
       = new Justification(justTypes.DOUBLE_NEG_ELIM, justificationLines);
@@ -548,6 +560,7 @@ function introduceTop() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   let justification = new SpecialJustification(justTypes.TOP_INTRO);
   if (targetLine instanceof EmptyProofLine) {
     let newLine = new JustifiedProofLine(new Top(), justification);
@@ -583,6 +596,7 @@ function eliminateBottom() {
         + "bottom.");
   }
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
     let requestText = "Please enter the formula that you would like to "
@@ -605,8 +619,9 @@ function eliminateBottom() {
   $("#dynamicModalArea").off("click", "#eliminateBottomComplete");
   $("#dynamicModalArea").on("click", "#eliminateBottomComplete",
       function() {
+    let skolemConstants = getSkolemConstants(targetLine);
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        pithosData.proof.signature);
+        pithosData.proof.signature, skolemConstants);
     let justification
         = new Justification(justTypes.BOT_ELIM, justificationLines);
     let newLine = new JustifiedProofLine(targetFormula, justification);
@@ -623,6 +638,7 @@ function introduceBiconditional() {
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   if (justificationLines[0].formula.type !== formulaTypes.IMPLICATION
       && justificationLines[1].formula.type !== formulaTypes.IMPLICATION) {
     throw new ProofProcessingError("One or both of the selected justification "
@@ -738,6 +754,7 @@ function eliminateBiconditional() {
         + "used as a justification for biconditional elimination.");
   }
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     let justification
         = new Justification(justTypes.BICOND_ELIM, justificationLines);
@@ -763,6 +780,7 @@ function applyExcludedMiddle() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
     let requestText = "Please enter the formula for p in p ∨ ¬p and choose "
@@ -813,8 +831,9 @@ function applyExcludedMiddle() {
    * Complete rule application by introducing new EM disjunction
    */
   function completeExcludedMiddle(basicLeft) {
+    let skolemConstants = getSkolemConstants(targetLine);
     let pFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        pithosData.proof.signature);
+        pithosData.proof.signature, skolemConstants);
     let emFormula;
     if (basicLeft) {
       /* Use p as the left disjunct */
@@ -838,6 +857,7 @@ function applyProofByContradiction() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
     let requestText = "Please enter the formula that you would like to "
@@ -850,7 +870,7 @@ function applyProofByContradiction() {
         new SpecialJustification(justTypes.ASS));
     let goalLine = new JustifiedProofLine(new Bottom(),
         new SpecialJustification(justTypes.GOAL));
-    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let proofBox = new ProofBox(initialLine, goalLine, false, new Set([]));
     targetLine.prepend(proofBox);
     let ruleJustificationLines = [initialLine, goalLine];
     targetLine.justification
@@ -864,13 +884,14 @@ function applyProofByContradiction() {
   $("#dynamicModalArea").off("click", "#proofByContradictionComplete");
   $("#dynamicModalArea").on("click", "#proofByContradictionComplete",
       function() {
+    let skolemConstants = getSkolemConstants(targetLine);
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        pithosData.proof.signature);
+        pithosData.proof.signature, skolemConstants);
     let initialLine = new JustifiedProofLine(new Negation(targetFormula),
         new SpecialJustification(justTypes.ASS));
     let goalLine = new JustifiedProofLine(new Bottom(),
         new SpecialJustification(justTypes.GOAL));
-    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let proofBox = new ProofBox(initialLine, goalLine, false, new Set([]));
     let newEmptyLine = new EmptyProofLine();
     targetLine.append(newEmptyLine);
     newEmptyLine.prepend(proofBox);
@@ -892,6 +913,7 @@ function introduceExistential() {
   let justificationLines = retrievedLines.justificationLines;
   let justificationFormula = justificationLines[0].formula;
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
     let requestText = "Please enter the formula that you would like to "
@@ -925,8 +947,9 @@ function introduceExistential() {
   $("#dynamicModalArea").off("click", "#introduceExistentialComplete");
   $("#dynamicModalArea").on("click", "#introduceExistentialComplete",
       function() {
+    let skolemConstants = getSkolemConstants(targetLine);
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        pithosData.proof.signature);
+        pithosData.proof.signature, skolemConstants);
     if (targetFormula.type !== formulaTypes.EXISTENTIAL) {
       let error = new ProofProcessingError("The entered formula is not an "
           + "existential.");
@@ -1134,6 +1157,7 @@ function eliminateExistential() {
         + "not an existential.");
   }
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   /* Ask the user how many outer exists quantifiers should be eliminated */
   let modalBody =
        "Please choose the number of outer quantifiers that should be "
@@ -1151,6 +1175,7 @@ function eliminateExistential() {
   }
   /* Declared for use by following code */
   let initialFormula;
+  let newSkolemConstants = new Set([]);
   if (existentialCount === 1) {
     eliminateExistentialContinue(existentialCount);
   } else {
@@ -1184,8 +1209,7 @@ function eliminateExistential() {
         i++) {
       replacements[currFormula.variableString]
           = `sk${pithosData.proof.signature.skolemNext}`;
-      pithosData.proof.signature.skolemConstants.add(
-          `sk${pithosData.proof.signature.skolemNext}`);
+      newSkolemConstants.add(`sk${pithosData.proof.signature.skolemNext}`);
       pithosData.proof.signature.skolemNext++;
       currFormula = currFormula.predicate;
     }
@@ -1202,7 +1226,8 @@ function eliminateExistential() {
           new SpecialJustification(justTypes.ASS));
       let goalLine = new JustifiedProofLine(targetFormula,
           new SpecialJustification(justTypes.GOAL));
-      let proofBox = new ProofBox(initialLine, goalLine, false);
+      let proofBox = new ProofBox(initialLine, goalLine, false,
+          newSkolemConstants);
       targetLine.prepend(proofBox);
       let ruleJustificationLines = [initialLine, goalLine];
       targetLine.justification
@@ -1218,13 +1243,15 @@ function eliminateExistential() {
   $("#dynamicModalArea").off("click", "#eliminateExistentialComplete");
   $("#dynamicModalArea").on("click", "#eliminateExistentialComplete",
       function() {
+    let skolemConstants = getSkolemConstants(targetLine);
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        pithosData.proof.signature);
+        pithosData.proof.signature, skolemConstants);
     let initialLine = new JustifiedProofLine(initialFormula,
         new SpecialJustification(justTypes.ASS));
     let goalLine = new JustifiedProofLine(targetFormula,
         new SpecialJustification(justTypes.GOAL));
-    let proofBox = new ProofBox(initialLine, goalLine, false);
+    let proofBox = new ProofBox(initialLine, goalLine, false,
+        newSkolemConstants);
     let newEmptyLine = new EmptyProofLine();
     targetLine.append(newEmptyLine);
     newEmptyLine.prepend(proofBox);
@@ -1246,6 +1273,7 @@ function applyTick() {
   let justificationLines = retrievedLines.justificationLines;
   let justificationFormula = justificationLines[0].formula;
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   let justification = new Justification(justTypes.TICK, justificationLines);
   if (targetLine instanceof EmptyProofLine) {
     let newLine = new JustifiedProofLine(justificationFormula, justification);
@@ -1286,6 +1314,7 @@ function addBottom(justType) {
         + "formula and its negation.")
   }
   let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
   let justification
       = new Justification(justType, justificationLines);
   if (targetLine instanceof EmptyProofLine) {
@@ -1335,7 +1364,7 @@ function requestFormulaInput(requestText, customId, buttons) {
        <div id="additionalFormulaParsed" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
          The result of the parsing will appear here.
        </div>`
-    showModal("Input required", modalBody, undefined, customId, buttons);
+    showModal("Input required", modalBody, undefined, customId, buttons, true);
 }
 
 /*
@@ -1355,8 +1384,10 @@ function parseAdditionalFormula() {
   let inputSelector = $("#additionalFormulaInput");
   let outputSelector = $("#additionalFormulaParsed");
   let parsedFormula;
+  let skolemConstants = getSkolemConstants(pithosData.targetLine);
   try {
-    parsedFormula = parseFormula(inputSelector[0].value, signatureCopy);
+    parsedFormula = parseFormula(inputSelector[0].value, signatureCopy,
+        skolemConstants);
   } catch (error) {
     if (error instanceof FormulaParsingError) {
       /* Show result and disable action buttons */

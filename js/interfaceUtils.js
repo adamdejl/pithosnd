@@ -9,6 +9,7 @@ let pithosData = {
   selectedRuleData: null,
   selectedButton: null,
   freeSelection: true,
+  targetLine: null
 }
 
 /*
@@ -18,7 +19,6 @@ let pithosData = {
 function parseAll() {
   let signature = {
     constants: new Set([]),
-    skolemConstants: new Set([]),
     skolemNext: 1,
     relationArities: {},
     functionArities: {}
@@ -46,7 +46,8 @@ function parseAll() {
       outputElement = $("#goalParsed");
     }
     try {
-      parsedFormula = parseFormula(inputElement[0].value, signature);
+      parsedFormula
+          = parseFormula(inputElement[0].value, signature, new Set([]));
       parsingResults.formulas.push(parsedFormula);
     } catch (error) {
       if (error instanceof FormulaParsingError) {
@@ -82,7 +83,8 @@ function parseAll() {
 /*
  * Shows modal alert
  */
-function showModal(title, modalBody, hint, customId, customButtons) {
+function showModal(title, modalBody, hint, customId, customButtons,
+    disableParseError) {
   $(".modal-backdrop").remove();
   let hintHTML = "";
   if (hint !== undefined) {
@@ -95,8 +97,12 @@ function showModal(title, modalBody, hint, customId, customButtons) {
   if (customId !== undefined) {
     customIdHTML = ` id="${customId}"`;
   }
+  let disableParse = "";
+  if (disableParseError === true) {
+    disableParse = "disable-parse-error ";
+  }
   let defaultButton
-      = `<button${customIdHTML} type="button" class="btn btn-outline-primary" data-dismiss="modal">OK</button>`;
+      = `<button${customIdHTML} type="button" class="${disableParse}btn btn-outline-primary" data-dismiss="modal">OK</button>`;
   let buttons = defaultButton;
   if (customButtons !== undefined) {
     buttons = customButtons;

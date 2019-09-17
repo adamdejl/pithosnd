@@ -122,7 +122,7 @@ class EmptyProofLine extends ProofLine {
 }
 
 class ProofBox extends ProofItem {
-  constructor(initialLine, goalLine, nextAdjacent) {
+  constructor(initialLine, goalLine, nextAdjacent, skolemConstants) {
     super();
     /* Initially mark as incomplete */
     this.complete = false;
@@ -134,6 +134,7 @@ class ProofBox extends ProofItem {
     initialLine.append(emptyLine);
     emptyLine.append(goalLine);
     this.nextAdjacent = nextAdjacent;
+    this.skolemConstants = skolemConstants;
   }
 }
 
@@ -446,4 +447,19 @@ function retrieveLines(proof, linesSet) {
     }
     return false;
   }
+}
+
+/*
+ * Retrieves set of Skolem constants valid for the given proof item
+ */
+function getSkolemConstants(proofItem) {
+  let currProofItem = proofItem;
+  let skolemConstants = new Set([]);
+  while (currProofItem !== null) {
+    if (currProofItem instanceof ProofBox) {
+      currProofItem.skolemConstants.forEach(s => skolemConstants.add(s));
+    }
+    currProofItem = currProofItem.parent;
+  }
+  return skolemConstants;
 }

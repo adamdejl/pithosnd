@@ -360,7 +360,7 @@ const BRACKETED_REGEX = /^(?:\[|\()(.+?)(?:\]|\))$/;
  * Parses the formula given as a string with respect to the provided signature
  * Updates the signature with newly found constants, functions and relations
  */
-function parseFormula(formulaString, signature) {
+function parseFormula(formulaString, signature, skolemConstants) {
   /* Initialize auxiliary object holding the data of the parser */
   var parserData = {
     operatorStack: [],
@@ -368,7 +368,8 @@ function parseFormula(formulaString, signature) {
     variableStack: [],
     signature: signature,
     formulaString: formulaString,
-    token: { str: null, isOperator: null }
+    token: { str: null, isOperator: null },
+    skolemConstants: skolemConstants
   }
 
   /* Trim spaces from the formula */
@@ -747,11 +748,11 @@ function parseTerm(termString, parserData) {
     return new Variable(termString);
   } else {
     /* Parse constant */
-    // TODO: Make Skolem constants rejection dependant on stage of parsing
-    if (/^sk[0-9]+$/.test(termString)) {
-      throw new FormulaParsingError("Constants in format sk[number] "
-          + "(such as sk1 or sk1234) are reserved for Skolem constants in "
-          + "proofs. Please choose a different constant name.");
+    let skolemConstants = parserData.skolemConstants;
+    if (!skolemConstants.has(termString) && /^sk[0-9]+$/.test(termString)) {
+      throw new FormulaParsingError(`The constant ${termString} uses name `
+          + "reserved for Skolem constants which cannot  be used at this "
+          + "point. Please choose a different constant name.");
     }
     signature.constants.add(termString);
     return new Constant(termString);
