@@ -32,7 +32,7 @@ function parseAll() {
   /* Parse all givens */
   for (let i = 0; i <= pithosData.numGivens; i++) {
     /* Backup signature in case of error in parsing */
-    let signatureCopy = $.extend(true, {}, signature);
+    let signatureCopy = _.cloneDeep(signature);
     let parsedFormula;
     let inputElement;
     let outputElement;

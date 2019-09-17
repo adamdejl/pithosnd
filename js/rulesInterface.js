@@ -1351,7 +1351,7 @@ jQuery(function($) {
  */
 function parseAdditionalFormula() {
   /* Backup signature in case of error in parsing */
-  let signatureCopy = $.extend(true, {}, pithosData.proof.signature);
+  let signatureCopy = _.cloneDeep(pithosData.proof.signature);
   let inputSelector = $("#additionalFormulaInput");
   let outputSelector = $("#additionalFormulaParsed");
   let parsedFormula;
