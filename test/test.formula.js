@@ -6,12 +6,11 @@ describe('Formula', function() {
       let formula = "my_variable"
       let signature = {
         constants: new Set([]),
-        skolemConstants: new Set([]),
         skolemNext: 1,
         relationArities: {},
         functionArities: {}
       };
-      let parsedFormula = parseFormula(formula, signature)
+      let parsedFormula = parseFormula(formula, signature, new Set([]))
       /* Correct type */
       assert.equal(parsedFormula.type, formulaTypes.PROPOSITIONAL_VARIABLE);
 
@@ -35,12 +34,11 @@ describe('Formula', function() {
       formulas.forEach(function(formula) {
         let signature = {
           constants: new Set([]),
-          skolemConstants: new Set([]),
           skolemNext: 1,
           relationArities: {},
           functionArities: {}
         };
-        let parsedFormula = parseFormula(formula, signature);
+        let parsedFormula = parseFormula(formula, signature, new Set([]));
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.NEGATION);
 
@@ -64,12 +62,11 @@ describe('Formula', function() {
       formulas.forEach(function(formula) {
         let signature = {
           constants: new Set([]),
-          skolemConstants: new Set([]),
           skolemNext: 1,
           relationArities: {},
           functionArities: {}
         };
-        let parsedFormula = parseFormula(formula, signature);
+        let parsedFormula = parseFormula(formula, signature, new Set([]));
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.NEGATION);
 
@@ -96,12 +93,11 @@ describe('Formula', function() {
       formulas.forEach(function(formula) {
         let signature = {
           constants: new Set([]),
-          skolemConstants: new Set([]),
           skolemNext: 1,
           relationArities: {},
           functionArities: {}
         };
-        let parsedFormula = parseFormula(formula, signature);
+        let parsedFormula = parseFormula(formula, signature, new Set([]));
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.CONJUNCTION);
 
@@ -128,12 +124,11 @@ describe('Formula', function() {
       formulas.forEach(function(formula) {
         let signature = {
           constants: new Set([]),
-          skolemConstants: new Set([]),
           skolemNext: 1,
           relationArities: {},
           functionArities: {}
         };
-        let parsedFormula = parseFormula(formula, signature);
+        let parsedFormula = parseFormula(formula, signature, new Set([]));
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.CONJUNCTION);
 
@@ -169,12 +164,11 @@ describe('Formula', function() {
       formulas.forEach(function(formula) {
         let signature = {
           constants: new Set([]),
-          skolemConstants: new Set([]),
           skolemNext: 1,
           relationArities: {},
           functionArities: {}
         };
-        let parsedFormula = parseFormula(formula, signature);
+        let parsedFormula = parseFormula(formula, signature, new Set([]));
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.DISJUNCTION);
 
@@ -200,12 +194,11 @@ describe('Formula', function() {
       formulas.forEach(function(formula) {
         let signature = {
           constants: new Set([]),
-          skolemConstants: new Set([]),
           skolemNext: 1,
           relationArities: {},
           functionArities: {}
         };
-        let parsedFormula = parseFormula(formula, signature);
+        let parsedFormula = parseFormula(formula, signature, new Set([]));
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.DISJUNCTION);
 
@@ -241,12 +234,11 @@ describe('Formula', function() {
       formulas.forEach(function(formula) {
         let signature = {
           constants: new Set([]),
-          skolemConstants: new Set([]),
           skolemNext: 1,
           relationArities: {},
           functionArities: {}
         };
-        let parsedFormula = parseFormula(formula, signature);
+        let parsedFormula = parseFormula(formula, signature, new Set([]));
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.IMPLICATION);
 
@@ -273,12 +265,11 @@ describe('Formula', function() {
       formulas.forEach(function(formula) {
         let signature = {
           constants: new Set([]),
-          skolemConstants: new Set([]),
           skolemNext: 1,
           relationArities: {},
           functionArities: {}
         };
-        let parsedFormula = parseFormula(formula, signature);
+        let parsedFormula = parseFormula(formula, signature, new Set([]));
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.IMPLICATION);
 
@@ -314,12 +305,11 @@ describe('Formula', function() {
       formulas.forEach(function(formula) {
         let signature = {
           constants: new Set([]),
-          skolemConstants: new Set([]),
           skolemNext: 1,
           relationArities: {},
           functionArities: {}
         };
-        let parsedFormula = parseFormula(formula, signature);
+        let parsedFormula = parseFormula(formula, signature, new Set([]));
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.BICONDITIONAL);
 
@@ -346,12 +336,11 @@ describe('Formula', function() {
       formulas.forEach(function(formula) {
         let signature = {
           constants: new Set([]),
-          skolemConstants: new Set([]),
           skolemNext: 1,
           relationArities: {},
           functionArities: {}
         };
-        let parsedFormula = parseFormula(formula, signature);
+        let parsedFormula = parseFormula(formula, signature, new Set([]));
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.BICONDITIONAL);
 
@@ -387,12 +376,11 @@ describe('Formula', function() {
       formulas.forEach(function(formula) {
         let signature = {
           constants: new Set([]),
-          skolemConstants: new Set([]),
           skolemNext: 1,
           relationArities: {},
           functionArities: {}
         };
-        let parsedFormula = parseFormula(formula, signature);
+        let parsedFormula = parseFormula(formula, signature, new Set([]));
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.UNIVERSAL);
 
@@ -417,12 +405,11 @@ describe('Formula', function() {
       formulas.forEach(function(formula) {
         let signature = {
           constants: new Set([]),
-          skolemConstants: new Set([]),
           skolemNext: 1,
           relationArities: {},
           functionArities: {}
         };
-        let parsedFormula = parseFormula(formula, signature);
+        let parsedFormula = parseFormula(formula, signature, new Set([]));
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.UNIVERSAL);
 
@@ -453,12 +440,11 @@ describe('Formula', function() {
       formulas.forEach(function(formula) {
         let signature = {
           constants: new Set([]),
-          skolemConstants: new Set([]),
           skolemNext: 1,
           relationArities: {},
           functionArities: {}
         };
-        let parsedFormula = parseFormula(formula, signature);
+        let parsedFormula = parseFormula(formula, signature, new Set([]));
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.EXISTENTIAL);
 
@@ -483,12 +469,11 @@ describe('Formula', function() {
       formulas.forEach(function(formula) {
         let signature = {
           constants: new Set([]),
-          skolemConstants: new Set([]),
           skolemNext: 1,
           relationArities: {},
           functionArities: {}
         };
-        let parsedFormula = parseFormula(formula, signature);
+        let parsedFormula = parseFormula(formula, signature, new Set([]));
         /* Correct type */
         assert.equal(parsedFormula.type, formulaTypes.EXISTENTIAL);
 
@@ -519,12 +504,11 @@ describe('Formula', function() {
       let formula = "funct(const, another(further), additional) = some";
       let signature = {
         constants: new Set([]),
-        skolemConstants: new Set([]),
         skolemNext: 1,
         relationArities: {},
         functionArities: {}
       };
-      let parsedFormula = parseFormula(formula, signature);
+      let parsedFormula = parseFormula(formula, signature, new Set([]));
       /* Correct type */
       assert.equal(parsedFormula.type, formulaTypes.EQUALITY);
 
@@ -557,12 +541,11 @@ describe('Formula', function() {
              + "function(inner(constant), anotherconstant))] & D & E";
       let signature = {
         constants: new Set([]),
-        skolemConstants: new Set([]),
         skolemNext: 1,
         relationArities: {},
         functionArities: {}
       };
-      let parsedFormula = parseFormula(formula, signature);
+      let parsedFormula = parseFormula(formula, signature, new Set([]));
       /* Correct type */
       assert.equal(parsedFormula.type, formulaTypes.IMPLICATION);
 
@@ -601,12 +584,11 @@ describe('Formula', function() {
       let formula = "A ∧ B ∧ C ∧ D ∧ (D → E) & ∀x[computer(x)]";
       let signature = {
         constants: new Set([]),
-        skolemConstants: new Set([]),
         skolemNext: 1,
         relationArities: {},
         functionArities: {}
       };
-      let parsedFormula = parseFormula(formula, signature);
+      let parsedFormula = parseFormula(formula, signature, new Set([]));
       /* Correct type */
       assert.equal(parsedFormula.type, formulaTypes.CONJUNCTION);
 
