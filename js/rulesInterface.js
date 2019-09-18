@@ -50,8 +50,8 @@ const rulesData = Object.freeze({
   "∃E": {handler: eliminateExistential, numLines: 2, hint: "∃E requires "
       + "selection of an existentially quantified formula and an empty or "
       + "goal line.", name: "∃E"},
-  // "∀I": {handler: introduceUniversal, numLines: 1, hint: "∀I requires "
-  //     + "selection of an empty or goal line.", name: "∀I"},
+  "∀I": {handler: introduceUniversal, numLines: 1, hint: "∀I requires "
+      + "selection of an empty or goal line.", name: "∀I"},
   // "∀E": {handler: eliminateUniversal, numLines: 2, hint: "∀E requires "
   //     + "selection of a universally quantified formula and an empty or "
   //     + "goal line.", name: "∀E"},
@@ -1116,11 +1116,13 @@ function introduceExistential() {
               variablesSet, replacements))
           .reduce((b1, b2) => b1 && b2, true);
     } else if (justification instanceof Equality) {
-      return existentialIntroductionMatch(justification.term1, target.term1)
-          && existentialIntroductionMatch(justification.term2, target.term2);
+      return existentialIntroductionMatch(justification.term1, target.term1,
+              variablesSet, replacements)
+          && existentialIntroductionMatch(justification.term2, target.term2,
+              variablesSet, replacements);
     } else if (justification.type === formulaTypes.NEGATION) {
       return existentialIntroductionMatch(justification.operand,
-          target.operand);
+          target.operand, variablesSet, replacements);
     } else if (justification instanceof BinaryConnective) {
       if (justification.isAssociative) {
         let operandsJustification = [];
@@ -1134,9 +1136,9 @@ function introduceExistential() {
             .reduce((b1, b2) => b1 && b2, true);
       } else {
         return existentialIntroductionMatch(justification.operand1,
-                target.operand1)
+                target.operand1, variablesSet, replacements)
             && existentialIntroductionMatch(justification.operand2,
-                target.operand2);
+                target.operand2, variablesSet, replacements);
       }
     } else {
       return formulasDeepEqual(justification, target);
@@ -1194,6 +1196,7 @@ function eliminateExistential() {
     for (let i = 0; i < existentialCount; i++) {
       if ($("#existentialRadio" + i).is(":checked")) {
         numberEliminated = i + 1;
+        break;
       }
     }
     if (numberEliminated === 0) {
@@ -1262,6 +1265,139 @@ function eliminateExistential() {
     newEmptyLine.prepend(newJustifiedLine);
     completeProofUpdate();
   });
+}
+
+/*
+ * Function handling universal introduction
+ */
+function introduceUniversal() {
+  let retrievedLines
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
+  let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
+  /* Declared variables for use by following code */
+  let targetFormula;
+  let newSkolemConstants = new Set([]);
+  let universalCount;
+  if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - allow user to specify resulting
+       formula */
+    let requestText = "Please enter the formula that you would like to "
+        + "introduce using universal introduction rule:";
+    requestFormulaInput(requestText, "introduceUniversalContinue");
+  } else {
+    targetFormula = targetLine.formula;
+    if (targetFormula.type !== formulaTypes.UNIVERSAL) {
+      throw new ProofProcessingError("The selected target formula is "
+          + "not a universal.");
+    }
+    introduceUniversalContinue();
+  }
+
+  /*
+   * Catch user action to proceed with the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#introduceUniversalContinue");
+  $("#dynamicModalArea").on("click", "#introduceUniversalContinue",
+      function() {
+    let skolemConstants = getSkolemConstants(targetLine);
+    targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
+        pithosData.proof.signature, skolemConstants);
+    if (targetFormula.type !== formulaTypes.UNIVERSAL) {
+      let error = new ProofProcessingError("The entered formula is not a "
+          + "universal.");
+      handleProofProcessingError(error);
+      return;
+    }
+    introduceUniversalContinue();
+  })
+
+  function introduceUniversalContinue() {
+    /* Ask the user how many outer universal quantifiers should be introduced */
+    let modalBody =
+         "Please choose the number of outer quantifiers that should be "
+         + "introduced by this rule application in the formula"
+         + `${targetFormula.stringRep}:`;
+    universalCount = 0;
+    for (let currFormula = targetFormula;
+        currFormula.type === formulaTypes.UNIVERSAL;
+        currFormula = currFormula.predicate) {
+      modalBody +=
+          `<div class="custom-control custom-radio">
+             <input type="radio" id="universalRadio${universalCount}" class="custom-control-input">
+             <label class="custom-control-label" for="universalRadio${universalCount}">${universalCount + 1}</label>
+           </div>`
+      universalCount++;
+    }
+    if (universalCount === 1) {
+      introduceUniversalComplete(universalCount);
+    } else {
+      showModal("Input required", modalBody, undefined,
+          "introduceUniversalComplete");
+    }
+  }
+
+  /*
+   * Catch user action to complete the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#introduceUniversalComplete");
+  $("#dynamicModalArea").on("click", "#introduceUniversalComplete",
+      function() {
+    let numberIntroduced = 0;
+    for (let i = 0; i < universalCount; i++) {
+      if ($("#universalRadio" + i).is(":checked")) {
+        numberIntroduced = i + 1;
+        break;
+      }
+    }
+    if (numberIntroduced === 0) {
+      numberIntroduced = universalCount;
+    }
+    introduceUniversalComplete(numberIntroduced);
+  });
+
+  function introduceUniversalComplete(numberIntroduced) {
+    let replacements = {};
+    let currFormula = targetFormula;
+    for (let i = 0; i < numberIntroduced;
+        i++) {
+      replacements[currFormula.variableString]
+          = `sk${pithosData.proof.signature.skolemNext}`;
+      newSkolemConstants.add(`sk${pithosData.proof.signature.skolemNext}`);
+      pithosData.proof.signature.skolemNext++;
+      currFormula = currFormula.predicate;
+    }
+    let constList = [];
+    newSkolemConstants.forEach(sk => constList.push(sk));
+    let goalFormula = replaceVariables(currFormula, replacements);
+    let initialLine = new JustifiedProofLine(new ConstantsList(constList),
+        new SpecialJustification(justTypes.ALLI_CONST));
+    let goalLine = new JustifiedProofLine(goalFormula,
+        new SpecialJustification(justTypes.GOAL));
+    let proofBox = new ProofBox(initialLine, goalLine, false,
+        newSkolemConstants);
+    if (targetLine instanceof EmptyProofLine) {
+      /* Target line is an empty line - add new justified line */
+      let newEmptyLine = new EmptyProofLine();
+      targetLine.append(newEmptyLine);
+      newEmptyLine.prepend(proofBox);
+      let ruleJustificationLines = [initialLine, goalLine];
+      let justification
+          = new Justification(justTypes.UNIV_INTRO, ruleJustificationLines);
+      let newJustifiedLine = new JustifiedProofLine(targetFormula,
+          justification);
+      newEmptyLine.prepend(newJustifiedLine);
+    } else {
+      /* Target line is a goal line - justify existing line */
+      targetLine.prepend(proofBox);
+      let ruleJustificationLines = [initialLine, goalLine];
+      targetLine.justification
+          = new Justification(justTypes.UNIV_INTRO, ruleJustificationLines);
+    }
+    completeProofUpdate();
+  }
 }
 
 /*
@@ -1423,7 +1559,7 @@ function extractOperands(formula, extractionTarget, type) {
 
 /*
  * Creates a copy of the supplied formula with variables replaced by constants
-   by the given replacements
+   specified by the given replacements dictionary
  */
 function replaceVariables(formula, replacements) {
   let formulaClone = _.cloneDeep(formula);

@@ -5,7 +5,8 @@ const termTypes = Object.freeze({
   GENERIC: "generic",
   CONSTANT: "constant",
   VARIABLE: "variable",
-  FUNCTION: "function"
+  FUNCTION: "function",
+  CONSTANTS_LIST: "constants list"
 });
 
 class Term {
@@ -57,6 +58,21 @@ class Function extends Term {
     /* Trim trailing comma and space, add closing bracket */
     str = str.substring(0, str.length - 2) + ")";
     return str;
+  }
+}
+
+/*
+ * Class representing constants list for (A)I const lines
+ */
+class ConstantsList extends Term {
+  constructor(names) {
+    super();
+    this.type = termTypes.CONSTANTS_LIST;
+    this.names = names;
+  }
+
+  get stringRep() {
+    return this.names.join(", ");
   }
 }
 
@@ -751,7 +767,7 @@ function parseTerm(termString, parserData) {
     let skolemConstants = parserData.skolemConstants;
     if (!skolemConstants.has(termString) && /^sk[0-9]+$/.test(termString)) {
       throw new FormulaParsingError(`The constant ${termString} uses name `
-          + "reserved a Skolem constants which cannot be used at this "
+          + "reserved for a Skolem constant that cannot be used at this "
           + "point. Please choose a different constant name.");
     }
     signature.constants.add(termString);
