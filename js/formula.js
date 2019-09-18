@@ -751,7 +751,7 @@ function parseTerm(termString, parserData) {
     let skolemConstants = parserData.skolemConstants;
     if (!skolemConstants.has(termString) && /^sk[0-9]+$/.test(termString)) {
       throw new FormulaParsingError(`The constant ${termString} uses name `
-          + "reserved for Skolem constants which cannot  be used at this "
+          + "reserved a Skolem constants which cannot be used at this "
           + "point. Please choose a different constant name.");
     }
     signature.constants.add(termString);
