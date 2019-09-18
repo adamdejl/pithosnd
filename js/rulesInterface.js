@@ -1211,7 +1211,7 @@ function eliminateExistential() {
     for (let i = 0; i < numberEliminated;
         i++) {
       replacements[currFormula.variableString]
-          = `sk${pithosData.proof.signature.skolemNext}`;
+          = new Constant(`sk${pithosData.proof.signature.skolemNext}`);
       newSkolemConstants.add(`sk${pithosData.proof.signature.skolemNext}`);
       pithosData.proof.signature.skolemNext++;
       currFormula = currFormula.predicate;
@@ -1364,7 +1364,7 @@ function introduceUniversal() {
     for (let i = 0; i < numberIntroduced;
         i++) {
       replacements[currFormula.variableString]
-          = `sk${pithosData.proof.signature.skolemNext}`;
+          = new Constant(`sk${pithosData.proof.signature.skolemNext}`);
       newSkolemConstants.add(`sk${pithosData.proof.signature.skolemNext}`);
       pithosData.proof.signature.skolemNext++;
       currFormula = currFormula.predicate;
@@ -1558,7 +1558,7 @@ function extractOperands(formula, extractionTarget, type) {
 }
 
 /*
- * Creates a copy of the supplied formula with variables replaced by constants
+ * Creates a copy of the supplied formula with variables replaced by terms
    specified by the given replacements dictionary
  */
 function replaceVariables(formula, replacements) {
@@ -1568,7 +1568,7 @@ function replaceVariables(formula, replacements) {
   function replaceVariablesHelper(formula, replacements) {
     if (formula.type === termTypes.VARIABLE
         && replacements.hasOwnProperty(formula.name)) {
-      return new Constant(replacements[formula.name]);
+      return replacements[formula.name];
     } else if (formula.type === termTypes.FUNCTION) {
       formula.terms
           = formula.terms.map(t => replaceVariablesHelper(t, replacements));
