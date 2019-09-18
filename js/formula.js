@@ -368,6 +368,7 @@ const OPERATOR_REGEX = new RegExp(''
     + /^·|^&&|^&|^∨|^\+|^\|\||^\||^→|^⇒|^⊃|^>|^↔|^⇔|^≡|^<>|^#|^∀|^∃/.source
 );
 const OPERAND_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<#∀∃]+/;
+const ONLY_OPERAND_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<#∀∃]+$/;
 const QUANTIFIER_VAR_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<#∀∃()[\]]+/;
 const RELATION_OR_FUNCTION_NAME_REGEX = /(^[^(]+?)(?:\[|\()/;
 const BRACKETED_REGEX = /^(?:\[|\()(.+?)(?:\]|\))$/;
@@ -724,6 +725,31 @@ function parseCommaSeparatedTerms(termsString, parserData) {
     terms.push(term);
   }
   return terms;
+}
+
+/*
+ * Function capable of parsing distinct term outside of formula context
+ */
+function parseSeparateTerm(termString, signature, skolemConstants) {
+  /* Initialize auxiliary object holding the data of the parser */
+  let parserData = {
+    operatorStack: [],
+    formulaStack: [],
+    variableStack: [],
+    signature: signature,
+    formulaString: null,
+    token: { str: null, isOperator: null },
+    skolemConstants: skolemConstants
+  }
+  /* Trim spaces from the formula */
+  termString = termString.replace(/ /g, "");
+  if (termString === "") {
+    throw new FormulaParsingError("Parsed term is empty.")
+  }
+  if (!ONLY_OPERAND_REGEX.test(termString)) {
+    throw new FormulaParsingError("Parsed term contains invalid characters.");
+  }
+  return parseTerm(termString, parserData);
 }
 
 function parseTerm(termString, parserData) {
