@@ -801,8 +801,66 @@ function parseTerm(termString, parserData) {
 }
 
 /*
- * Checks for formula equality using string representation
+ * Checks for formula equality using its string representation
  */
 function formulasDeepEqual(formula1, formula2) {
   return formula1.stringRep === formula2.stringRep;
+}
+
+/*
+ * Extracts individual operands for associative operators from the provided
+   formula
+ */
+function extractOperands(formula, extractionTarget, type) {
+  if (formula.type !== type) {
+    extractionTarget.push(formula);
+  } else {
+    extractOperands(formula.operand1, extractionTarget, type);
+    extractOperands(formula.operand2, extractionTarget, type);
+  }
+}
+
+/*
+ * Creates a copy of the supplied formula with variables replaced by terms
+   as specified by the given replacements dictionary
+ */
+function replaceVariables(formula, replacements) {
+  let formulaClone = _.cloneDeep(formula);
+  return replaceVariablesHelper(formulaClone, replacements, new Set([]));
+
+  function replaceVariablesHelper(formula, replacements, shadowedVariables) {
+    if (formula.type === termTypes.VARIABLE
+        && replacements.hasOwnProperty(formula.name)
+        && !shadowedVariables.has(formula.name)) {
+      return replacements[formula.name];
+    } else if (formula.type === termTypes.FUNCTION) {
+      formula.terms = formula.terms.map(t => replaceVariablesHelper(t,
+          replacements, shadowedVariables));
+    } else if (formula instanceof Quantifier) {
+      let newlyShadowed = !shadowedVariables.has(formula.variableString);
+      shadowedVariables.add(formula.variableString)
+      formula.predicate = replaceVariablesHelper(formula.predicate,
+          replacements, shadowedVariables);
+      if (newlyShadowed) {
+        shadowedVariables.delete(formula.variableString);
+      }
+    } else if (formula instanceof BinaryConnective) {
+      formula.operand1 = replaceVariablesHelper(formula.operand1, replacements,
+          shadowedVariables);
+      formula.operand2 = replaceVariablesHelper(formula.operand2, replacements,
+          shadowedVariables);
+    } else if (formula.type === formulaTypes.NEGATION) {
+      formula.operand = replaceVariablesHelper(formula.operand, replacements,
+          shadowedVariables);
+    } else if (formula.type === formulaTypes.EQUALITY) {
+      formula.term1 = replaceVariablesHelper(formula.term1, replacements,
+          shadowedVariables);
+      formula.term2 = replaceVariablesHelper(formula.term2, replacements,
+          shadowedVariables);
+    } else if (formula.type === formulaTypes.RELATION) {
+      formula.terms = formula.terms.map(t => replaceVariablesHelper(t,
+          replacements, shadowedVariables));
+    }
+    return formula;
+  }
 }

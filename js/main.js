@@ -45,13 +45,13 @@ jQuery(function($) {
       $("#noGiven").show();
       $("#removeGiven").attr("disabled", true);
     }
-    parseAll();
+    parseGivens();
   })
 
   /*
    * Parse all formulas on input
    */
-  $("#inputArea").on("input", ".given-input, #goalInput", parseAll);
+  $("#inputArea").on("input", ".given-input, #goalInput", parseGivens);
 
   /*
    * Insert special character and parse all formulas after pressing
@@ -78,7 +78,7 @@ jQuery(function($) {
         parseAdditionalFormula();
       } else {
         /* Trigger parsing of all formulas */
-        parseAll();
+        parseGivens();
       }
     }
   });
@@ -87,7 +87,7 @@ jQuery(function($) {
    * Start proof
    */
   $("#startProof").click(function() {
-    let parsingResults = parseAll();
+    let parsingResults = parseGivens();
     if (parsingResults !== null) {
       /* Reset all data */
       pithosData.selectedLinesSet = new Set([]);
@@ -196,4 +196,12 @@ jQuery(function($) {
           ruleData.hint);
     }
   });
+
+  /*
+   * Parse additional formulas inputted in modals
+   */
+  $("#dynamicModalArea").on("input", "#additionalFormulaInput",
+      parseAdditionalFormula);
+  $("#dynamicModalArea").on("input", ".additional-term-input",
+      parseAdditionalTerm);
 });
