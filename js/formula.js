@@ -699,7 +699,8 @@ function parseCommaSeparatedTerms(termsString, parserData) {
   /* Strip brackets */
   var termsResult = BRACKETED_REGEX.exec(termsString);
   if (termsResult == null) {
-    throw new FormulaParsingError("Malformed parentheses in term.");
+    throw new FormulaParsingError("Malformed parentheses or empty function "
+        + "arguments list in term.");
   }
   var termsString = termsResult[1];
   var terms = [];
@@ -764,10 +765,8 @@ function parseTerm(termString, parserData) {
     /* Parse function */
     let functionName = RELATION_OR_FUNCTION_NAME_REGEX.exec(termString);
     if (functionName == null) {
-      throw new FormulaParsingError("Parsing of a term in the formula failed "
-          + "in an unexpected way. Please contact the developer stating the "
-          + "formula which you used. Sorry... Cause: Failed to extract "
-          + "function name.");
+      throw new FormulaParsingError("Encountered function without a function "
+          + "name (identified by opening bracket).");
     }
     functionName = functionName[1];
     /* Consume the function name */

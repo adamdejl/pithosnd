@@ -98,11 +98,13 @@ function showModal(title, modalBody, hint, customId, customButtons,
     customIdHTML = ` id="${customId}"`;
   }
   let disableParse = "";
+  let disableInitial = "";
   if (disableParseError === true) {
     disableParse = "disable-parse-error ";
+    disableInitial = " disabled"
   }
   let defaultButton
-      = `<button${customIdHTML} type="button" class="${disableParse}btn btn-outline-primary" data-dismiss="modal">OK</button>`;
+      = `<button${customIdHTML} type="button" class="${disableParse}btn btn-outline-primary" data-dismiss="modal"${disableInitial}>OK</button>`;
   let buttons = defaultButton;
   if (customButtons !== undefined) {
     buttons = customButtons;

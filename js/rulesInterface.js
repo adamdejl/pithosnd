@@ -52,9 +52,9 @@ const rulesData = Object.freeze({
       + "goal line.", name: "∃E"},
   "∀I": {handler: introduceUniversal, numLines: 1, hint: "∀I requires "
       + "selection of an empty or goal line.", name: "∀I"},
-  // "∀E": {handler: eliminateUniversal, numLines: 2, hint: "∀E requires "
-  //     + "selection of a universally quantified formula and an empty or "
-  //     + "goal line.", name: "∀E"},
+  "∀E": {handler: eliminateUniversal, numLines: 2, hint: "∀E requires "
+      + "selection of a universally quantified formula and an empty or "
+      + "goal line.", name: "∀E"},
   // "∀→E": {handler: eliminateUniversalImplication, numLines: 3, hint: "∀→E "
   //     + "requires selection of a universally quantified formula with "
   //     + "an implication, formula corresponding to the antecedent of the "
@@ -122,8 +122,8 @@ function eliminateConjunction() {
   if (targetLine instanceof EmptyProofLine) {
     /* Targent line is an empty line - allow user to choose conjuncts to be
        eliminated */
-    let modalBody
-        = "Please select the conjunct(s) that you would like to eliminate:";
+    let modalBody = "<p>Please select the conjunct(s) that you would like to "
+        + "eliminate:</p>";
     for (let i = 0; i < conjuncts.length; i++) {
       modalBody +=
           `<div class="custom-control custom-checkbox">
@@ -656,8 +656,8 @@ function introduceBiconditional() {
   }
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify order */
-    let requestText = "Please choose the order of operands in the introduced "
-        + "formula:";
+    let requestText = "<p>Please choose the order of operands in the "
+        + "introduced formula:</p>";
     let buttons =
         `<button id="introduceBiconditionalCompleteFirst" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">${antecedent1.stringRep} ↔ ${consequent1.stringRep}</button>
          <button id="introduceBiconditionalCompleteSecond" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">${consequent1.stringRep} ↔ ${antecedent1.stringRep}</button>`
@@ -1003,146 +1003,8 @@ function introduceExistential() {
       existentialVariablesSet.add(currFormula.variableString);
       currFormula = currFormula.predicate;
     }
-    return existentialIntroductionMatch(justificationFormula, currFormula,
+    return matchFormulasVariablesReplace(justificationFormula, currFormula,
         existentialVariablesSet, {});
-  }
-
-  /*
-   * Checks whether the trimmed target formula can be matched to the
-     justification formula for the purposes of existential introduction
-   * variablesSet contains textual representation of variables quantified by
-     the introduced existentials
-   */
-  function existentialIntroductionMatch(justification, target, variablesSet,
-      replacements) {
-    if (justification.type !== target.type
-        && !(justification instanceof Term && target instanceof Term)) {
-      return false;
-    }
-    if (justification instanceof Term) {
-      if (formulasDeepEqual(justification, target)) {
-        /* Terms are identical - no replacement occured */
-        return true;
-      }
-      if (justification.type === termTypes.VARIABLE) {
-        /* Variables do not match and hence the formulas do not match (only
-           closed terms can be replaced by a variable) */
-        return false;
-      }
-      if (justification.type === termTypes.CONSTANT) {
-        if (target.type !== termTypes.VARIABLE
-            || !variablesSet.has(target.name)) {
-          /* Constant was not replaced by variable - formulas do not match */
-          return false;
-        }
-        /* Constant has been replaced by variable - check whether the
-           replacement is valid */
-        if (!replacements.hasOwnProperty(target.name)) {
-          /* No previous replacement by the given variable has been encountered
-             - log the first */
-          replacements[target.name] = justification;
-          return true;
-        }
-        /* Replacement by the given variable has already occured - check
-           whether the replaced constants match */
-        if (replacements[target.name].type === termTypes.CONSTANT &&
-            formulasDeepEqual(replacements[target.name], justification)) {
-          /* Successful match */
-          return true;
-        }
-        /* Replaced terms do not match - report failure */
-        return false;
-      }
-      if (justification.type === termTypes.FUNCTION) {
-        if (target.type === termTypes.CONSTANT) {
-          /* Constant in target formula cannot be matched to a function in
-             the justification formula */
-          return false;
-        }
-        if (target.type === termTypes.FUNCTION) {
-          /* Check deep match - possible replacement by variable must have
-             occured inside function */
-          if (justification.name !== target.name) {
-            /* The names of functions do not match */
-            return false;
-          }
-          return _.zipWith(justification.terms, target.terms,
-              (t1, t2) => existentialIntroductionMatch(t1, t2,
-                  variablesSet, replacements))
-              .reduce((b1, b2) => b1 && b2, true);
-        }
-        if (target.type === termTypes.VARIABLE) {
-          /* Function was replaced by a variable - check whether the replacement
-             is valid */
-          if (!variablesSet.has(target.name)) {
-            /* The encountered variable is not quantified by an added
-               existential - report failure */
-            return false;
-          }
-          if (!replacements.hasOwnProperty(target.name)) {
-            /* No previous replacement by the given variable has been
-               encountered - log the first */
-            replacements[target.name] = justification;
-            return true;
-          }
-          /* Replacement by the given variable has already occured - check
-             whether the replaced functions match */
-          if (replacements[target.name].type === termTypes.FUNCTION &&
-              formulasDeepEqual(replacements[target.name], justification)) {
-            /* Successful match */
-            return true;
-          }
-          /* Replaced terms do not match - report failure */
-          return false;
-        }
-      }
-    } else if (justification instanceof Quantifier) {
-      if (justification.variableString !== target.variableString) {
-        return false;
-      }
-      if (variablesSet.has(justification.variableString)) {
-        /* Cannot replace constants by variable that is already
-           quantified at "deeper" level in the given sub-formula */
-        variablesSet.delete(justification.variableString);
-      }
-      return existentialIntroductionMatch(justification.predicate,
-          target.predicate, variablesSet, replacements);
-    } else if (justification.type === formulaTypes.RELATION) {
-      if (justification.name !== target.name) {
-        return false;
-      }
-      return _.zipWith(justification.terms, target.terms,
-          (t1, t2) => existentialIntroductionMatch(t1, t2,
-              variablesSet, replacements))
-          .reduce((b1, b2) => b1 && b2, true);
-    } else if (justification instanceof Equality) {
-      return existentialIntroductionMatch(justification.term1, target.term1,
-              variablesSet, replacements)
-          && existentialIntroductionMatch(justification.term2, target.term2,
-              variablesSet, replacements);
-    } else if (justification.type === formulaTypes.NEGATION) {
-      return existentialIntroductionMatch(justification.operand,
-          target.operand, variablesSet, replacements);
-    } else if (justification instanceof BinaryConnective) {
-      if (justification.isAssociative) {
-        let operandsJustification = [];
-        extractOperands(justification, operandsJustification,
-            justification.type);
-        let operandsTarget = [];
-        extractOperands(target, operandsTarget, justification.type);
-        return _.zipWith(operandsJustification, operandsTarget,
-            (f1, f2) => existentialIntroductionMatch(f1, f2, variablesSet,
-                replacements))
-            .reduce((b1, b2) => b1 && b2, true);
-      } else {
-        return existentialIntroductionMatch(justification.operand1,
-                target.operand1, variablesSet, replacements)
-            && existentialIntroductionMatch(justification.operand2,
-                target.operand2, variablesSet, replacements);
-      }
-    } else {
-      return formulasDeepEqual(justification, target);
-    }
   }
 }
 
@@ -1162,8 +1024,8 @@ function eliminateExistential() {
   pithosData.targetLine = targetLine;
   /* Ask the user how many outer exists quantifiers should be eliminated */
   let modalBody =
-       "Please choose the number of outer quantifiers that should be "
-       + `eliminated from the formula ${justificationFormula.stringRep}:`;
+       "<p>Please choose the number of outer quantifiers that should be "
+       + `eliminated from the formula ${justificationFormula.stringRep}:</p>`;
   let existentialCount = 0;
   for (let currFormula = justificationFormula;
       currFormula.type === formulaTypes.EXISTENTIAL;
@@ -1316,9 +1178,9 @@ function introduceUniversal() {
   function introduceUniversalContinue() {
     /* Ask the user how many outer universal quantifiers should be introduced */
     let modalBody =
-         "Please choose the number of outer quantifiers that should be "
+         "<p>Please choose the number of outer quantifiers that should be "
          + "introduced by this rule application in the formula"
-         + `${targetFormula.stringRep}:`;
+         + `${targetFormula.stringRep}:</p>`;
     universalCount = 0;
     for (let currFormula = targetFormula;
         currFormula.type === formulaTypes.UNIVERSAL;
@@ -1401,6 +1263,168 @@ function introduceUniversal() {
 }
 
 /*
+ * Function handling universal elimination
+ */
+function eliminateUniversal() {
+  let retrievedLines
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  let justificationFormula = justificationLines[0].formula;
+  if (justificationFormula.type !== formulaTypes.UNIVERSAL) {
+    throw new ProofProcessingError("The selected justification formula is "
+        + "not a universal.");
+  }
+  let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
+  /* Count the number of universal quantifiers in the justification formula
+     and prepare modal allowing the user to choose the number of quantifiers
+     to eliminate. */
+  let modalBody = "<p>Please choose the number of outer quantifiers that "
+       + "should be eliminated from the formula "
+       + `${justificationFormula.stringRep}:</p>`;
+  let universalCount = 0;
+  for (let currFormula = justificationFormula;
+      currFormula.type === formulaTypes.UNIVERSAL;
+      currFormula = currFormula.predicate) {
+    modalBody +=
+        `<div class="custom-control custom-radio">
+           <input type="radio" id="universalRadio${universalCount}" class="custom-control-input">
+           <label class="custom-control-label" for="universalRadio${universalCount}">${universalCount + 1}</label>
+         </div>`
+    universalCount++;
+  }
+  /* Declared variables for use by following code */
+  let numberEliminated;
+  if (targetLine instanceof EmptyProofLine) {
+    /* Target is an empty line - determine the number of outer qualifiers to
+       eliminate. */
+    if (universalCount === 1) {
+      numberEliminated = 1;
+      eliminateUniversalContinue(universalCount);
+    } else {
+      showModal("Input required", modalBody, undefined,
+          "eliminateUniversalContinue");
+    }
+  } else {
+    /* Target line is a goal line - automatically determine the target formula
+       and check the rule application. */
+    let targetFormula = targetLine.formula;
+    if (!verifyUniversalElimination(justificationFormula, targetFormula)) {
+      throw new ProofProcessingError("The selected target formula cannot be "
+          + "derived from the selected justification formula using universal "
+          + "elimination. Please check that only variables have been replaced "
+          + "by terms and that same variables have not been replaced by "
+          + "different terms.")
+    }
+    targetLine.justification
+        = new Justification(justTypes.UNIV_ELIM, justificationLines);
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
+  }
+
+  /*
+   * Catch user action to proceed with the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#eliminateUniversalContinue");
+  $("#dynamicModalArea").on("click", "#eliminateUniversalContinue",
+      function() {
+    numberEliminated = 0;
+    for (let i = 0; i < universalCount; i++) {
+      if ($("#universalRadio" + i).is(":checked")) {
+        numberEliminated = i + 1;
+        break;
+      }
+    }
+    if (numberEliminated === 0) {
+      numberEliminated = universalCount;
+    }
+    eliminateUniversalContinue(numberEliminated);
+  });
+
+  function eliminateUniversalContinue(numberEliminated) {
+    /* Determine the terms that the quantified variables should be replaced
+       for */
+    let modalBody = "<p>Please enter the terms that should replace the "
+         + "universally quantified variables in the formula "
+         + `${justificationFormula.stringRep}:</p>`;
+    let currFormula = justificationFormula;
+    for (let i = 0; i < numberEliminated; i++) {
+      modalBody +=
+          `<label for="additionalTermInput${i}">Variable ${currFormula.variableString}</label>
+           <input id="additionalTermInput${i}" class="additional-term-input form-control mb-2" type="text" placeholder="Please type your term here." value="" autocomplete="off">
+           <div id="additionalTermParsed${i}" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
+             The result of the parsing will appear here.
+           </div>`
+      currFormula = currFormula.predicate;
+    }
+    showModal("Input required", modalBody, undefined,
+        "eliminateUniversalComplete", undefined, true);
+  }
+
+  /*
+   * Catch user action to complete rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#eliminateUniversalComplete");
+  $("#dynamicModalArea").on("click", "#eliminateUniversalComplete",
+      function() {
+    let replacements = {};
+    let currFormula = justificationFormula;
+    let skolemConstants = getSkolemConstants(pithosData.targetLine);
+    for (let i = 0; i < numberEliminated; i++) {
+      let variable = currFormula.variableString;
+      let term = parseSeparateTerm($("#additionalTermInput" + i)[0].value,
+          pithosData.proof.signature, skolemConstants);
+      replacements[variable] = term;
+      currFormula = currFormula.predicate;
+    }
+    let newFormula = replaceVariables(currFormula, replacements);
+    let justification
+        = new Justification(justTypes.UNIV_ELIM, justificationLines);
+    let newLine = new JustifiedProofLine(newFormula, justification);
+    targetLine.prepend(newLine);
+    completeProofUpdate();
+  });
+
+  /*
+   * Function checking universal elimination application
+   */
+  function verifyUniversalElimination(justificationFormula, targetFormula) {
+    /* Determine the difference in the number of existential quantifiers */
+    let justificationUniversalCount = 0;
+    let currFormula = justificationFormula;
+    while (currFormula.type === formulaTypes.UNIVERSAL) {
+      justificationUniversalCount++;
+      currFormula = currFormula.predicate;
+    }
+    let targetUniversalCount = 0;
+    currFormula = targetFormula;
+    while (currFormula.type === formulaTypes.UNIVERSAL) {
+      targetUniversalCount++;
+      currFormula = currFormula.predicate;
+    }
+    if (targetUniversalCount >= justificationUniversalCount) {
+      /* Fail verification if there are no additional existential quantifiers
+         in the justification formula */
+      return false;
+    }
+    /* Attempt to match formulas to verify rule application */
+    let eliminatedUniversalCount
+        = justificationUniversalCount - targetUniversalCount;
+    let universalVariablesSet = new Set([]);
+    currFormula = justificationFormula;
+    for (let i = 0; i < eliminatedUniversalCount; i++) {
+      universalVariablesSet.add(currFormula.variableString);
+      currFormula = currFormula.predicate;
+    }
+    return matchFormulasVariablesReplace(targetFormula, currFormula,
+        universalVariablesSet, {});
+  }
+}
+
+/*
  * Function handling tick rule application
  */
 function applyTick() {
@@ -1469,6 +1493,150 @@ function addBottom(justType) {
 }
 
 /*
+ * Checks whether the the inputted formulas can be matched for the purposes
+   of existential introduction and universal elimination (i.e. only terms
+   have been replaced by variables or vice versa)
+ * variablesSet contains textual representation of variables that are
+   quantified and could be replaced by constants or vice versa
+ * replacements dictionary stores pairs of variable names and corresponding
+   terms
+ */
+function matchFormulasVariablesReplace(termsFormula, variablesFormula,
+    variablesSet, replacements) {
+  if (termsFormula.type !== variablesFormula.type
+      && !(termsFormula instanceof Term && variablesFormula instanceof Term)) {
+    return false;
+  }
+  if (termsFormula instanceof Term) {
+    if (formulasDeepEqual(termsFormula, variablesFormula)) {
+      /* Terms are identical - report match success */
+      return true;
+    }
+    if (termsFormula.type === termTypes.VARIABLE) {
+      /* termsFormula contains variable different from term in
+         variablesFormula and hence the formulas do not match */
+      return false;
+    }
+    if (termsFormula.type === termTypes.CONSTANT) {
+      if (variablesFormula.type !== termTypes.VARIABLE
+          || !variablesSet.has(variablesFormula.name)) {
+        /* Constant does not correspond to a variable - formulas do not
+           match */
+        return false;
+      }
+      /* Constant corresponds with a variable - check whether the
+         the replacement is consistent */
+      if (!replacements.hasOwnProperty(variablesFormula.name)) {
+        /* No previous replacement associated with the given variable
+           has been logged - record the first */
+        replacements[variablesFormula.name] = termsFormula;
+        return true;
+      }
+      /* Replacement associated with the given variable has been logged -
+         check whether the constants match */
+      if (replacements[variablesFormula.name].type === termTypes.CONSTANT
+          && formulasDeepEqual(replacements[variablesFormula.name],
+              termsFormula)) {
+        /* Successful match */
+        return true;
+      }
+      /* Terms do not match - report failure */
+      return false;
+    }
+    if (termsFormula.type === termTypes.FUNCTION) {
+      if (variablesFormula.type === termTypes.CONSTANT) {
+        /* Constant in variablesFormula formula cannot be matched to a
+           function in the termsFormula formula */
+        return false;
+      }
+      if (variablesFormula.type === termTypes.FUNCTION) {
+        /* Check deep match - possible replacement must have
+           occured inside function */
+        if (termsFormula.name !== variablesFormula.name) {
+          /* The names of functions do not match */
+          return false;
+        }
+        return _.zipWith(termsFormula.terms, variablesFormula.terms,
+            (t1, t2) => matchFormulasVariablesReplace(t1, t2,
+                variablesSet, replacements))
+            .reduce((b1, b2) => b1 && b2, true);
+      }
+      if (variablesFormula.type === termTypes.VARIABLE) {
+        /* Function associated with a variable - check whether the replacement
+           is valid */
+        if (!variablesSet.has(variablesFormula.name)) {
+          /* The encountered variable is not quantified - report failure */
+          return false;
+        }
+        if (!replacements.hasOwnProperty(variablesFormula.name)) {
+          /* No previous replacement associated with the given variable
+             has been encountered - log the first */
+          replacements[variablesFormula.name] = termsFormula;
+          return true;
+        }
+        /* Replacement associated with a given variable has already occurred
+           - check whether the corresponding functions match */
+        if (replacements[variablesFormula.name].type === termTypes.FUNCTION
+            && formulasDeepEqual(replacements[variablesFormula.name],
+                termsFormula)) {
+          /* Successful match */
+          return true;
+        }
+        /* Terms do not match - report failure */
+        return false;
+      }
+    }
+  } else if (termsFormula instanceof Quantifier) {
+    if (termsFormula.variableString !== variablesFormula.variableString) {
+      return false;
+    }
+    if (variablesSet.has(termsFormula.variableString)) {
+      /* Cannot match replacements associated with a variable that is
+         already quantified at "deeper" level in the terms sub-formula */
+      variablesSet.delete(termsFormula.variableString);
+    }
+    return matchFormulasVariablesReplace(termsFormula.predicate,
+        variablesFormula.predicate, variablesSet, replacements);
+  } else if (termsFormula.type === formulaTypes.RELATION) {
+    if (termsFormula.name !== variablesFormula.name) {
+      return false;
+    }
+    return _.zipWith(termsFormula.terms, variablesFormula.terms,
+        (t1, t2) => matchFormulasVariablesReplace(t1, t2,
+            variablesSet, replacements))
+        .reduce((b1, b2) => b1 && b2, true);
+  } else if (termsFormula instanceof Equality) {
+    return matchFormulasVariablesReplace(termsFormula.term1,
+            variablesFormula.term1, variablesSet, replacements)
+        && matchFormulasVariablesReplace(termsFormula.term2,
+            variablesFormula.term2, variablesSet, replacements);
+  } else if (termsFormula.type === formulaTypes.NEGATION) {
+    return matchFormulasVariablesReplace(termsFormula.operand,
+        variablesFormula.operand, variablesSet, replacements);
+  } else if (termsFormula instanceof BinaryConnective) {
+    if (termsFormula.isAssociative) {
+      let operandstermsFormula = [];
+      extractOperands(termsFormula, operandstermsFormula,
+          termsFormula.type);
+      let operandsvariablesFormula = [];
+      extractOperands(variablesFormula, operandsvariablesFormula,
+          termsFormula.type);
+      return _.zipWith(operandstermsFormula, operandsvariablesFormula,
+          (f1, f2) => matchFormulasVariablesReplace(f1, f2, variablesSet,
+              replacements))
+          .reduce((b1, b2) => b1 && b2, true);
+    } else {
+      return matchFormulasVariablesReplace(termsFormula.operand1,
+              variablesFormula.operand1, variablesSet, replacements)
+          && matchFormulasVariablesReplace(termsFormula.operand2,
+              variablesFormula.operand2, variablesSet, replacements);
+    }
+  } else {
+    return formulasDeepEqual(termsFormula, variablesFormula);
+  }
+}
+
+/*
  * Shows modal prompting user to enter additional formula required for
    one of the supported natural deduction ruless
  */
@@ -1509,6 +1677,8 @@ function requestFormulaInput(requestText, customId, buttons) {
 jQuery(function($) {
   $("#dynamicModalArea").on("input", "#additionalFormulaInput",
       parseAdditionalFormula);
+  $("#dynamicModalArea").on("input", ".additional-term-input",
+      parseAdditionalTerm);
 });
 
 /*
@@ -1519,8 +1689,8 @@ function parseAdditionalFormula() {
   let signatureCopy = _.cloneDeep(pithosData.proof.signature);
   let inputSelector = $("#additionalFormulaInput");
   let outputSelector = $("#additionalFormulaParsed");
-  let parsedFormula;
   let skolemConstants = getSkolemConstants(pithosData.targetLine);
+  let parsedFormula;
   try {
     parsedFormula = parseFormula(inputSelector[0].value, signatureCopy,
         skolemConstants);
@@ -1546,6 +1716,47 @@ function parseAdditionalFormula() {
 }
 
 /*
+ * Parses additional term entered to the input field in a modal
+ */
+function parseAdditionalTerm() {
+  /* Backup signature in case of error in parsing */
+  let signatureCopy = _.cloneDeep(pithosData.proof.signature);
+  let errors = false;
+  for (let i = 0; $("#additionalTermInput" + i).length === 1; i++) {
+    let inputSelector = $("#additionalTermInput" + i);
+    let outputSelector = $("#additionalTermParsed" + i);
+    let skolemConstants = getSkolemConstants(pithosData.targetLine);
+    let parsedTerm;
+    try {
+      parsedTerm = parseSeparateTerm(inputSelector[0].value, signatureCopy,
+          skolemConstants);
+    } catch (error) {
+      if (error instanceof FormulaParsingError) {
+        /* Show result and disable action buttons */
+        $(".disable-parse-error").attr("disabled", true);
+        outputSelector.text(error.message);
+        outputSelector
+            .removeClass("alert-dark alert-success")
+            .addClass("alert-danger");
+        errors = true;
+        continue;
+      } else {
+        throw error;
+      }
+    }
+    /* Show result on success */
+    outputSelector.text(parsedTerm.stringRep);
+    outputSelector
+        .removeClass("alert-dark alert-danger")
+        .addClass("alert-success");
+  }
+  /* Enable confirmation button on success */
+  if (!errors) {
+    $(".disable-parse-error").attr("disabled", false);
+  }
+}
+
+/*
  * Extracts individual operands for associative operators
  */
 function extractOperands(formula, extractionTarget, type) {
@@ -1559,38 +1770,44 @@ function extractOperands(formula, extractionTarget, type) {
 
 /*
  * Creates a copy of the supplied formula with variables replaced by terms
-   specified by the given replacements dictionary
+   as specified by the given replacements dictionary
  */
 function replaceVariables(formula, replacements) {
   let formulaClone = _.cloneDeep(formula);
-  return replaceVariablesHelper(formulaClone, replacements);
+  return replaceVariablesHelper(formulaClone, replacements, new Set([]));
 
-  function replaceVariablesHelper(formula, replacements) {
+  function replaceVariablesHelper(formula, replacements, shadowedVariables) {
     if (formula.type === termTypes.VARIABLE
-        && replacements.hasOwnProperty(formula.name)) {
+        && replacements.hasOwnProperty(formula.name)
+        && !shadowedVariables.has(formula.name)) {
       return replacements[formula.name];
     } else if (formula.type === termTypes.FUNCTION) {
-      formula.terms
-          = formula.terms.map(t => replaceVariablesHelper(t, replacements));
+      formula.terms = formula.terms.map(t => replaceVariablesHelper(t,
+          replacements, shadowedVariables));
     } else if (formula instanceof Quantifier) {
-      formula.predicate
-          = replaceVariablesHelper(formula.predicate, replacements);
+      let newlyShadowed = !shadowedVariables.has(formula.variableString);
+      shadowedVariables.add(formula.variableString)
+      formula.predicate = replaceVariablesHelper(formula.predicate,
+          replacements, shadowedVariables);
+      if (newlyShadowed) {
+        shadowedVariables.delete(formula.variableString);
+      }
     } else if (formula instanceof BinaryConnective) {
-      formula.operand1
-          = replaceVariablesHelper(formula.operand1, replacements);
-      formula.operand2
-          = replaceVariablesHelper(formula.operand2, replacements);
+      formula.operand1 = replaceVariablesHelper(formula.operand1, replacements,
+          shadowedVariables);
+      formula.operand2 = replaceVariablesHelper(formula.operand2, replacements,
+          shadowedVariables);
     } else if (formula.type === formulaTypes.NEGATION) {
-      formula.operand
-          = replaceVariablesHelper(formula.operand, replacements);
+      formula.operand = replaceVariablesHelper(formula.operand, replacements,
+          shadowedVariables);
     } else if (formula.type === formulaTypes.EQUALITY) {
-      formula.term1
-          = replaceVariablesHelper(formula.term1, replacements);
-      formula.term2
-          = replaceVariablesHelper(formula.term2, replacements);
+      formula.term1 = replaceVariablesHelper(formula.term1, replacements,
+          shadowedVariables);
+      formula.term2 = replaceVariablesHelper(formula.term2, replacements,
+          shadowedVariables);
     } else if (formula.type === formulaTypes.RELATION) {
-      formula.terms
-          = formula.terms.map(t => replaceVariablesHelper(t, replacements));
+      formula.terms = formula.terms.map(t => replaceVariablesHelper(t,
+          replacements, shadowedVariables));
     }
     return formula;
   }
