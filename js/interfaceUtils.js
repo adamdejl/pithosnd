@@ -187,7 +187,7 @@ function showModal(title, modalBody, hint, customId, customButtons,
   let template =
       `<div id="dynamicModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dynamicModalLabel" aria-hidden="true">
   			 <div class="modal-dialog modal-dialog-centered" role="document">
-  				 <div class="modal-content">
+  				 <div class="modal-content bg-light">
   					 <div class="modal-header">
   						 <h5 class="modal-title" id="dynamicModalLabel">${title}</h5>
   						 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -211,15 +211,17 @@ function showModal(title, modalBody, hint, customId, customButtons,
  * Shows modal prompting user to enter additional formula required for
    one of the supported natural deduction ruless
  */
-function requestFormulaInput(requestText, customId, buttons) {
+function requestFormulaInput(requestText, customId, buttons, additionalContent) {
   let modalBody =
-      `<div class="py-2 text-center sticky-top">
+      `<div class="py-2 text-center sticky-top bg-light">
          <div class="btn-group pb-1" role="group" aria-label="Insert logical connectives">
            <button type="button" class="btn btn-secondary insert-char-btn">¬</button>
            <button type="button" class="btn btn-secondary insert-char-btn">∧</button>
            <button type="button" class="btn btn-secondary insert-char-btn">∨</button>
            <button type="button" class="btn btn-secondary insert-char-btn">→</button>
            <button type="button" class="btn btn-secondary insert-char-btn">↔</button>
+         </div>
+         <div class="btn-group pb-1" role="group" aria-label="Insert quantifiers">
            <button type="button" class="btn btn-secondary insert-char-btn">∀</button>
            <button type="button" class="btn btn-secondary insert-char-btn">∃</button>
          </div>
@@ -238,7 +240,8 @@ function requestFormulaInput(requestText, customId, buttons) {
        <input id="additionalFormulaInput" class="additional-formula-input form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
        <div id="additionalFormulaParsed" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
          The result of the parsing will appear here.
-       </div>`
+       </div>
+       ${additionalContent}`
     showModal("Input required", modalBody, undefined, customId, buttons, true);
 }
 
