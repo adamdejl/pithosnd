@@ -864,3 +864,74 @@ function replaceVariables(formula, replacements) {
     return formula;
   }
 }
+
+/*
+ * Creates a copy of the supplied formula with term replaced by another term
+ */
+function replaceTerm(formula, replaced, replacement) {
+  let formulaClone = _.cloneDeep(formula);
+  let replacementClone = _.cloneDeep(replacement);
+  return replaceTermHelper(formulaClone, replaced, replacementClone);
+
+  function replaceTermHelper(formula, replaced, replacement) {
+    if (formula instanceof Term && formulasDeepEqual(formula, replaced)) {
+      return replacement;
+    }
+    if (formula.type === termTypes.FUNCTION) {
+      formula.terms = formula.terms
+          .map(t => replaceTermHelper(t, replaced, replacement));
+    } else if (formula instanceof Quantifier) {
+      formula.predicate
+          = replaceTermHelper(formula.predicate, replaced, replacement);
+    } else if (formula instanceof BinaryConnective) {
+      formula.operand1
+          = replaceTermHelper(formula.operand1, replaced, replacement);
+      formula.operand2
+          = replaceTermHelper(formula.operand2, replaced, replacement);
+    } else if (formula.type === formulaTypes.NEGATION) {
+      formula.operand
+          = replaceTermHelper(formula.operand, replaced, replacement);
+    } else if (formula.type === formulaTypes.EQUALITY) {
+      formula.term1
+          = replaceTermHelper(formula.term1, replaced, replacement);
+      formula.term2
+          = replaceTermHelper(formula.term2, replaced, replacement);
+    } else if (formula.type === formulaTypes.RELATION) {
+      formula.terms = formula.terms
+          .map(t => replaceTermHelper(t, replaced, replacement));
+    }
+    return formula;
+  }
+}
+
+/*
+ * Checks whether the given formula contains specified term
+ */
+function formulaContainsTerm(formula, term) {
+  if (formula instanceof Term) {
+    if (formulasDeepEqual(formula, term)) {
+      return true;
+    }
+    if (formula.type === formulaTypes.FUNCTION) {
+      return formula.terms
+          .map(t => formulaContainsTerm(t, term))
+          .reduce((b1, b2) => b1 || b2, false);
+    }
+    return false;
+  } else if (formula instanceof Quantifier) {
+    return formulaContainsTerm(formula.predicate, term);
+  } else if (formula instanceof BinaryConnective) {
+    return formulaContainsTerm(formula.operand1, term)
+        || formulaContainsTerm(formula.operand2, term);
+  } else if (formula.type === formulaTypes.NEGATION) {
+    return formulaContainsTerm(formula.operand, term);
+  } else if (formula.type === formulaTypes.EQUALITY) {
+    return formulaContainsTerm(formula.term1, term)
+        || formulaContainsTerm(formula.term2, term);
+  } else if (formula.type === formulaTypes.RELATION) {
+    return formula.terms
+        .map(t => formulaContainsTerm(t, term))
+        .reduce((b1, b2) => b1 || b2, false);
+  }
+  return false;
+}

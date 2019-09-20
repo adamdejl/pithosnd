@@ -59,9 +59,9 @@ const rulesData = Object.freeze({
   //     + "requires selection of a universally quantified formula with "
   //     + "an implication, formula corresponding to the antecedent of the "
   //     + "implication and an empty or goal line.", name: "∀→E"},
-  // "=sub": {handler: applyEqualitySubstitution, numLines: 3, hint: "=sub "
-  //     + "requires selection of an equality, formula to perform substitution"
-  //     + "in and an empty or goal line.", name: "=sub"},
+  "=sub": {handler: applyEqualitySubstitution, numLines: 3, hint: "=sub "
+      + "requires selection of an equality, formula to perform substitution"
+      + "in and an empty or goal line.", name: "=sub"},
   // "refl": {handler: applyEqualityReflexivity, numLines: 1, hint: "refl "
   //     + "requires selection of an empty or goal line.", name: "refl"},
   // "=sym": {handler: applyEqualitySymmetry, numLines: 2, hint: "=sym "
