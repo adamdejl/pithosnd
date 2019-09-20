@@ -652,6 +652,61 @@ function applyEqualitySubstitution() {
 }
 
 /*
+ * Function handling equality reflexivity application
+ */
+function applyEqualityReflexivity() {
+  let retrievedLines
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
+  let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
+  if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - allow user to specify resulting formula */
+    let modalBody = "<p>Please enter tha term that you would like to apply  "
+         + "equality reflexivity to:</p>";
+    modalBody +=
+        `<input id="additionalTermInput0" class="additional-term-input form-control mb-2" type="text" placeholder="Please type your term here." value="" autocomplete="off">
+        <div id="additionalTermParsed0" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
+          The result of the parsing will appear here.
+        </div>`;
+    showModal("Input required", modalBody, undefined,
+        "applyEqualityReflexivityComplete", undefined, true);
+  } else {
+    let targetFormula = targetLine.formula;
+    if (targetFormula.type !== formulaTypes.EQUALITY) {
+      throw new ProofProcessingError("The selected target formula is not an "
+          + "equality.")
+    }
+    if (!formulasDeepEqual(targetFormula.term1, targetFormula.term2)) {
+      throw new ProofProcessingError("The selected formula cannot be derived "
+          + "using reflexivity.")
+    }
+    targetLine.justification
+        = new SpecialJustification(justTypes.EQ_REFL);
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
+  }
+
+  /*
+   * Catch user action to complete the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#applyEqualityReflexivityComplete");
+  $("#dynamicModalArea").on("click", "#applyEqualityReflexivityComplete",
+      function() {
+    let skolemConstants = getSkolemConstants(pithosData.targetLine);
+    let term = parseSeparateTerm($("#additionalTermInput0")[0].value,
+        pithosData.proof.signature, skolemConstants);
+    let newFormula = new Equality(term, term);
+    let justification
+        = new SpecialJustification(justTypes.EQ_REFL);
+    let newLine = new JustifiedProofLine(newFormula, justification);
+    targetLine.prepend(newLine);
+    completeProofUpdate();
+  });
+}
+
+/*
  * Checks whether the the inputted formulas can be matched for the purposes
    of existential introduction and universal elimination (i.e. only terms
    have been replaced by variables or vice versa)
