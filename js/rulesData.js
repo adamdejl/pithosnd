@@ -55,6 +55,8 @@ const rulesData = Object.freeze({
   "∀E": {handler: eliminateUniversal, numLines: 2, hint: "∀E requires "
       + "selection of a universally quantified formula and an empty or "
       + "goal line.", name: "∀E"},
+  "∀→I": {handler: introduceUniversalImplication, numLines: 1, hint: "∀→E "
+      + "requires selection of an empty or goal line.", name: "∀→I"},
   // "∀→E": {handler: eliminateUniversalImplication, numLines: 3, hint: "∀→E "
   //     + "requires selection of a universally quantified formula with "
   //     + "an implication, formula corresponding to the antecedent of the "

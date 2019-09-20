@@ -229,133 +229,7 @@ function eliminateExistential() {
  * Function handling universal introduction
  */
 function introduceUniversal() {
-  let retrievedLines
-      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
-  let targetLine = retrievedLines.targetLine;
-  pithosData.targetLine = targetLine;
-  /* Declared variables for use by following code */
-  let targetFormula;
-  let newSkolemConstants = new Set([]);
-  let universalCount;
-  if (targetLine instanceof EmptyProofLine) {
-    /* Target line is an empty line - allow user to specify resulting
-       formula */
-    let requestText = "Please enter the formula that you would like to "
-        + "introduce using universal introduction rule:";
-    requestFormulaInput(requestText, "introduceUniversalContinue");
-  } else {
-    targetFormula = targetLine.formula;
-    if (targetFormula.type !== formulaTypes.UNIVERSAL) {
-      throw new ProofProcessingError("The selected target formula is "
-          + "not a universal.");
-    }
-    introduceUniversalContinue();
-  }
-
-  /*
-   * Catch user action to proceed with the rule application
-   */
-  /* Unbind possible previously bound events */
-  $("#dynamicModalArea").off("click", "#introduceUniversalContinue");
-  $("#dynamicModalArea").on("click", "#introduceUniversalContinue",
-      function() {
-    let skolemConstants = getSkolemConstants(targetLine);
-    targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
-        pithosData.proof.signature, skolemConstants);
-    if (targetFormula.type !== formulaTypes.UNIVERSAL) {
-      let error = new ProofProcessingError("The entered formula is not a "
-          + "universal.");
-      handleProofProcessingError(error);
-      return;
-    }
-    introduceUniversalContinue();
-  })
-
-  function introduceUniversalContinue() {
-    /* Ask the user how many outer universal quantifiers should be introduced */
-    let modalBody =
-         "<p>Please choose the number of outer quantifiers that should be "
-         + "introduced by this rule application in the formula"
-         + `${targetFormula.stringRep}:</p>`;
-    universalCount = 0;
-    for (let currFormula = targetFormula;
-        currFormula.type === formulaTypes.UNIVERSAL;
-        currFormula = currFormula.predicate) {
-      modalBody +=
-          `<div class="custom-control custom-radio">
-             <input type="radio" id="universalRadio${universalCount}" class="custom-control-input">
-             <label class="custom-control-label" for="universalRadio${universalCount}">${universalCount + 1}</label>
-           </div>`
-      universalCount++;
-    }
-    if (universalCount === 1) {
-      introduceUniversalComplete(universalCount);
-    } else {
-      showModal("Input required", modalBody, undefined,
-          "introduceUniversalComplete");
-    }
-  }
-
-  /*
-   * Catch user action to complete the rule application
-   */
-  /* Unbind possible previously bound events */
-  $("#dynamicModalArea").off("click", "#introduceUniversalComplete");
-  $("#dynamicModalArea").on("click", "#introduceUniversalComplete",
-      function() {
-    let numberIntroduced = 0;
-    for (let i = 0; i < universalCount; i++) {
-      if ($("#universalRadio" + i).is(":checked")) {
-        numberIntroduced = i + 1;
-        break;
-      }
-    }
-    if (numberIntroduced === 0) {
-      numberIntroduced = universalCount;
-    }
-    introduceUniversalComplete(numberIntroduced);
-  });
-
-  function introduceUniversalComplete(numberIntroduced) {
-    let replacements = {};
-    let currFormula = targetFormula;
-    for (let i = 0; i < numberIntroduced;
-        i++) {
-      replacements[currFormula.variableString]
-          = new Constant(`sk${pithosData.proof.signature.skolemNext}`);
-      newSkolemConstants.add(`sk${pithosData.proof.signature.skolemNext}`);
-      pithosData.proof.signature.skolemNext++;
-      currFormula = currFormula.predicate;
-    }
-    let constList = [];
-    newSkolemConstants.forEach(sk => constList.push(sk));
-    let goalFormula = replaceVariables(currFormula, replacements);
-    let initialLine = new JustifiedProofLine(new ConstantsList(constList),
-        new SpecialJustification(justTypes.ALLI_CONST));
-    let goalLine = new JustifiedProofLine(goalFormula,
-        new SpecialJustification(justTypes.GOAL));
-    let proofBox = new ProofBox(initialLine, goalLine, false,
-        newSkolemConstants);
-    if (targetLine instanceof EmptyProofLine) {
-      /* Target line is an empty line - add new justified line */
-      let newEmptyLine = new EmptyProofLine();
-      targetLine.append(newEmptyLine);
-      newEmptyLine.prepend(proofBox);
-      let ruleJustificationLines = [initialLine, goalLine];
-      let justification
-          = new Justification(justTypes.UNIV_INTRO, ruleJustificationLines);
-      let newJustifiedLine = new JustifiedProofLine(targetFormula,
-          justification);
-      newEmptyLine.prepend(newJustifiedLine);
-    } else {
-      /* Target line is a goal line - justify existing line */
-      targetLine.prepend(proofBox);
-      let ruleJustificationLines = [initialLine, goalLine];
-      targetLine.justification
-          = new Justification(justTypes.UNIV_INTRO, ruleJustificationLines);
-    }
-    completeProofUpdate();
-  }
+  addUniversal(false);
 }
 
 /*
@@ -521,6 +395,13 @@ function eliminateUniversal() {
 }
 
 /*
+ * Function handling universal implication introduction
+ */
+function introduceUniversalImplication() {
+  addUniversal(true);
+}
+
+/*
  * Function handling equality substitution
  */
 function applyEqualitySubstitution() {
@@ -641,6 +522,7 @@ function applyEqualitySubstitution() {
             + "substitution. Please check that only one term has been substituted "
             + "in accordance with the selected equality formula.")
         handleProofProcessingError(error);
+        return;
       }
     }
     let justification
@@ -743,6 +625,177 @@ function applyEqualitySymmetry() {
     if (targetLine.prev instanceof EmptyProofLine) {
       targetLine.prev.delete();
     }
+  }
+}
+
+/*
+ * Function handling universal introduction and universal implication
+   introduction rules
+ */
+function addUniversal(isImplication) {
+  let retrievedLines
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
+  let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
+  /* Declared variables for use by following code */
+  let targetFormula;
+  let newSkolemConstants = new Set([]);
+  let universalCount;
+  if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - allow user to specify resulting
+       formula */
+    let requestText = "Please enter the formula that you would like to "
+        + `introduce using universal ${isImplication ? "implication " : ""}`
+        + "introduction rule:";
+    requestFormulaInput(requestText, "addUniversalContinue");
+  } else {
+    targetFormula = targetLine.formula;
+    if (targetFormula.type !== formulaTypes.UNIVERSAL) {
+      throw new ProofProcessingError("The selected target formula is "
+          + "not a universal.");
+    }
+    addUniversalContinue();
+  }
+
+  /*
+   * Catch user action to proceed with the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#addUniversalContinue");
+  $("#dynamicModalArea").on("click", "#addUniversalContinue",
+      function() {
+    let skolemConstants = getSkolemConstants(targetLine);
+    targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
+        pithosData.proof.signature, skolemConstants);
+    if (targetFormula.type !== formulaTypes.UNIVERSAL) {
+      let error = new ProofProcessingError("The entered formula is not a "
+          + "universal.");
+      handleProofProcessingError(error);
+      return;
+    }
+    addUniversalContinue();
+  })
+
+  function addUniversalContinue() {
+    /* Prepare possibly useful modal body and count the number of universal
+       quantifiers */
+    let modalBody =
+         "<p>Please choose the number of outer quantifiers that should be "
+         + "introduced by this rule application in the formula"
+         + `${targetFormula.stringRep}:</p>`;
+    universalCount = 0;
+    let currFormula;
+    for (currFormula = targetFormula;
+        currFormula.type === formulaTypes.UNIVERSAL;
+        currFormula = currFormula.predicate) {
+      modalBody +=
+          `<div class="custom-control custom-radio">
+             <input type="radio" id="universalRadio${universalCount}" class="custom-control-input">
+             <label class="custom-control-label" for="universalRadio${universalCount}">${universalCount + 1}</label>
+           </div>`
+      universalCount++;
+    }
+    if (isImplication || universalCount === 1) {
+      /* Automatically introduce all outer universal quantifiers */
+      if (isImplication && currFormula.type !== formulaTypes.IMPLICATION) {
+        let error = new ProofProcessingError("The introduced formula does "
+            + "not contain an implication at the outermost level after "
+            + "universal quantifiers.");
+        handleProofProcessingError(error);
+        return;
+      }
+      addUniversalComplete(universalCount);
+    } else {
+      /* Ask the user how many outer universal quantifiers should be
+         introduced */
+      showModal("Input required", modalBody, undefined,
+          "addUniversalComplete");
+    }
+  }
+
+  /*
+   * Catch user action to complete the rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#addUniversalComplete");
+  $("#dynamicModalArea").on("click", "#addUniversalComplete",
+      function() {
+    let numberIntroduced = 0;
+    for (let i = 0; i < universalCount; i++) {
+      if ($("#universalRadio" + i).is(":checked")) {
+        numberIntroduced = i + 1;
+        break;
+      }
+    }
+    if (numberIntroduced === 0) {
+      numberIntroduced = universalCount;
+    }
+    addUniversalComplete(numberIntroduced);
+  });
+
+  function addUniversalComplete(numberIntroduced) {
+    let replacements = {};
+    let currFormula = targetFormula;
+    for (let i = 0; i < numberIntroduced;
+        i++) {
+      replacements[currFormula.variableString]
+          = new Constant(`sk${pithosData.proof.signature.skolemNext}`);
+      newSkolemConstants.add(`sk${pithosData.proof.signature.skolemNext}`);
+      pithosData.proof.signature.skolemNext++;
+      currFormula = currFormula.predicate;
+    }
+    let constList = [];
+    newSkolemConstants.forEach(sk => constList.push(sk));
+    let initialLine = new JustifiedProofLine(new ConstantsList(constList),
+        new SpecialJustification(justTypes.ALLI_CONST));
+    let proofBox;
+    let goalLine;
+    let assumptionLine;
+    let ruleJustificationLines;
+    let justificationType;
+    if (isImplication) {
+      /* Performing universal implication introduction - add assumption in
+         form of antecedent and only prove consequent */
+      let antecedent = currFormula.operand1;
+      let consequent = currFormula.operand2;
+      let assumptionFormula = replaceVariables(antecedent, replacements);
+      let goalFormula = replaceVariables(consequent, replacements);
+      goalLine = new JustifiedProofLine(goalFormula,
+          new SpecialJustification(justTypes.GOAL));
+      proofBox = new ProofBox(initialLine, goalLine, false,
+          newSkolemConstants);
+      assumptionLine = new JustifiedProofLine(assumptionFormula,
+          new SpecialJustification(justTypes.ASS));
+      initialLine.append(assumptionLine);
+      ruleJustificationLines = [initialLine, assumptionLine, goalLine];
+      justificationType = justTypes.UNIV_IMP_INTRO;
+    } else {
+      /* Performning universal introduction */
+      let goalFormula = replaceVariables(currFormula, replacements);
+      goalLine = new JustifiedProofLine(goalFormula,
+          new SpecialJustification(justTypes.GOAL));
+      proofBox = new ProofBox(initialLine, goalLine, false,
+          newSkolemConstants);
+      ruleJustificationLines = [initialLine, goalLine];
+      justificationType = justTypes.UNIV_INTRO;
+    }
+    if (targetLine instanceof EmptyProofLine) {
+      /* Target line is an empty line - add new justified line */
+      let newEmptyLine = new EmptyProofLine();
+      targetLine.append(newEmptyLine);
+      newEmptyLine.prepend(proofBox);
+      let justification
+           = new Justification(justificationType, ruleJustificationLines);
+      let newJustifiedLine = new JustifiedProofLine(targetFormula,
+          justification);
+      newEmptyLine.prepend(newJustifiedLine);
+    } else {
+      /* Target line is a goal line - justify existing line */
+      targetLine.prepend(proofBox);
+      targetLine.justification
+          = new Justification(justificationType, ruleJustificationLines);
+    }
+    completeProofUpdate();
   }
 }
 
