@@ -707,6 +707,46 @@ function applyEqualityReflexivity() {
 }
 
 /*
+ * Function handling equality symmetry application
+ */
+function applyEqualitySymmetry() {
+  let retrievedLines
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  let justificationFormula = justificationLines[0].formula;
+  if (justificationFormula.type !== formulaTypes.EQUALITY) {
+    throw new ProofProcessingError("The selected justification formula is not "
+        + "an equality.")
+  }
+  let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
+  let newFormula = new Equality(justificationFormula.term2,
+      justificationFormula.term1);
+  if (targetLine instanceof EmptyProofLine) {
+    let justification
+        = new Justification(justTypes.EQ_SYM, justificationLines);
+    let newLine = new JustifiedProofLine(newFormula, justification);
+    targetLine.prepend(newLine);
+  } else {
+    let targetFormula = targetLine.formula;
+    if (targetFormula.type !== formulaTypes.EQUALITY) {
+      throw new ProofProcessingError("The selected target formula is not an "
+          + "equality.")
+    }
+    if (!formulasDeepEqual(targetFormula, newFormula)) {
+      throw new ProofProcessingError("The selected target formula cannot be "
+          + "derived from the selected justification formula using equality "
+          + "symmetry rule.")
+    }
+    targetLine.justification
+        = new Justification(justTypes.EQ_SYM, justificationLines);
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
+  }
+}
+
+/*
  * Checks whether the the inputted formulas can be matched for the purposes
    of existential introduction and universal elimination (i.e. only terms
    have been replaced by variables or vice versa)

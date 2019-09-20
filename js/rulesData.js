@@ -64,9 +64,9 @@ const rulesData = Object.freeze({
       + "in and an empty or goal line.", name: "=sub"},
   "refl": {handler: applyEqualityReflexivity, numLines: 1, hint: "refl "
       + "requires selection of an empty or goal line.", name: "refl"},
-  // "=sym": {handler: applyEqualitySymmetry, numLines: 2, hint: "=sym "
-  //     + "requires selection of an equality and an empty or goal line.",
-  //     name: "=sym"},
+  "=sym": {handler: applyEqualitySymmetry, numLines: 2, hint: "=sym "
+      + "requires selection of an equality and an empty or goal line.",
+      name: "=sym"},
   "✓": {handler: applyTick, numLines: 2, hint: "✓ requires selection "
       + "of a formula and an empty or goal line.", name: "✓"}
 });
