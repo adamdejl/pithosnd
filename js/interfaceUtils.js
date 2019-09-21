@@ -9,7 +9,9 @@ let pithosData = {
   selectedRuleData: null,
   selectedButton: null,
   freeSelection: true,
-  targetLine: null
+  targetLine: null,
+  proofUndoStack: [],
+  proofRedoStack: []
 }
 
 /*
@@ -212,6 +214,10 @@ function showModal(title, modalBody, hint, customId, customButtons,
    one of the supported natural deduction ruless
  */
 function requestFormulaInput(requestText, customId, buttons, additionalContent) {
+  let additionalCode = "";
+  if (additionalContent !== undefined) {
+    additionalCode = additionalContent;
+  }
   let modalBody =
       `<div class="py-2 text-center sticky-top bg-light">
          <div class="btn-group pb-1" role="group" aria-label="Insert logical connectives">
@@ -241,7 +247,7 @@ function requestFormulaInput(requestText, customId, buttons, additionalContent) 
        <div id="additionalFormulaParsed" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
          The result of the parsing will appear here.
        </div>
-       ${additionalContent}`
+       ${additionalCode}`
     showModal("Input required", modalBody, undefined, customId, buttons, true);
 }
 
@@ -260,11 +266,24 @@ function resetSelectedLines() {
    afterwards
  */
 function updateProof() {
+  pithosData.proofUndoStack.push(_.cloneDeep(pithosData.proof));
+  $("#proofUndo").attr("disabled", false);
+  let proofRedoStackCopy = pithosData.proofRedoStack.slice();
+  pithosData.proofRedoStack = [];
+  $("#proofRedo").attr("disabled", true);
   try {
     pithosData.selectedRuleData.handler();
   } catch (error) {
     if (error instanceof ProofProcessingError) {
       handleProofProcessingError(error);
+      pithosData.proofUndoStack.pop();
+      pithosData.proofRedoStack = proofRedoStackCopy;
+      if (pithosData.proofRedoStack.length > 0) {
+        $("#proofRedo").attr("disabled", false);
+      }
+      if (pithosData.proofUndoStack.length === 0) {
+        $("#proofUndo").attr("disabled", true);
+      }
     } else {
       throw error;
     }

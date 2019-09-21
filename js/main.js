@@ -95,6 +95,10 @@ jQuery(function($) {
       pithosData.selectedRuleData = null;
       pithosData.selectedButton = null;
       pithosData.freeSelection = true;
+      pithosData.proofUndoStack = [];
+      pithosData.proofRedoStack = [];
+      $("#proofUndo").attr("disabled", true);
+      $("#proofRedo").attr("disabled", true);
       $(".apply-rule").removeClass("btn-primary").addClass("btn-secondary");
       /* Initialize proof */
       pithosData.proof = initializeProof(parsingResults);
@@ -204,4 +208,26 @@ jQuery(function($) {
       parseAdditionalFormula);
   $("#dynamicModalArea").on("input", ".additional-term-input",
       parseAdditionalTerm);
+
+  /*
+   * Go back or forward in proof
+   */
+  $("#proofUndo").click(function() {
+    pithosData.proofRedoStack.push(_.cloneDeep(pithosData.proof));
+    $("#proofRedo").attr("disabled", false);
+    pithosData.proof = pithosData.proofUndoStack.pop();
+    if (pithosData.proofUndoStack.length === 0) {
+      $("#proofUndo").attr("disabled", true);
+    }
+    completeProofUpdate();
+  });
+  $("#proofRedo").click(function() {
+    pithosData.proofUndoStack.push(_.cloneDeep(pithosData.proof));
+    $("#proofUndo").attr("disabled", false);
+    pithosData.proof = pithosData.proofRedoStack.pop();
+    if (pithosData.proofRedoStack.length === 0) {
+      $("#proofRedo").attr("disabled", true);
+    }
+    completeProofUpdate();
+  });
 });
