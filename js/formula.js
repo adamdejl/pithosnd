@@ -834,9 +834,9 @@ function formulasDeepEqual(formula1, formula2) {
   if (formula1 instanceof BinaryConnective) {
     if (formula1.isAssociative) {
       let operands1 = [];
-      extractOperands(formula1, operands, formula1.type);
+      extractOperands(formula1, operands1, formula1.type);
       let operands2 = [];
-      extractOperands(formula2, operands, formula2.type);
+      extractOperands(formula2, operands2, formula2.type);
       return _.zipWith(operands1, operands2,
           (f1, f2) => formulasDeepEqual(f1, f2))
           .reduce((b1, b2) => b1 && b2, true);
