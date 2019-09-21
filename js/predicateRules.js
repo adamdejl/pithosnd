@@ -402,6 +402,173 @@ function introduceUniversalImplication() {
 }
 
 /*
+ * Function handling universal implication elimination
+ */
+function eliminateUniversalImplication() {
+  let retrievedLines
+      = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
+  let justificationLines = retrievedLines.justificationLines;
+  /* Determine which formula serves as an antecedent and which as universal
+     implication */
+  let justFormula1 = justificationLines[0].formula;
+  let justFormula2 = justificationLines[1].formula;
+  let unpacked1 = unpackUniversal(justFormula1);
+  let unpacked2 = unpackUniversal(justFormula2);
+  let innerFormula1 = unpacked1.innerFormula;
+  let innerFormula2 = unpacked2.innerFormula;
+  let varSet1 = unpacked1.variablesSet;
+  let varSet2 = unpacked2.variablesSet;
+  let universalFormula;
+  let unpackedUniversal;
+  let antecedentFormula;
+  let replacements;
+  let replacements1 = {};
+  let replacements2 = {};
+  if (unpacked1.isUniversalImplication && unpacked2.isUniversalImplication) {
+    if (matchFormulasVariablesReplace(justFormula1, innerFormula2.operand1,
+        varSet2, replacements1)) {
+      universalFormula = justFormula2;
+      unpackedUniversal = unpacked2;
+      antecedentFormula = justformula1;
+      replacements = replacements1;
+    } else if (matchFormulasVariablesReplace(justFormula2,
+        innerFormula1.operand1, varSet1, replacements2)) {
+      universalFormula = justFormula1;
+      unpackedUniversal = unpacked1;
+      antecedentFormula = justFormula2;
+      replacements = replacements2;
+    } else {
+      throw new ProofProcessingError("The selected lines cannot be used as "
+          + "a justification to universal implication elimination.");
+    }
+  } else if (unpacked2.isUniversalImplication && matchFormulasVariablesReplace(
+      justFormula1, innerFormula2.operand1, varSet2, replacements1)) {
+    universalFormula = justFormula2;
+    unpackedUniversal = unpacked2;
+    antecedentFormula = justFormula1;
+    replacements = replacements1;
+  } else if (unpacked1.isUniversalImplication && matchFormulasVariablesReplace(
+      justFormula2, innerFormula1.operand1, varSet1, replacements2)) {
+    universalFormula = justFormula1;
+    unpackedUniversal = unpacked1;
+    antecedentFormula = justFormula2;
+    replacements = replacements2;
+  } else {
+    throw new ProofProcessingError("The selected lines cannot be used as "
+        + "a justification to universal implication elimination.");
+  }
+  let targetLine = retrievedLines.targetLine;
+  pithosData.targetLine = targetLine;
+  /* Declare variable for use by following code */
+  let underivableVarsSet = new Set([]);
+  if (targetLine instanceof EmptyProofLine) {
+    /* Target is an empty line - determine which variable replacements cannot
+       be automatically derived */
+    unpackedUniversal.variablesSet.forEach(function(variable) {
+      if (!replacements.hasOwnProperty(variable)) {
+        underivableVarsSet.add(variable);
+      }
+    });
+    if (underivableVarsSet.size === 0) {
+      /* Terms for all variables can be automatically derived */
+      let newFormula = replaceVariables(
+          unpackedUniversal.innerFormula.operand2, replacements);
+      let justification
+          = new Justification(justTypes.UNIV_IMP_ELIM, justificationLines);
+      let newLine = new JustifiedProofLine(newFormula, justification);
+      targetLine.prepend(newLine);
+    } else {
+      /* User needs to choose replacement terms for some of the variables */
+      let modalBody = "<p>Some of the terms that should replace the "
+           + "universally quantified variables could not be automatically "
+           + "derived. Please enter the terms that should replace the "
+           + "following variables in the formula "
+           + `${unpackedUniversal.innerFormula.operand2.stringRep}:</p>`;
+      let i = 0;
+      underivableVarsSet.forEach(function(variable) {
+        modalBody +=
+            `<label for="additionalTermInput${i}">Variable ${variable}</label>
+             <input id="additionalTermInput${i}" class="additional-term-input form-control mb-2" type="text" placeholder="Please type your term here." value="" autocomplete="off">
+             <div id="additionalTermParsed${i}" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
+               The result of the parsing will appear here.
+             </div>`;
+        i++;
+      });
+      showModal("Input required", modalBody, undefined,
+          "eliminateUniversalImplicationComplete", undefined, true);
+    }
+  } else {
+    /* Target is a goal line */
+    let targetFormula = targetLine.formula;
+    if (!matchFormulasVariablesReplace(targetFormula,
+        unpackedUniversal.innerFormula.operand2,
+        unpackedUniversal.variablesSet, {})) {
+      throw new ProofProcessingError("The selected goal line cannot be derived "
+          + "from the selected justification lines using universal implication "
+          + "elimination.");
+    }
+    targetLine.justification
+        = new Justification(justTypes.UNIV_IMP_ELIM, justificationLines);
+    if (targetLine.prev instanceof EmptyProofLine) {
+      targetLine.prev.delete();
+    }
+  }
+
+  /*
+   * Catch user action to complete rule application
+   */
+  /* Unbind possible previously bound events */
+  $("#dynamicModalArea").off("click", "#eliminateUniversalImplicationComplete");
+  $("#dynamicModalArea").on("click", "#eliminateUniversalImplicationComplete",
+      function() {
+    let additionalReplacements = {};
+    let skolemConstants = getSkolemConstants(pithosData.targetLine);
+    let i = 0;
+    underivableVarsSet.forEach(function(variable) {
+      let term = parseSeparateTerm($("#additionalTermInput" + i)[0].value,
+          pithosData.proof.signature, skolemConstants);
+      additionalReplacements[variable] = term;
+      i++;
+    });
+    let tmpFormula = replaceVariables(
+        unpackedUniversal.innerFormula.operand2, replacements);
+    let newFormula = replaceVariables(tmpFormula, additionalReplacements);
+    let justification
+        = new Justification(justTypes.UNIV_IMP_ELIM, justificationLines);
+    let newLine = new JustifiedProofLine(newFormula, justification);
+    targetLine.prepend(newLine);
+    completeProofUpdate();
+  });
+
+  /*
+   * Performs analysis of the given formula and returns data necessary for
+     further processing if the formula is a universal
+   */
+  function unpackUniversal(formula) {
+    let formulaData = {
+      isUniversalImplication: false,
+      universalCount: 0,
+      variablesSet: new Set([]),
+      innerFormula: null
+    };
+    if (formula.type !== formulaTypes.UNIVERSAL) {
+      return formulaData;
+    }
+    let currFormula;
+    for (currFormula = formula; currFormula.type === formulaTypes.UNIVERSAL;
+        currFormula = currFormula.predicate) {
+      formulaData.variablesSet.add(currFormula.variableString);
+      formulaData.universalCount++;
+    }
+    formulaData.innerFormula = currFormula;
+    if (currFormula.type === formulaTypes.IMPLICATION) {
+      formulaData.isUniversalImplication = true;
+    }
+    return formulaData;
+  }
+}
+
+/*
  * Function handling equality substitution
  */
 function applyEqualitySubstitution() {

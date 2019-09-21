@@ -57,10 +57,10 @@ const rulesData = Object.freeze({
       + "goal line.", name: "∀E"},
   "∀→I": {handler: introduceUniversalImplication, numLines: 1, hint: "∀→E "
       + "requires selection of an empty or goal line.", name: "∀→I"},
-  // "∀→E": {handler: eliminateUniversalImplication, numLines: 3, hint: "∀→E "
-  //     + "requires selection of a universally quantified formula with "
-  //     + "an implication, formula corresponding to the antecedent of the "
-  //     + "implication and an empty or goal line.", name: "∀→E"},
+  "∀→E": {handler: eliminateUniversalImplication, numLines: 3, hint: "∀→E "
+      + "requires selection of a universally quantified formula with "
+      + "an implication, formula corresponding to the antecedent of the "
+      + "implication and an empty or goal line.", name: "∀→E"},
   "=sub": {handler: applyEqualitySubstitution, numLines: 3, hint: "=sub "
       + "requires selection of an equality, formula to perform substitution"
       + "in and an empty or goal line.", name: "=sub"},
