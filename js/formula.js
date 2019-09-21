@@ -801,10 +801,51 @@ function parseTerm(termString, parserData) {
 }
 
 /*
- * Checks for formula equality using its string representation
+ * Checks for formula equality
  */
 function formulasDeepEqual(formula1, formula2) {
-  return formula1.stringRep === formula2.stringRep;
+  if (formula1.type !== formula2.type
+      || formula1.stringRep !== formula2.stringRep) {
+    return false;
+  }
+  if (formula1.type === termTypes.FUNCTION) {
+    return _.zipWith(formula1.terms, formula2.terms,
+        (t1, t2) => formulasDeepEqual(t1, t2))
+        .reduce((b1, b2) => b1 && b2, true);
+  }
+  if (formula1 instanceof Term) {
+    return formula1.stringRep ===formula2.stringRep;
+  }
+  if (formula1 instanceof Quantifier) {
+    return formulasDeepEqual(formula1.predicate, formula2.predicate);
+  }
+  if (formula1.type === formulaTypes.RELATION) {
+    return _.zipWith(formula1.terms, formula2.terms,
+        (t1, t2) => formulasDeepEqual(t1, t2))
+        .reduce((b1, b2) => b1 && b2, true);
+  }
+  if (formula1.type === formulaTypes.EQUALITY) {
+    return formulasDeepEqual(formula1.term1, formula2.term1)
+        && formulasDeepEqual(formula1.term2, formula2.term2);
+  }
+  if (formula1.type === formulaTypes.NEGATION) {
+    return formulasDeepEqual(formula1.operand, formula2.operand);
+  }
+  if (formula1 instanceof BinaryConnective) {
+    if (formula1.isAssociative) {
+      let operands1 = [];
+      extractOperands(formula1, operands, formula1.type);
+      let operands2 = [];
+      extractOperands(formula2, operands, formula2.type);
+      return _.zipWith(operands1, operands2,
+          (f1, f2) => formulasDeepEqual(f1, f2))
+          .reduce((b1, b2) => b1 && b2, true);
+    } else {
+      return formulasDeepEqual(formula1.operand1, formula2.operand1)
+          && formulasDeepEqual(formula1.operand2, formula2.operand2);
+    }
+  }
+  return true;
 }
 
 /*
