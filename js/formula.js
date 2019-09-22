@@ -273,7 +273,7 @@ class BinaryConnective extends Formula {
     return str;
   }
 
-  get stringRep() {
+  get latexRep() {
     var str = "";
     /* Bracket operands only if necessary. Note that this code assumes that
        different binary operators have different priorities. */
