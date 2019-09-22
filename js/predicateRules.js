@@ -13,7 +13,8 @@ function introduceExistential() {
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
     let requestText = "Please enter the formula that you would like to "
-        + "introduce using existential introduction rule:";
+        + "derive using existential introduction rule from "
+        + `${justificationFormula.stringRep}:`;
     requestFormulaInput(requestText, "introduceExistentialComplete");
   } else {
     /* Target line is a goal line - choose the goal formula automatically */
@@ -1089,7 +1090,7 @@ function matchFormulasVariablesReplace(termsFormula, variablesFormula,
         variablesFormula.operand, variablesSet, replacements);
   } else if (termsFormula instanceof BinaryConnective) {
     if (termsFormula.isAssociative) {
-      let operandstermsFormula = [];
+      let operandsTermsFormula = [];
       extractOperands(termsFormula, operandsTermsFormula,
           termsFormula.type);
       let operandsVariablesFormula = [];
