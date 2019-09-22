@@ -13,10 +13,6 @@ class Term {
   constructor() {
     this.type = termTypes.GENERIC;
   }
-
-  get stringRep() {
-    return "<Generic term>";
-  }
 }
 
 class Constant extends Term {
@@ -29,6 +25,10 @@ class Constant extends Term {
   get stringRep() {
     return this.name;
   }
+
+  get latexRep() {
+    return latexEscape(this.name);
+  }
 }
 
 class Variable extends Term {
@@ -40,6 +40,10 @@ class Variable extends Term {
 
   get stringRep() {
     return this.name;
+  }
+
+  get latexRep() {
+    return latexEscape(this.name);
   }
 }
 
@@ -59,6 +63,15 @@ class Function extends Term {
     str = str.substring(0, str.length - 2) + ")";
     return str;
   }
+
+  get latexRep() {
+    var str = latexEscape + "(";
+    /* Add string representations of the terms separated by commas */
+    this.terms.forEach(term => str += term.latexRep +  ", ");
+    /* Trim trailing comma and space, add closing bracket */
+    str = str.substring(0, str.length - 2) + ")";
+    return str;
+  }
 }
 
 /*
@@ -73,6 +86,10 @@ class ConstantsList extends Term {
 
   get stringRep() {
     return this.names.join(", ");
+  }
+
+  get latexRep() {
+    return this.names.map(latexEscape).join(", ");
   }
 }
 
@@ -98,10 +115,6 @@ class Formula {
     this.type = formulaTypes.GENERIC
     this.priority = -1;
   }
-
-  get stringRep() {
-    return "<Generic formula>";
-  }
 }
 
 class PropositionalVariable extends Formula {
@@ -114,6 +127,10 @@ class PropositionalVariable extends Formula {
 
   get stringRep() {
     return this.name;
+  }
+
+  get latexRep() {
+    return latexEscape(this.name);
   }
 }
 
@@ -134,6 +151,15 @@ class Relation extends Formula {
     str = str.substring(0, str.length - 2) + ")";
     return str;
   }
+
+  get latexRep() {
+    var str = latexEscape(this.name) + "(";
+    /* Add string representations of the terms separated by commas */
+    this.terms.forEach(term => str += term.latexRep +  ", ");
+    /* Trim trailing comma and space, add closing bracket */
+    str = str.substring(0, str.length - 2) + ")";
+    return str;
+  }
 }
 
 class Equality extends Formula {
@@ -148,6 +174,10 @@ class Equality extends Formula {
   get stringRep() {
     return this.term1.stringRep + " = " + this.term2.stringRep;
   }
+
+  get latexRep() {
+    return this.term1.latexRep + " = " + this.term2.latexRep;
+  }
 }
 
 class Top extends Formula {
@@ -160,6 +190,10 @@ class Top extends Formula {
   get stringRep() {
     return "⊤";
   }
+
+  get latexRep() {
+    return "\\top";
+  }
 }
 
 class Bottom extends Formula {
@@ -171,6 +205,10 @@ class Bottom extends Formula {
 
   get stringRep() {
     return "⊥";
+  }
+
+  get latexRep() {
+    return "\\bot"
   }
 }
 
@@ -191,12 +229,23 @@ class Negation extends Formula {
     }
     return str;
   }
+
+  get latexRep() {
+    var str = "\\neg";
+    if (this.operand.priority <= this.priority) {
+      str += this.operand.latexRep;
+    } else {
+      str += "(" + this.operand.latexRep + ")";
+    }
+    return str;
+  }
 }
 
 class BinaryConnective extends Formula {
-  constructor(symbol, operand1, operand2) {
+  constructor(symbol, latex, operand1, operand2) {
     super();
     this.symbol = symbol;
+    this.latex = latex;
     this.operand1 = operand1;
     this.operand2 = operand2;
     this.isAssociative = true;
@@ -223,11 +272,33 @@ class BinaryConnective extends Formula {
     }
     return str;
   }
+
+  get stringRep() {
+    var str = "";
+    /* Bracket operands only if necessary. Note that this code assumes that
+       different binary operators have different priorities. */
+    if (this.operand1.priority < this.priority
+            || (this.isAssociative
+                && this.operand1.priority == this.priority)) {
+      str += this.operand1.latexRep;
+    } else {
+      str += "(" + this.operand1.latexRep + ")";
+    }
+    str += " " + this.latex + " ";
+    if (this.operand2.priority < this.priority
+            || (this.isAssociative
+                && this.operand2.priority == this.priority)) {
+      str += this.operand2.latexRep;
+    } else {
+      str += "(" + this.operand2.latexRep + ")";
+    }
+    return str;
+  }
 }
 
 class Conjunction extends BinaryConnective {
   constructor(conjunct1, conjunct2) {
-    super("∧", conjunct1, conjunct2);
+    super("∧", "\\land", conjunct1, conjunct2);
     this.type = formulaTypes.CONJUNCTION;
     this.priority = 2;
   }
@@ -235,7 +306,7 @@ class Conjunction extends BinaryConnective {
 
 class Disjunction extends BinaryConnective {
   constructor(disjunct1, disjunct2) {
-    super("∨", disjunct1, disjunct2);
+    super("∨", "\\lor", disjunct1, disjunct2);
     this.type = formulaTypes.DISJUNCTION;
     this.priority = 3;
   }
@@ -243,7 +314,7 @@ class Disjunction extends BinaryConnective {
 
 class Implication extends BinaryConnective {
   constructor(antecedent, consequent) {
-    super("→", antecedent, consequent);
+    super("→", "\\rightarrow", antecedent, consequent);
     this.type = formulaTypes.IMPLICATION;
     this.isAssociative = false;
     this.priority = 4;
@@ -252,16 +323,17 @@ class Implication extends BinaryConnective {
 
 class Biconditional extends BinaryConnective {
   constructor(operand1, operand2) {
-    super("↔", operand1, operand2);
+    super("↔", "\\leftrightarrow", operand1, operand2);
     this.type = formulaTypes.BICONDITIONAL;
     this.priority = 5;
   }
 }
 
 class Quantifier extends Formula {
-  constructor(symbol, variableString, predicate) {
+  constructor(symbol, latex, variableString, predicate) {
     super();
     this.symbol = symbol;
+    this.latex = latex;
     this.variableString = variableString;
     this.predicate = predicate;
     this.priority = 1;
@@ -277,18 +349,29 @@ class Quantifier extends Formula {
     }
     return str;
   }
+
+  get latexRep() {
+    var str = this.latex + latexEscape(this.variableString);
+    if (this.predicate.type == formulaTypes.UNIVERSAL
+        || this.predicate.type == formulaTypes.EXISTENTIAL) {
+      str += this.predicate.latexRep;
+    } else {
+      str += "[" + this.predicate.latexRep + "]";
+    }
+    return str;
+  }
 }
 
 class Universal extends Quantifier {
   constructor(variable, predicate) {
-    super("∀", variable, predicate);;
+    super("∀", "\\forall", variable, predicate);;
     this.type = formulaTypes.UNIVERSAL;
   }
 }
 
 class Existential extends Quantifier {
   constructor(variable, predicate) {
-    super("∃", variable, predicate);
+    super("∃", "\\exists", variable, predicate);
     this.type = formulaTypes.EXISTENTIAL;
   }
 }
@@ -372,6 +455,7 @@ const ONLY_OPERAND_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<#∀∃]
 const QUANTIFIER_VAR_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<#∀∃()[\]]+/;
 const RELATION_OR_FUNCTION_NAME_REGEX = /(^[^(]+?)(?:\[|\()/;
 const BRACKETED_REGEX = /^(?:\[|\()(.+?)(?:\]|\))$/;
+const SAFE_NAME_REGEX = /^[0-9a-zA-Z_]+$/;
 
 /*
  * Parses the formula given as a string with respect to the provided signature
@@ -543,6 +627,11 @@ function processToken(parserData) {
       formulaStack.push(new operandRepresentingClass[tokenString]());
     } else {
       /* Parse propositional variable */
+      if (!SAFE_NAME_REGEX.test(tokenString)) {
+        throw new FormulaParsingError("The propositional variable "
+            + `'${tokenString}' contains invalid characters. Please only use `
+            + "digits, letters and underscores.");
+      }
       formulaStack.push(new PropositionalVariable(tokenString));
     }
     parserData.formulaString = parserData.formulaString
@@ -599,6 +688,11 @@ function processOperator(operatorString, parserData) {
           + "quantified variable.");
     }
     variable = variable[0];
+    if (!SAFE_NAME_REGEX.test(variable)) {
+      throw new FormulaParsingError("The quantified variable name "
+          + `'${variable}' contains invalid characters. Please only use `
+          + "digits, letters and underscores.");
+    }
     variableStack.push(variable);
     parserData.formulaString = parserData.formulaString.substr(variable.length);
   }
@@ -670,6 +764,11 @@ function processRelation(relationString, parserData) {
         + "relationName.");
   }
   relationName = relationName[1];
+  if (!SAFE_NAME_REGEX.test(relationName)) {
+    throw new FormulaParsingError("The relation name "
+        + `'${relationName}' contains invalid characters. Please only use `
+        + "digits, letters and underscores.");
+  }
   /* Consume the relation name */
   relationString = relationString.substr(relationName.length);
   /* Parse the terms in the relation and check arity */
@@ -769,6 +868,11 @@ function parseTerm(termString, parserData) {
           + "name (identified by opening bracket).");
     }
     functionName = functionName[1];
+    if (!SAFE_NAME_REGEX.test(functionName)) {
+      throw new FormulaParsingError(`The function name '${functionName}' `
+          + "contains invalid characters. Please only use digits, letters and "
+          + "underscores.");
+    }
     /* Consume the function name */
     termString = termString.substr(functionName.length);
     /* Parse the terms in the function and check arity */
@@ -786,6 +890,11 @@ function parseTerm(termString, parserData) {
     return new Function(functionName, functionTerms);
   } else if (variableStack.includes(termString)) {
     /* Parse variable */
+    if (!SAFE_NAME_REGEX.test(termString)) {
+      throw new FormulaParsingError("The variable name "
+          + `'${termString}' contains invalid characters. Please only use `
+          + "digits, letters and underscores.");
+    }
     return new Variable(termString);
   } else {
     /* Parse constant */
@@ -794,6 +903,11 @@ function parseTerm(termString, parserData) {
       throw new FormulaParsingError(`The constant ${termString} uses name `
           + "reserved for a Skolem constant that cannot be used at this "
           + "point. Please choose a different constant name.");
+    }
+    if (!SAFE_NAME_REGEX.test(termString)) {
+      throw new FormulaParsingError("The constant name "
+          + `'${termString}' contains invalid characters. Please only use `
+          + "digits, letters and underscores.");
     }
     signature.constants.add(termString);
     return new Constant(termString);
@@ -975,4 +1089,8 @@ function formulaContainsTerm(formula, term) {
         .reduce((b1, b2) => b1 || b2, false);
   }
   return false;
+}
+
+function latexEscape(string) {
+  return string.replace(/_/g, "\\_");
 }
