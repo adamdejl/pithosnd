@@ -302,6 +302,7 @@ function updateProof() {
  */
 function completeProofUpdate() {
   updateLines(pithosData.proof);
+  resetSelectedLines();
   $("#proofContainer").html(proofToHTML(pithosData.proof));
 }
 
