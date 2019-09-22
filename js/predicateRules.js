@@ -191,7 +191,8 @@ function eliminateExistential() {
       let proofBox = new ProofBox(initialLine, goalLine, false,
           newSkolemConstants);
       targetLine.prepend(proofBox);
-      let ruleJustificationLines = [initialLine, goalLine];
+      let ruleJustificationLines
+          = [justificationLines[0], initialLine, goalLine];
       targetLine.justification
           = new Justification(justTypes.EXIS_ELIM, ruleJustificationLines);
       completeProofUpdate();
@@ -217,7 +218,7 @@ function eliminateExistential() {
     let newEmptyLine = new EmptyProofLine();
     targetLine.append(newEmptyLine);
     newEmptyLine.prepend(proofBox);
-    let ruleJustificationLines = [initialLine, goalLine];
+    let ruleJustificationLines = [justificationLines[0], initialLine, goalLine];
     let justification
         = new Justification(justTypes.EXIS_ELIM, ruleJustificationLines);
     let newJustifiedLine = new JustifiedProofLine(targetFormula, justification);
