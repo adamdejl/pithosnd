@@ -23,7 +23,7 @@ jQuery(function($) {
     const givenCode =
         `<div id="given${pithosData.numGivens}" class="form-group given-group">
            <label for="givenInput${pithosData.numGivens}">#${pithosData.numGivens + 1}</label>
-           <input id="givenInput${pithosData.numGivens}" class="given-input form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
+           <input id="givenInput${pithosData.numGivens}" class="logic-input given-input form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
            <div id="givenParsed${pithosData.numGivens}" class="formula-parsed given-parsed alert alert-dark" role="alert" style="word-wrap: break-word; ">
              The result of the parsing will appear here.
            </div>

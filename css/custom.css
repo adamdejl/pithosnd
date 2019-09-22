@@ -51,6 +51,6 @@
   background-color: #d4edda;
 }
 
-.formula-parsed, .insert-char-btn, .apply-rule  {
+.formula-parsed, .insert-char-btn, .apply-rule, .logic-input  {
   font-family: "Segoe UI Symbol", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }

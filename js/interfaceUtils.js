@@ -243,7 +243,7 @@ function requestFormulaInput(requestText, customId, buttons, additionalContent) 
          </div>
        </div>
        <p>${requestText}</p>
-       <input id="additionalFormulaInput" class="additional-formula-input form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
+       <input id="additionalFormulaInput" class="logic-input additional-formula-input form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
        <div id="additionalFormulaParsed" class="formula-parsed alert alert-dark" role="alert" style="word-wrap: break-word; ">
          The result of the parsing will appear here.
        </div>
