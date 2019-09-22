@@ -323,8 +323,8 @@ function eliminateUniversal() {
     for (let i = 0; i < numberEliminated; i++) {
       modalBody +=
           `<label for="additionalTermInput${i}">Variable ${currFormula.variableString}</label>
-           <input id="additionalTermInput${i}" class="logic-input additional-term-input form-control mb-2" type="text" placeholder="Please type your term here." value="" autocomplete="off">
-           <div id="additionalTermParsed${i}" class="formula-parsed alert alert-dark" role="alert" style="word-wrap: break-word; ">
+           <input id="additionalTermInput${i}" class="additional-term-input form-control mb-2" type="text" placeholder="Please type your term here." value="" autocomplete="off">
+           <div id="additionalTermParsed${i}" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
              The result of the parsing will appear here.
            </div>`
       currFormula = currFormula.predicate;
@@ -488,8 +488,8 @@ function eliminateUniversalImplication() {
       underivableVarsSet.forEach(function(variable) {
         modalBody +=
             `<label for="additionalTermInput${i}">Variable ${variable}</label>
-             <input id="additionalTermInput${i}" class="logic-input additional-term-input form-control mb-2" type="text" placeholder="Please type your term here." value="" autocomplete="off">
-             <div id="additionalTermParsed${i}" class="formula-parsed alert alert-dark" role="alert" style="word-wrap: break-word; ">
+             <input id="additionalTermInput${i}" class="additional-term-input form-control mb-2" type="text" placeholder="Please type your term here." value="" autocomplete="off">
+             <div id="additionalTermParsed${i}" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
                The result of the parsing will appear here.
              </div>`;
         i++;
@@ -713,8 +713,8 @@ function applyEqualityReflexivity() {
     let modalBody = "<p>Please enter tha term that you would like to apply  "
          + "equality reflexivity to:</p>";
     modalBody +=
-        `<input id="additionalTermInput0" class="logic-input additional-term-input form-control mb-2" type="text" placeholder="Please type your term here." value="" autocomplete="off">
-        <div id="additionalTermParsed0" class="formula-parsed alert alert-dark" role="alert" style="word-wrap: break-word; ">
+        `<input id="additionalTermInput0" class="additional-term-input form-control mb-2" type="text" placeholder="Please type your term here." value="" autocomplete="off">
+        <div id="additionalTermParsed0" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
           The result of the parsing will appear here.
         </div>`;
     showModal("Input required", modalBody, undefined,
