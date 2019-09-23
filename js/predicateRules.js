@@ -177,7 +177,8 @@ function eliminateExistential() {
     }
     initialFormula = replaceVariables(currFormula, replacements);
     if (targetLine instanceof EmptyProofLine) {
-      /* Target line is an empty line - allow user to specify resulting formula */
+      /* Target line is an empty line - allow user to specify resulting
+         formula */
       let requestText = "Please enter the formula that you would like to "
           + "introduce using existential elimination rule:";
       requestFormulaInput(requestText, "eliminateExistentialComplete");
