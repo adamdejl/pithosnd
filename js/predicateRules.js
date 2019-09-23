@@ -431,7 +431,7 @@ function eliminateUniversalImplication() {
         varSet2, replacements1)) {
       universalFormula = justFormula2;
       unpackedUniversal = unpacked2;
-      antecedentFormula = justformula1;
+      antecedentFormula = justFormula1;
       replacements = replacements1;
     } else if (matchFormulasVariablesReplace(justFormula2,
         innerFormula1.operand1, varSet1, replacements2)) {
