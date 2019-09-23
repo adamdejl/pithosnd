@@ -25,10 +25,6 @@ class Constant extends Term {
   get stringRep() {
     return this.name;
   }
-
-  get latexRep() {
-    return latexEscape(this.name);
-  }
 }
 
 class Variable extends Term {
@@ -40,10 +36,6 @@ class Variable extends Term {
 
   get stringRep() {
     return this.name;
-  }
-
-  get latexRep() {
-    return latexEscape(this.name);
   }
 }
 
@@ -63,15 +55,6 @@ class Function extends Term {
     str = str.substring(0, str.length - 2) + ")";
     return str;
   }
-
-  get latexRep() {
-    var str = latexEscape + "(";
-    /* Add string representations of the terms separated by commas */
-    this.terms.forEach(term => str += term.latexRep +  ", ");
-    /* Trim trailing comma and space, add closing bracket */
-    str = str.substring(0, str.length - 2) + ")";
-    return str;
-  }
 }
 
 /*
@@ -86,10 +69,6 @@ class ConstantsList extends Term {
 
   get stringRep() {
     return this.names.join(", ");
-  }
-
-  get latexRep() {
-    return this.names.map(latexEscape).join(", ");
   }
 }
 
@@ -128,10 +107,6 @@ class PropositionalVariable extends Formula {
   get stringRep() {
     return this.name;
   }
-
-  get latexRep() {
-    return latexEscape(this.name);
-  }
 }
 
 class Relation extends Formula {
@@ -151,15 +126,6 @@ class Relation extends Formula {
     str = str.substring(0, str.length - 2) + ")";
     return str;
   }
-
-  get latexRep() {
-    var str = latexEscape(this.name) + "(";
-    /* Add string representations of the terms separated by commas */
-    this.terms.forEach(term => str += term.latexRep +  ", ");
-    /* Trim trailing comma and space, add closing bracket */
-    str = str.substring(0, str.length - 2) + ")";
-    return str;
-  }
 }
 
 class Equality extends Formula {
@@ -174,10 +140,6 @@ class Equality extends Formula {
   get stringRep() {
     return this.term1.stringRep + " = " + this.term2.stringRep;
   }
-
-  get latexRep() {
-    return this.term1.latexRep + " = " + this.term2.latexRep;
-  }
 }
 
 class Top extends Formula {
@@ -190,10 +152,6 @@ class Top extends Formula {
   get stringRep() {
     return "⊤";
   }
-
-  get latexRep() {
-    return "\\top";
-  }
 }
 
 class Bottom extends Formula {
@@ -205,10 +163,6 @@ class Bottom extends Formula {
 
   get stringRep() {
     return "⊥";
-  }
-
-  get latexRep() {
-    return "\\bot"
   }
 }
 
@@ -226,16 +180,6 @@ class Negation extends Formula {
       str += this.operand.stringRep;
     } else {
       str += "(" + this.operand.stringRep + ")";
-    }
-    return str;
-  }
-
-  get latexRep() {
-    var str = "\\neg";
-    if (this.operand.priority <= this.priority) {
-      str += this.operand.latexRep;
-    } else {
-      str += "(" + this.operand.latexRep + ")";
     }
     return str;
   }
@@ -269,28 +213,6 @@ class BinaryConnective extends Formula {
       str += this.operand2.stringRep;
     } else {
       str += "(" + this.operand2.stringRep + ")";
-    }
-    return str;
-  }
-
-  get latexRep() {
-    var str = "";
-    /* Bracket operands only if necessary. Note that this code assumes that
-       different binary operators have different priorities. */
-    if (this.operand1.priority < this.priority
-            || (this.isAssociative
-                && this.operand1.priority == this.priority)) {
-      str += this.operand1.latexRep;
-    } else {
-      str += "(" + this.operand1.latexRep + ")";
-    }
-    str += " " + this.latex + " ";
-    if (this.operand2.priority < this.priority
-            || (this.isAssociative
-                && this.operand2.priority == this.priority)) {
-      str += this.operand2.latexRep;
-    } else {
-      str += "(" + this.operand2.latexRep + ")";
     }
     return str;
   }
@@ -346,17 +268,6 @@ class Quantifier extends Formula {
       str += this.predicate.stringRep;
     } else {
       str += "[" + this.predicate.stringRep + "]";
-    }
-    return str;
-  }
-
-  get latexRep() {
-    var str = this.latex + latexEscape(this.variableString);
-    if (this.predicate.type == formulaTypes.UNIVERSAL
-        || this.predicate.type == formulaTypes.EXISTENTIAL) {
-      str += this.predicate.latexRep;
-    } else {
-      str += "[" + this.predicate.latexRep + "]";
     }
     return str;
   }
