@@ -185,7 +185,7 @@ jQuery(function($) {
     if (pithosData.selectedLinesSet.size === ruleData.numLines) {
       updateProof();
     } else if (pithosData.selectedLinesSet.size > ruleData.numLines) {
-      showModal("Error", "You have selected too many lines for the "
+      showModal("Warning", "You have selected too many lines for the "
           + `application of the rule ${target.innerText}. Please deselect `
           + "some of the lines or cancel the application of the current rule. "
           + "Expected number of selected lines for this rule is "
