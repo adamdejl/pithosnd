@@ -366,7 +366,6 @@ const ONLY_OPERAND_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<#∀∃]
 const QUANTIFIER_VAR_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<#∀∃()[\]]+/;
 const RELATION_OR_FUNCTION_NAME_REGEX = /(^[^(]+?)(?:\[|\()/;
 const BRACKETED_REGEX = /^(?:\[|\()(.+?)(?:\]|\))$/;
-const SAFE_NAME_REGEX = /^[0-9a-zA-Z_]+$/;
 
 /*
  * Parses the formula given as a string with respect to the provided signature
@@ -538,11 +537,6 @@ function processToken(parserData) {
       formulaStack.push(new operandRepresentingClass[tokenString]());
     } else {
       /* Parse propositional variable */
-      if (!SAFE_NAME_REGEX.test(tokenString)) {
-        throw new FormulaParsingError("The propositional variable "
-            + `'${tokenString}' contains invalid characters. Please only use `
-            + "digits, letters and underscores.");
-      }
       formulaStack.push(new PropositionalVariable(tokenString));
     }
     parserData.formulaString = parserData.formulaString
@@ -599,11 +593,6 @@ function processOperator(operatorString, parserData) {
           + "quantified variable.");
     }
     variable = variable[0];
-    if (!SAFE_NAME_REGEX.test(variable)) {
-      throw new FormulaParsingError("The quantified variable name "
-          + `'${variable}' contains invalid characters. Please only use `
-          + "digits, letters and underscores.");
-    }
     variableStack.push(variable);
     parserData.formulaString = parserData.formulaString.substr(variable.length);
   }
@@ -675,11 +664,6 @@ function processRelation(relationString, parserData) {
         + "relationName.");
   }
   relationName = relationName[1];
-  if (!SAFE_NAME_REGEX.test(relationName)) {
-    throw new FormulaParsingError("The relation name "
-        + `'${relationName}' contains invalid characters. Please only use `
-        + "digits, letters and underscores.");
-  }
   /* Consume the relation name */
   relationString = relationString.substr(relationName.length);
   /* Parse the terms in the relation and check arity */
@@ -779,11 +763,6 @@ function parseTerm(termString, parserData) {
           + "name (identified by opening bracket).");
     }
     functionName = functionName[1];
-    if (!SAFE_NAME_REGEX.test(functionName)) {
-      throw new FormulaParsingError(`The function name '${functionName}' `
-          + "contains invalid characters. Please only use digits, letters and "
-          + "underscores.");
-    }
     /* Consume the function name */
     termString = termString.substr(functionName.length);
     /* Parse the terms in the function and check arity */
@@ -801,11 +780,6 @@ function parseTerm(termString, parserData) {
     return new Function(functionName, functionTerms);
   } else if (variableStack.includes(termString)) {
     /* Parse variable */
-    if (!SAFE_NAME_REGEX.test(termString)) {
-      throw new FormulaParsingError("The variable name "
-          + `'${termString}' contains invalid characters. Please only use `
-          + "digits, letters and underscores.");
-    }
     return new Variable(termString);
   } else {
     /* Parse constant */
@@ -814,11 +788,6 @@ function parseTerm(termString, parserData) {
       throw new FormulaParsingError(`The constant ${termString} uses name `
           + "reserved for a Skolem constant that cannot be used at this "
           + "point. Please choose a different constant name.");
-    }
-    if (!SAFE_NAME_REGEX.test(termString)) {
-      throw new FormulaParsingError("The constant name "
-          + `'${termString}' contains invalid characters. Please only use `
-          + "digits, letters and underscores.");
     }
     signature.constants.add(termString);
     return new Constant(termString);
