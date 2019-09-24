@@ -87,56 +87,56 @@
 		<div id="proofArea" class="container-fluid">
 			<div class="py-2 text-center sticky-top bg-light">
 				<div class="btn-group pb-1" role="group" aria-label="Conjunction natural deduction rules">
-					<button type="button" class="btn btn-secondary apply-rule">∧I</button>
-					<button type="button" class="btn btn-secondary apply-rule">∧E</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply conjunction introduction">∧I</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply conjunction elimination">∧E</button>
 				</div>
 				<div class="btn-group pb-1" role="group" aria-label="Disjunction natural deduction rules">
-					<button type="button" class="btn btn-secondary apply-rule">∨I</button>
-					<button type="button" class="btn btn-secondary apply-rule">∨E</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply disjunction introduction">∨I</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply disjunction elimination">∨E</button>
 				</div>
 				<div class="btn-group pb-1" role="group" aria-label="Implication natural deduction rules">
-					<button type="button" class="btn btn-secondary apply-rule">→I</button>
-					<button type="button" class="btn btn-secondary apply-rule">→E</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply implication introduction">→I</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply implication elimination">→E</button>
 				</div>
 				<div class="btn-group pb-1" role="group" aria-label="Negation natural deduction rules">
-					<button type="button" class="btn btn-secondary apply-rule">¬I</button>
-					<button type="button" class="btn btn-secondary apply-rule">¬E</button>
-					<button type="button" class="btn btn-secondary apply-rule">¬¬E</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply negation introduction">¬I</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply negation elimination">¬E</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply double negation elimination">¬¬E</button>
 				</div>
 				<div class="btn-group pb-1" role="group" aria-label="Top / bottom natural deduction rules">
-					<button type="button" class="btn btn-secondary apply-rule">⊤I</button>
-					<button type="button" class="btn btn-secondary apply-rule">⊥I</button>
-					<button type="button" class="btn btn-secondary apply-rule">⊥E</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply top introduction">⊤I</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply bottom introduction">⊥I</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply bottom elimination">⊥E</button>
 				</div>
 				<div class="btn-group pb-1" role="group" aria-label="Biconditional natural deduction rules">
-					<button type="button" class="btn btn-secondary apply-rule">↔I</button>
-					<button type="button" class="btn btn-secondary apply-rule">↔E</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply biconditional introduction">↔I</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply biconditional elimination">↔E</button>
 				</div>
 				<div class="btn-group pb-1" role="group" aria-label="Natural deduction derived rules">
-					<button type="button" class="btn btn-secondary apply-rule">EM</button>
-					<button type="button" class="btn btn-secondary apply-rule">PC</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply law of excluded middle (also known as 'the lemma' in the ICL logic course)">EM</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply proof by contradiction">PC</button>
 				</div>
 				<div class="btn-group pb-1" role="group" aria-label="Existential natural deduction rules">
-					<button type="button" class="btn btn-secondary apply-rule">∃I</button>
-					<button type="button" class="btn btn-secondary apply-rule">∃E</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply existential introduction">∃I</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply existential elimination">∃E</button>
 				</div>
 				<div class="btn-group pb-1" role="group" aria-label="Universal natural deduction rules">
-					<button type="button" class="btn btn-secondary apply-rule">∀I</button>
-					<button type="button" class="btn btn-secondary apply-rule">∀E</button>
-					<button type="button" class="btn btn-secondary apply-rule">∀→I</button>
-					<button type="button" class="btn btn-secondary apply-rule">∀→E</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply universal introduction">∀I</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply universal elimination">∀E</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply universal implication introduction">∀→I</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply universal implication elimination">∀→E</button>
 				</div>
 				<div class="btn-group pb-1" role="group" aria-label="Equality natural deduction rules">
-					<button type="button" class="btn btn-secondary apply-rule">=sub</button>
-					<button type="button" class="btn btn-secondary apply-rule">refl</button>
-					<button type="button" class="btn btn-secondary apply-rule">=sym</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply equality substitution">=sub</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply equality reflexivity">refl</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply equality symmetry">=sym</button>
 				</div>
 				<div class="btn-group pb-1" role="group" aria-label="Tick natural deduction rule">
-					<button type="button" class="btn btn-secondary apply-rule">✓</button>
+					<button type="button" class="btn btn-secondary apply-rule" title="Apply tick rule">✓</button>
 				</div>
 				<div class="btn-group pb-1" role="group" aria-label="Undo or redo">
-					<button id="proofUndo" type="button" class="btn btn-info" disabled>↶</button>
-					<button id="proofRedo" type="button" class="btn btn-info" disabled>↷</button>
+					<button id="proofUndo" type="button" class="btn btn-info" title="Undo last operation" disabled>↶</button>
+					<button id="proofRedo" type="button" class="btn btn-info" title="Redo most recently undone operation" disabled>↷</button>
 				</div>
 			</div>
 			<div class="row">
