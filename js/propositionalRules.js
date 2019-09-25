@@ -189,7 +189,7 @@ function eliminateConjunction() {
   });
 
   /*
-   * Introduces conjunction through a backwards rule application
+   * Eliminate conjunction through a backwards rule application
    */
   function eliminateConjunctionBackwards() {
     if (targetLine instanceof EmptyProofLine) {
@@ -249,6 +249,10 @@ function introduceDisjunction() {
   let targetLine = retrievedLines.targetLine;
   /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    introduceDisjunctionBackwards();
+    return;
+  }
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
     let requestText = "Please enter the additional disjunct of the introduced "
@@ -312,6 +316,63 @@ function introduceDisjunction() {
     targetLine.prepend(newLine);
     completeProofUpdate();
   }
+
+  /*
+   * Introduce disjunction through a backwards rule application
+   */
+  function introduceDisjunctionBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    let targetFormula = targetLine.formula;
+    if (targetFormula.type !== formulaTypes.DISJUNCTION) {
+      throw new ProofProcessingError("The selected goal formula is not a "
+          + "disjunction and hance cannot be used as a target for disjunction"
+          + "introduction.");
+    }
+    let modalBody = "<p>Please choose the disjunct that sould become the "
+        + "new goal.</p>";
+    let buttons =
+        `<button id="introduceDisjunctionBackwardsCompleteLeft" type="button" class="btn btn-outline-primary" data-dismiss="modal">${targetFormula.operand1.stringRep}</button>
+         <button id="introduceDisjunctionBackwardsCompleteRight" type="button" class="btn btn-outline-primary" data-dismiss="modal">${targetFormula.operand2.stringRep}</button>`
+    showModal("Input required",  modalBody, undefined, undefined, buttons);
+
+    /*
+     * Catch user action for the backward rule application completion
+     */
+    /* Unbind possible previously bound event */
+    $("#dynamicModalArea").off("click",
+        "#introduceDisjunctionBackwardsCompleteLeft");
+    $("#dynamicModalArea").off("click",
+        "#introduceDisjunctionBackwardsCompleteRight");
+    $("#dynamicModalArea").on("click",
+        "#introduceDisjunctionBackwardsCompleteLeft",
+        function() {
+      introduceDisjunctionBackwardsComplete(true);
+    });
+    $("#dynamicModalArea").on("click",
+        "#introduceDisjunctionBackwardsCompleteRight",
+        function() {
+      introduceDisjunctionBackwardsComplete(false);
+    });
+
+    function introduceDisjunctionBackwardsComplete(goalLeft) {
+      let newGoalFormula;
+      if (goalLeft) {
+        newGoalFormula = targetFormula.operand1;
+      } else {
+        newGoalFormula = targetFormula.operand2;
+      }
+      let newGoalLine = new JustifiedProofLine(newGoalFormula,
+          new SpecialJustification(justTypes.GOAL));
+      targetLine.prepend(newGoalLine);
+      justificationLines = [newGoalLine];
+      targetLine.justification = new Justification(justTypes.DIS_INTRO,
+          justificationLines);
+      completeProofUpdate();
+    }
+  }
 }
 
 /*
@@ -321,13 +382,17 @@ function eliminateDisjunction() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
+  let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
+  pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    eliminateDisjunctionBackwards();
+    return;
+  }
   if (justificationLines[0].formula.type !== formulaTypes.DISJUNCTION) {
     throw new ProofProcessingError("The selected justification formula is "
         + "not a disjunction.");
   }
-  let targetLine = retrievedLines.targetLine;
-  /* Used for dynamic parsing of additional formulas */
-  pithosData.targetLine = targetLine;
   let disjunct1 = justificationLines[0].formula.operand1;
   let initialLine1 = new JustifiedProofLine(disjunct1,
       new SpecialJustification(justTypes.ASS));
@@ -384,6 +449,64 @@ function eliminateDisjunction() {
     newEmptyLine.prepend(newJustifiedLine);
     completeProofUpdate();
   });
+
+  /*
+   * Eliminate disjunction through a backwards rule application
+   */
+  function eliminateDisjunctionBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    let targetFormula = targetLine.formula;
+    requestFormulaInput("Please enter the disjunction that should be used "
+        + "as a justification for the elimination and that will pose as "
+        + "a new goal.", "eliminateDisjunctionBackwardsComplete");
+
+    /*
+     * Catch user action for the backward rule application completion
+     */
+    /* Unbind possible previously bound event */
+    $("#dynamicModalArea").off("click",
+        "#eliminateDisjunctionBackwardsComplete");
+    $("#dynamicModalArea").on("click",
+        "#eliminateDisjunctionBackwardsComplete",
+        function() {
+      let targetFormula = targetLine.formula;
+      let skolemConstants = getSkolemConstants(targetLine);
+      let newGoalFormula = parseFormula($("#additionalFormulaInput")[0].value,
+          pithosData.proof.signature, skolemConstants);
+      if (newGoalFormula.type !== formulaTypes.DISJUNCTION) {
+        let error = new ProofProcessingError("The entered formula is not a "
+            + "disjunction and hence cannot be used as a justification for "
+            + "the disjunction elimination.")
+        handleProofProcessingError(error);
+        return;
+      }
+      let newTopGoalLine = new JustifiedProofLine(newGoalFormula,
+          new SpecialJustification(justTypes.GOAL));
+      let disjunct1 = newGoalFormula.operand1;
+      let disjunct2 = newGoalFormula.operand2;
+      let initialLine1 = new JustifiedProofLine(disjunct1,
+          new SpecialJustification(justTypes.ASS));
+      let initialLine2 = new JustifiedProofLine(disjunct2,
+          new SpecialJustification(justTypes.ASS));
+      let goalLine1 = new JustifiedProofLine(targetFormula,
+          new SpecialJustification(justTypes.GOAL));
+      let proofBox1 = new ProofBox(initialLine1, goalLine1, true, new Set([]));
+      let goalLine2 = new JustifiedProofLine(targetFormula,
+          new SpecialJustification(justTypes.GOAL));
+      let proofBox2 = new ProofBox(initialLine2, goalLine2, false, new Set([]));
+      targetLine.prepend(newTopGoalLine);
+      targetLine.prepend(proofBox1);
+      targetLine.prepend(proofBox2);
+      let ruleJustificationLines
+          = [newTopGoalLine, initialLine1, goalLine1, initialLine2, goalLine2];
+      targetLine.justification
+          = new Justification(justTypes.DIS_ELIM, ruleJustificationLines);
+      completeProofUpdate();
+    });
+  }
 }
 
 /*
