@@ -581,6 +581,13 @@ function eliminateImplication() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
+  let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
+  pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    eliminateImplicationBackwards();
+    return;
+  }
   let formula1 = justificationLines[0].formula;
   let formula2 = justificationLines[1].formula;
   let implicationFormula;
@@ -598,9 +605,6 @@ function eliminateImplication() {
         + "used as a justification for implication elimination.");
   }
   let consequent = implicationFormula.operand2;
-  let targetLine = retrievedLines.targetLine;
-  /* Used for dynamic parsing of additional formulas */
-  pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     let justification
         = new Justification(justTypes.IMP_ELIM, justificationLines);
@@ -615,6 +619,89 @@ function eliminateImplication() {
         = new Justification(justTypes.IMP_ELIM, justificationLines);
     if (targetLine.prev instanceof EmptyProofLine) {
       targetLine.prev.delete();
+    }
+  }
+
+  /*
+   * Eliminates implication through a backwards rule application
+   */
+  function eliminateImplicationBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    let targetFormula = targetLine.formula;
+    if (justificationLines.length === 0) {
+      let requestText = "Please enter the antecedent (left operand) of the "
+          + "implication that should be used for the backward implication "
+          + "elimination and choose which formula should be proven first:";
+      let buttons =
+          `<button id="eliminateImplicationBackwardsCompleteImp" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">Prove implication first</button>
+           <button id="eliminateImplicationBackwardsCompleteAnt" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">Prove antecedent first</button>`
+      requestFormulaInput(requestText, undefined, buttons);
+    } else {
+      let justificationFormula = justificationLines[0].formula;
+      let newGoalFormula;
+      if (justificationFormula.type === formulaTypes.IMPLICATION
+          && formulasDeepEqual(justificationFormula.operand2, targetFormula)) {
+        newGoalFormula = justificationFormula.operand1;
+      } else {
+        newGoalFormula = new Implication(justificationFormula, targetFormula);
+      }
+      let newGoalLine = new JustifiedProofLine(newGoalFormula,
+          new SpecialJustification(justTypes.GOAL));
+      targetLine.prepend(newGoalLine);
+      justificationLines.push(newGoalLine);
+      targetLine.justification = new Justification(justTypes.IMP_ELIM,
+          justificationLines);
+    }
+
+    /*
+     * Catch user action for the backward rule application completion
+     */
+    /* Unbind possible previously bound event */
+    $("#dynamicModalArea").off("click",
+        "#eliminateImplicationBackwardsCompleteImp");
+    $("#dynamicModalArea").off("click",
+        "#eliminateImplicationBackwardsCompleteAnt");
+    $("#dynamicModalArea").on("click",
+        "#eliminateImplicationBackwardsCompleteImp",
+        function() {
+      eliminateImplicationBackwardsComplete(true);
+    });
+    $("#dynamicModalArea").on("click",
+        "#eliminateImplicationBackwardsCompleteAnt",
+        function() {
+      eliminateImplicationBackwardsComplete(false);
+    });
+
+    function eliminateImplicationBackwardsComplete(implicationFirst) {
+      let skolemConstants = getSkolemConstants(targetLine);
+      let antecedentFormula
+          = parseFormula($("#additionalFormulaInput")[0].value,
+              pithosData.proof.signature, skolemConstants);
+      let implicationFormula
+          = new Implication(antecedentFormula, targetFormula);
+      let firstGoalLine;
+      let secondGoalLine;
+      if (implicationFirst) {
+        firstGoalLine = new JustifiedProofLine(implicationFormula,
+            new SpecialJustification(justTypes.GOAL));
+        secondGoalLine = new JustifiedProofLine(antecedentFormula,
+            new SpecialJustification(justTypes.GOAL));
+      } else {
+        firstGoalLine = new JustifiedProofLine(antecedentFormula,
+            new SpecialJustification(justTypes.GOAL));
+        secondGoalLine = new JustifiedProofLine(implicationFormula,
+            new SpecialJustification(justTypes.GOAL));
+      }
+      targetLine.prepend(firstGoalLine);
+      targetLine.prepend(new EmptyProofLine());
+      targetLine.prepend(secondGoalLine);
+      justificationLines = [firstGoalLine, secondGoalLine];
+      targetLine.justification = new Justification(justTypes.IMP_ELIM,
+          justificationLines);
+      completeProofUpdate();
     }
   }
 }
