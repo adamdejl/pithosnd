@@ -249,6 +249,7 @@ jQuery(function($) {
           + "Maximum number of selected lines for this rule is "
           +  `${pithosData.selectedRuleData.numLines}.`,
           pithosData.selectedRuleData.hint);
+      return;
     }
     updateProof();
   });
