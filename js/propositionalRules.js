@@ -8,7 +8,12 @@ function introduceConjunction() {
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    introduceConjunctionBackwards();
+    return;
+  }
   let newConjunction = new Conjunction(justificationLines[0].formula,
       justificationLines[1].formula);
   let justification
@@ -30,6 +35,88 @@ function introduceConjunction() {
       targetLine.prev.delete();
     }
   }
+
+  /*
+   * Introduces conjunction through a backwards rule application
+   */
+  function introduceConjunctionBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    if (targetLine.formula.type !== formulaTypes.CONJUNCTION) {
+      throw new ProofProcessingError("The selected goal formula is not a "
+          + "conjunction.");
+    }
+    let targetFormula = targetLine.formula;
+    let goalJustification = new SpecialJustification(justTypes.GOAL);
+    if (justificationLines.length === 0) {
+      let conjunct1 = targetFormula.operand1;
+      let conjunct2 = targetFormula.operand2;
+      requestOrder(conjunct1, conjunct2,
+          "introduceConjunctionBackwardsComplete");
+    } else {
+      let justificationFormula = justificationLines[0].formula;
+      let newGoalFormula;
+      let matchData = {};
+      if (checkMatchesSide(justificationFormula, targetFormula,
+          formulaTypes.CONJUNCTION, matchData)) {
+        newGoalFormula = matchData.remaining
+            .reduce((f1, f2) => new Conjunction(f1, f2));
+      } else {
+        throw new ProofProcessingError("The selected justification formula "
+            + "cannot be used for the application of backward conjunction "
+            + "introduction since it does not correspond with either side "
+            + "of the chosen target conjunction.");
+      }
+      let newGoalLine = new JustifiedProofLine(newGoalFormula,
+          new SpecialJustification(justTypes.GOAL));
+      targetLine.prepend(newGoalLine);
+      justificationLines.push(newGoalLine);
+      targetLine.justification = new Justification(justTypes.CON_INTRO,
+          justificationLines);
+    }
+
+    /*
+     * Catch user action for the backward rule application completion
+     */
+    /* Unbind possible previously bound event */
+    $("#dynamicModalArea").off("click",
+        "#introduceConjunctionBackwardsComplete1");
+    $("#dynamicModalArea").off("click",
+        "#introduceConjunctionBackwardsComplete2");
+    $("#dynamicModalArea").on("click", "#introduceConjunctionBackwardsComplete1",
+        function() {
+      introduceConjunctionBackwardsComplete(true);
+    });
+    $("#dynamicModalArea").on("click", "#introduceConjunctionBackwardsComplete2",
+        function() {
+      introduceConjunctionBackwardsComplete(false);
+    });
+
+    function introduceConjunctionBackwardsComplete(conjunct1First) {
+      let firstGoalLine;
+      let secondGoalLine;
+      if (conjunct1First) {
+        firstGoalLine = new JustifiedProofLine(conjunct1,
+            new SpecialJustification(justTypes.GOAL));
+        secondGoalLine = new JustifiedProofLine(conjunct2,
+            new SpecialJustification(justTypes.GOAL));
+      } else {
+        firstGoalLine = new JustifiedProofLine(conjunct2,
+            new SpecialJustification(justTypes.GOAL));
+        secondGoalLine = new JustifiedProofLine(conjunct1,
+            new SpecialJustification(justTypes.GOAL));
+      }
+      targetLine.prepend(firstGoalLine);
+      targetLine.prepend(new EmptyProofLine());
+      targetLine.prepend(secondGoalLine);
+      justificationLines = [firstGoalLine, secondGoalLine];
+      targetLine.justification = new Justification(justTypes.CON_INTRO,
+          justificationLines);
+      completeProofUpdate();
+    }
+  }
 }
 
 /*
@@ -39,12 +126,17 @@ function eliminateConjunction() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
+  let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
+  pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    eliminateConjunctionBackwards();
+    return;
+  }
   if (justificationLines[0].formula.type !== formulaTypes.CONJUNCTION) {
     throw new ProofProcessingError("The selected justification formula is "
         + "not a conjunction.");
   }
-  let targetLine = retrievedLines.targetLine;
-  pithosData.targetLine = targetLine;
   let conjuncts = [];
   extractOperands(justificationLines[0].formula, conjuncts,
       formulaTypes.CONJUNCTION);
@@ -95,6 +187,56 @@ function eliminateConjunction() {
     }
     completeProofUpdate();
   });
+
+  /*
+   * Introduces conjunction through a backwards rule application
+   */
+  function eliminateConjunctionBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    let targetFormula = targetLine.formula;
+    requestFormulaInput("Please enter the conjunction that should pose as the "
+        + "new goal.", "eliminateConjunctionBackwardsComplete");
+
+    /*
+     * Catch user action for the backward rule application completion
+     */
+    /* Unbind possible previously bound event */
+    $("#dynamicModalArea").off("click",
+        "#eliminateConjunctionBackwardsComplete");
+    $("#dynamicModalArea").on("click", "#eliminateConjunctionBackwardsComplete",
+        function() {
+      let skolemConstants = getSkolemConstants(targetLine);
+      let newGoalFormula = parseFormula($("#additionalFormulaInput")[0].value,
+          pithosData.proof.signature, skolemConstants);
+      if (newGoalFormula.type !== formulaTypes.CONJUNCTION) {
+        let error = new ProofProcessingError("The entered formula is not a "
+            + "conjunction and hence cannot be used as a new goal.")
+        handleProofProcessingError(error);
+        return;
+      }
+      let conjuncts = [];
+      extractOperands(newGoalFormula, conjuncts,
+          formulaTypes.CONJUNCTION);
+      if (!_.some(conjuncts, c => formulasDeepEqual(targetLine.formula, c))) {
+        let error = new ProofProcessingError("The goal formula does not match "
+            + "any of the individual conjuncts in the entered formula and "
+            + "hence the application of backward conjunction elimination "
+            + "cannot be completed.");
+        handleProofProcessingError(error);
+        return;
+      }
+      let newGoalLine = new JustifiedProofLine(newGoalFormula,
+          new SpecialJustification(justTypes.GOAL));
+      targetLine.prepend(newGoalLine);
+      justificationLines = [newGoalLine];
+      targetLine.justification = new Justification(justTypes.CON_ELIM,
+          justificationLines);
+      completeProofUpdate();
+    });
+  }
 }
 
 /*
@@ -105,6 +247,7 @@ function introduceDisjunction() {
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
@@ -117,8 +260,8 @@ function introduceDisjunction() {
   } else {
     /* Target line is a goal line - automatically attempt to derive goal
        formula */
-    if (checkDisjunctionIntroduction(justificationLines[0].formula,
-        targetLine.formula)) {
+    if (checkMatchesSide(justificationLines[0].formula,
+        targetLine.formula, formulaTypes.DISJUNCTION)) {
       targetLine.justification
           = new Justification(justTypes.DIS_INTRO, justificationLines);
     } else {
@@ -169,34 +312,6 @@ function introduceDisjunction() {
     targetLine.prepend(newLine);
     completeProofUpdate();
   }
-
-  /*
-   * Checks whether the target formula can be derived from the justification
-     formula using disjunction introduction
-   */
-   function checkDisjunctionIntroduction(justificationFormula, targetFormula) {
-     let targetDisjuncts = [];
-     extractOperands(targetFormula, targetDisjuncts, formulaTypes.DISJUNCTION);
-     let justificationDisjuncts = [];
-     extractOperands(justificationFormula, justificationDisjuncts,
-         formulaTypes.DISJUNCTION);
-     for (var i = 0; i < justificationDisjuncts.length; i++) {
-       if (!formulasDeepEqual(targetDisjuncts[i], justificationDisjuncts[i])) {
-         break;
-       }
-     }
-     if (i === justificationDisjuncts.length) {
-       return true;
-     }
-     for (i = targetDisjuncts.length - justificationDisjuncts.length;
-         i < targetDisjuncts.length; i++) {
-       let j = i - (targetDisjuncts.length - justificationDisjuncts.length);
-       if (!formulasDeepEqual(targetDisjuncts[i], justificationDisjuncts[j])) {
-         return false;
-       }
-     }
-     return true;
-   }
 }
 
 /*
@@ -211,6 +326,7 @@ function eliminateDisjunction() {
         + "not a disjunction.");
   }
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   let disjunct1 = justificationLines[0].formula.operand1;
   let initialLine1 = new JustifiedProofLine(disjunct1,
@@ -277,6 +393,7 @@ function introduceImplication() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
@@ -359,6 +476,7 @@ function eliminateImplication() {
   }
   let consequent = implicationFormula.operand2;
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     let justification
@@ -385,6 +503,7 @@ function introduceNegation() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
@@ -463,6 +582,7 @@ function eliminateDoubleNegation() {
         + "negation.");
   }
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   let newFormula = justificationFormula.operand.operand;
   let justification
@@ -489,6 +609,7 @@ function introduceTop() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   let justification = new SpecialJustification(justTypes.TOP_INTRO);
   if (targetLine instanceof EmptyProofLine) {
@@ -525,6 +646,7 @@ function eliminateBottom() {
         + "bottom.");
   }
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
@@ -567,6 +689,7 @@ function introduceBiconditional() {
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   if (justificationLines[0].formula.type !== formulaTypes.IMPLICATION
       && justificationLines[1].formula.type !== formulaTypes.IMPLICATION) {
@@ -683,6 +806,7 @@ function eliminateBiconditional() {
         + "used as a justification for biconditional elimination.");
   }
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     let justification
@@ -709,6 +833,7 @@ function applyExcludedMiddle() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
@@ -786,6 +911,7 @@ function applyProofByContradiction() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
@@ -842,6 +968,7 @@ function applyTick() {
   let justificationLines = retrievedLines.justificationLines;
   let justificationFormula = justificationLines[0].formula;
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   let justification = new Justification(justTypes.TICK, justificationLines);
   if (targetLine instanceof EmptyProofLine) {
@@ -883,6 +1010,7 @@ function addBottom(justType) {
         + "formula and its negation.")
   }
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   let justification
       = new Justification(justType, justificationLines);

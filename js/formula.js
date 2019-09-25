@@ -960,3 +960,42 @@ function formulaContainsTerm(formula, term) {
 function latexEscape(string) {
   return string.replace(/_/g, "\\_");
 }
+
+/*
+ * Checks whether the matched formula corresponds with either leftmost
+   or rightmost operands of a formula with topmost associative operator
+ * Fills matchData if provided with information regarding the match
+ */
+function checkMatchesSide(matched, formula, type, matchData) {
+  if (matchData === undefined) {
+    /* Create dummy match data if undefined */
+    matchData = {};
+  }
+  let formulaOperands = [];
+  extractOperands(formula, formulaOperands, type);
+  let matchedOperands = [];
+  extractOperands(matched, matchedOperands, type);
+  if (matchedOperands.length >= formulaOperands.length) {
+    return false;
+  }
+  for (var i = 0; i < matchedOperands.length; i++) {
+    if (!formulasDeepEqual(formulaOperands[i], matchedOperands[i])) {
+      break;
+    }
+  }
+  if (i === matchedOperands.length) {
+    matchData.remaining = formulaOperands.slice(matchedOperands.length,
+        formulaOperands.length);
+    return true;
+  }
+  for (i = formulaOperands.length - matchedOperands.length;
+      i < formulaOperands.length; i++) {
+    let j = i - (formulaOperands.length - matchedOperands.length);
+    if (!formulasDeepEqual(formulaOperands[i], matchedOperands[j])) {
+      return false;
+    }
+  }
+  matchData.remaining = formulaOperands.slice(0,
+      formulaOperands.length - matchedOperands.length);
+  return true;
+}

@@ -9,6 +9,7 @@ function introduceExistential() {
   let justificationLines = retrievedLines.justificationLines;
   let justificationFormula = justificationLines[0].formula;
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
@@ -118,6 +119,7 @@ function eliminateExistential() {
         + "not an existential.");
   }
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   /* Ask the user how many outer exists quantifiers should be eliminated */
   let modalBody =
@@ -248,6 +250,7 @@ function eliminateUniversal() {
         + "not a universal.");
   }
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   /* Count the number of universal quantifiers in the justification formula
      and prepare modal allowing the user to choose the number of quantifiers
@@ -345,7 +348,7 @@ function eliminateUniversal() {
       function() {
     let replacements = {};
     let currFormula = justificationFormula;
-    let skolemConstants = getSkolemConstants(pithosData.targetLine);
+    let skolemConstants = getSkolemConstants(targetLine);
     for (let i = 0; i < numberEliminated; i++) {
       let variable = currFormula.variableString;
       let term = parseSeparateTerm($("#additionalTermInput" + i)[0].value,
@@ -461,6 +464,7 @@ function eliminateUniversalImplication() {
         + "a justification to universal implication elimination.");
   }
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   /* Declare variable for use by following code */
   let underivableVarsSet = new Set([]);
@@ -525,7 +529,7 @@ function eliminateUniversalImplication() {
   $("#dynamicModalArea").on("click", "#eliminateUniversalImplicationComplete",
       function() {
     let additionalReplacements = {};
-    let skolemConstants = getSkolemConstants(pithosData.targetLine);
+    let skolemConstants = getSkolemConstants(targetLine);
     let i = 0;
     underivableVarsSet.forEach(function(variable) {
       let term = parseSeparateTerm($("#additionalTermInput" + i)[0].value,
@@ -625,6 +629,7 @@ function applyEqualitySubstitution() {
         + "appears in the second selected formula.");
   }
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     let modalText =
@@ -680,7 +685,7 @@ function applyEqualitySubstitution() {
       newFormula = replaceTerm(replacement.formula, replacement.replaced,
           replacement.replacement);
     } else {
-      let skolemConstants = getSkolemConstants(pithosData.targetLine);
+      let skolemConstants = getSkolemConstants(targetLine);
       newFormula = parseFormula($("#additionalFormulaInput")[0].value,
           pithosData.proof.signature, skolemConstants);
       let anyReplacementValid = possibleReplacements
@@ -710,6 +715,7 @@ function applyEqualityReflexivity() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
@@ -746,7 +752,7 @@ function applyEqualityReflexivity() {
   $("#dynamicModalArea").off("click", "#applyEqualityReflexivityComplete");
   $("#dynamicModalArea").on("click", "#applyEqualityReflexivityComplete",
       function() {
-    let skolemConstants = getSkolemConstants(pithosData.targetLine);
+    let skolemConstants = getSkolemConstants(targetLine);
     let term = parseSeparateTerm($("#additionalTermInput0")[0].value,
         pithosData.proof.signature, skolemConstants);
     let newFormula = new Equality(term, term);
@@ -771,6 +777,7 @@ function applyEqualitySymmetry() {
         + "an equality.")
   }
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   let newFormula = new Equality(justificationFormula.term2,
       justificationFormula.term1);
@@ -806,6 +813,7 @@ function addUniversal(isImplication) {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
   /* Declared variables for use by following code */
   let targetFormula;

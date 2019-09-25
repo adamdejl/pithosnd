@@ -192,12 +192,7 @@ jQuery(function($) {
           +  `${ruleData.numLines}.`,
           ruleData.hint);
     } else if (pithosData.selectedLinesSet.size !== 0) {
-      showModal("Warning", "You have selected too few lines for the "
-          + `application of the rule ${target.innerText}. Expected number `
-          + `of selected lines for this rule is ${ruleData.numLines}. `
-          + "Please select additional lines or cancel the application of the "
-          + "current rule.",
-          ruleData.hint);
+      updateProof();
     }
   });
 
@@ -229,5 +224,32 @@ jQuery(function($) {
       $("#proofRedo").attr("disabled", true);
     }
     completeProofUpdate();
+  });
+
+  /*
+   * Apply selected rule (for backward rules applications)
+   */
+  $("#applyRule").click(function() {
+    if (pithosData.freeSelection) {
+      showModal("Error", "You have not activated any rule. Please perform a "
+          + "selection and try again.");
+      return;
+    }
+    if (pithosData.selectedLinesSet.size === 0) {
+      showModal("Error", "You have not selected any lines for the application "
+          + `of the rule ${pithosData.selectedRuleData.name}. Please select `
+          + "at least one line and try again.",
+          pithosData.selectedRuleData.hint);
+      return;
+    }
+    if (pithosData.selectedLinesSet.size
+        > pithosData.selectedRuleData.numLines) {
+      showModal("Error", "You have selected too many lines for the "
+          + `application of the rule ${pithosData.selectedRuleData.name}. `
+          + "Maximum number of selected lines for this rule is "
+          +  `${pithosData.selectedRuleData.numLines}.`,
+          pithosData.selectedRuleData.hint);
+    }
+    updateProof();
   });
 });

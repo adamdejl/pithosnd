@@ -188,7 +188,7 @@ function showModal(title, modalBody, hint, customId, customButtons,
   }
   let template =
       `<div id="dynamicModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dynamicModalLabel" aria-hidden="true">
-  			 <div class="modal-dialog modal-dialog-centered" role="document">
+  			 <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
   				 <div class="modal-content bg-light">
   					 <div class="modal-header">
   						 <h5 class="modal-title" id="dynamicModalLabel">${title}</h5>
@@ -249,6 +249,18 @@ function requestFormulaInput(requestText, customId, buttons, additionalContent) 
        </div>
        ${additionalCode}`
     showModal("Input required", modalBody, undefined, customId, buttons, true);
+}
+
+/*
+ * Shows modal prompting user to choose the order of the proved formulas
+ */
+function requestOrder(formula1, formula2, buttonId) {
+  let modalBody =
+      `<p>Please choose the order in which you would like to prove the formulas required to fully justify the selected goal.</p>`;
+  let buttons =
+  `<button id="${buttonId}1" type="button" class="btn btn-outline-primary" data-dismiss="modal">Prove ${formula1.stringRep} first</button>
+   <button id="${buttonId}2" type="button" class="btn btn-outline-primary" data-dismiss="modal">Prove ${formula2.stringRep} first</button>`;
+  showModal("Input required", modalBody, undefined, undefined, buttons);
 }
 
 /*
