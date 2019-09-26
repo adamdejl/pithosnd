@@ -7,10 +7,14 @@ function introduceExistential() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
-  let justificationFormula = justificationLines[0].formula;
   let targetLine = retrievedLines.targetLine;
   /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    introduceExistentialBackwards();
+    return;
+  }
+  let justificationFormula = justificationLines[0].formula;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
     let requestText = "Please enter the formula that you would like to "
@@ -104,6 +108,52 @@ function introduceExistential() {
     return matchFormulasVariablesReplace(justificationFormula, currFormula,
         existentialVariablesSet, {});
   }
+
+  /*
+   * Introduces existential through a backwards rule application
+   */
+  function introduceExistentialBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    if (targetLine.formula.type !== formulaTypes.EXISTENTIAL) {
+      throw new ProofProcessingError("The selected goal formula is not an "
+          + "existential and hence cannot be derived by existential "
+          + "inroduction.");
+    }
+    let targetFormula = targetLine.formula;
+    requestFormulaInput("Please enter the formula that should pose as a "
+            + `justification for ${targetFormula.stringRep}:`,
+        "introduceExistentialBackwardsComplete");
+
+    /*
+     * Catch user action for the backward rule application completion
+     */
+    /* Unbind possible previously bound event */
+    $("#dynamicModalArea").off("click",
+        "#introduceExistentialBackwardsComplete");
+    $("#dynamicModalArea").on("click", "#introduceExistentialBackwardsComplete",
+        function() {
+      let skolemConstants = getSkolemConstants(targetLine);
+      let newGoalFormula = parseFormula($("#additionalFormulaInput")[0].value,
+          pithosData.proof.signature, skolemConstants);
+      if (!verifyExistentialIntroduction(newGoalFormula, targetFormula)) {
+        let error = new ProofProcessingError("The selected goal formula "
+            + "cannot be derived from the entered justification formula "
+            + "through the existential introduction rule.");
+        handleProofProcessingError(error);
+        return;
+      }
+      let newGoalLine = new JustifiedProofLine(newGoalFormula,
+          new SpecialJustification(justTypes.GOAL));
+      targetLine.prepend(newGoalLine);
+      justificationLines = [newGoalLine];
+      targetLine.justification = new Justification(justTypes.EXIS_INTRO,
+          justificationLines);
+      completeProofUpdate();
+    });
+  }
 }
 
 /*
@@ -113,58 +163,67 @@ function eliminateExistential() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
-  let justificationFormula = justificationLines[0].formula;
+  let targetLine = retrievedLines.targetLine;
+  /* Declared for use by following code */
+  let initialFormula;
+  let newSkolemConstants = new Set([]);
+  let justificationFormula;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    eliminateExistentialBackwards();
+    return;
+  }
+  justificationFormula = justificationLines[0].formula;
   if (justificationFormula.type !== formulaTypes.EXISTENTIAL) {
     throw new ProofProcessingError("The selected justification formula is "
         + "not an existential.");
   }
-  let targetLine = retrievedLines.targetLine;
   /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
-  /* Ask the user how many outer exists quantifiers should be eliminated */
-  let modalBody =
-       "<p>Please choose the number of outer quantifiers that should be "
-       + `eliminated from the formula ${justificationFormula.stringRep}:</p>`;
-  let existentialCount = 0;
-  for (let currFormula = justificationFormula;
-      currFormula.type === formulaTypes.EXISTENTIAL;
-      currFormula = currFormula.predicate) {
-    modalBody +=
-        `<div class="custom-control custom-radio">
-           <input type="radio" id="existentialRadio${existentialCount}" class="custom-control-input">
-           <label class="custom-control-label" for="existentialRadio${existentialCount}">${existentialCount + 1}</label>
-         </div>`
-    existentialCount++;
-  }
-  /* Declared for use by following code */
-  let initialFormula;
-  let newSkolemConstants = new Set([]);
-  if (existentialCount === 1) {
-    eliminateExistentialContinue(existentialCount);
-  } else {
-    showModal("Input required", modalBody, undefined,
-        "eliminateExistentialContinue");
-  }
+  requestNumEliminated();
 
-  /*
-   * Catch user action to proceed with the rule application
-   */
-  /* Unbind possible previously bound events */
-  $("#dynamicModalArea").off("click", "#eliminateExistentialContinue");
-  $("#dynamicModalArea").on("click", "#eliminateExistentialContinue",
-      function() {
-    let numberEliminated = 0;
-    for (let i = 0; i < existentialCount; i++) {
-      if ($("#existentialRadio" + i).is(":checked")) {
-        numberEliminated = i + 1;
-        break;
+  function requestNumEliminated() {
+    /* Ask the user how many outer exists quantifiers should be eliminated */
+    let modalBody =
+         "<p>Please choose the number of outer quantifiers that should be "
+         + `eliminated from the formula ${justificationFormula.stringRep}:</p>`;
+    let existentialCount = 0;
+    for (let currFormula = justificationFormula;
+        currFormula.type === formulaTypes.EXISTENTIAL;
+        currFormula = currFormula.predicate) {
+      modalBody +=
+          `<div class="custom-control custom-radio">
+             <input type="radio" id="existentialRadio${existentialCount}" class="custom-control-input">
+             <label class="custom-control-label" for="existentialRadio${existentialCount}">${existentialCount + 1}</label>
+           </div>`
+      existentialCount++;
+    }
+    if (existentialCount === 1) {
+      eliminateExistentialContinue(existentialCount);
+    } else {
+      showModal("Input required", modalBody, undefined,
+          "eliminateExistentialContinue");
+    }
+
+    /*
+     * Catch user action to proceed with the rule application
+     */
+    /* Unbind possible previously bound events */
+    $("#dynamicModalArea").off("click", "#eliminateExistentialContinue");
+    $("#dynamicModalArea").on("click", "#eliminateExistentialContinue",
+        function() {
+      let numberEliminated = 0;
+      for (let i = 0; i < existentialCount; i++) {
+        if ($("#existentialRadio" + i).is(":checked")) {
+          numberEliminated = i + 1;
+          break;
+        }
       }
-    }
-    if (numberEliminated === 0) {
-      numberEliminated = existentialCount;
-    }
-    eliminateExistentialContinue(numberEliminated);
-  })
+      if (numberEliminated === 0) {
+        numberEliminated = existentialCount;
+      }
+      eliminateExistentialContinue(numberEliminated);
+    })
+  }
 
   function eliminateExistentialContinue(numberEliminated) {
     let replacements = {};
@@ -228,6 +287,44 @@ function eliminateExistential() {
     newEmptyLine.prepend(newJustifiedLine);
     completeProofUpdate();
   });
+
+  /*
+   * Eliminates existential through a backwards rule application
+   */
+  function eliminateExistentialBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    let targetFormula = targetLine.formula;
+    requestFormulaInput("Please enter the existential formula that should "
+            + `pose as a justification for ${targetFormula.stringRep}:`,
+        "eliminateExistentialBackwardsContinue");
+
+    /*
+     * Catch user action for the backward rule application completion
+     */
+    /* Unbind possible previously bound event */
+    $("#dynamicModalArea").off("click",
+        "#eliminateExistentialBackwardsContinue");
+    $("#dynamicModalArea").on("click", "#eliminateExistentialBackwardsContinue",
+        function() {
+      let skolemConstants = getSkolemConstants(targetLine);
+      justificationFormula = parseFormula($("#additionalFormulaInput")[0].value,
+          pithosData.proof.signature, skolemConstants);
+      if (justificationFormula.type !== formulaTypes.EXISTENTIAL) {
+        let error = new ProofProcessingError("The entered justification "
+            + "formula is not an existential.");
+        handleProofProcessingError(error);
+        return;
+      }
+      let newGoalLine = new JustifiedProofLine(justificationFormula,
+          new SpecialJustification(justTypes.GOAL));
+      justificationLines.push(newGoalLine);
+      targetLine.prepend(newGoalLine);
+      requestNumEliminated();
+    });
+  }
 }
 
 /*
