@@ -816,6 +816,10 @@ function eliminateDoubleNegation() {
   }
 
   function eliminateDoubleNegationBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
     let targetFormula = targetLine.formula;
     let newGoalFormula = new Negation(new Negation(targetFormula));
     let newGoalLine = new JustifiedProofLine(newGoalFormula,
@@ -865,14 +869,18 @@ function eliminateBottom() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
+  let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
+  pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    eliminateBottomBackwards();
+    return;
+  }
   let justificationFormula = justificationLines[0].formula;
   if (justificationFormula.type !== formulaTypes.BOTTOM) {
     throw new ProofProcessingError("The selected justification formula is not "
         + "bottom.");
   }
-  let targetLine = retrievedLines.targetLine;
-  /* Used for dynamic parsing of additional formulas */
-  pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     /* Target line is an empty line - allow user to specify resulting formula */
     let requestText = "Please enter the formula that you would like to "
@@ -904,6 +912,19 @@ function eliminateBottom() {
     targetLine.prepend(newLine);
     completeProofUpdate();
   });
+
+  function eliminateBottomBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    let newGoalLine = new JustifiedProofLine(new Bottom(),
+        new SpecialJustification(justTypes.GOAL));
+    targetLine.prepend(newGoalLine);
+    targetLine.justification = new Justification(justTypes.BOT_ELIM,
+        [newGoalLine]);
+    completeProofUpdate();
+  }
 }
 
 /*
