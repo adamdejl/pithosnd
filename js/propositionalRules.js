@@ -1203,6 +1203,13 @@ function addBottom(justType) {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
+  let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
+  pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    addBottomBackwards();
+    return;
+  }
   let negatedFormula;
   let formula;
   if (justificationLines[0].formula.type === formulaTypes.NEGATION
@@ -1219,9 +1226,6 @@ function addBottom(justType) {
     throw new ProofProcessingError("The justification formulas are not a "
         + "formula and its negation.")
   }
-  let targetLine = retrievedLines.targetLine;
-  /* Used for dynamic parsing of additional formulas */
-  pithosData.targetLine = targetLine;
   let justification
       = new Justification(justType, justificationLines);
   if (targetLine instanceof EmptyProofLine) {
@@ -1235,6 +1239,138 @@ function addBottom(justType) {
     targetLine.justification = justification;
     if (targetLine.prev instanceof EmptyProofLine) {
       targetLine.prev.delete();
+    }
+  }
+
+  /*
+   * Eliminates implication through a backwards rule application
+   */
+  function addBottomBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    let targetFormula = targetLine.formula;
+    if (targetFormula.type !== formulaTypes.BOTTOM) {
+      throw new ProofProcessingError("The selected target formula is not a "
+          + "bottom and hence cannot be derived by the bottom introduction "
+          + "or not elimination rules.")
+    }
+    if (justificationLines.length === 0) {
+      /* No justification line selected - ask the user for the intended
+         justification formula */
+      let requestText = "Please enter the non-negated formula that "
+          + "should be used as one of the justification formulas for "
+          + "bottom introduction / negation elimination and choose which "
+          + "of the formulas should be proven first:";
+      let buttons =
+          `<button id="addBottomBackwardsCompleteNon" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">Prove non-negated formula first</button>
+           <button id="addBottomBackwardsCompleteNeg" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">Prove negated formula first</button>`
+      requestFormulaInput(requestText, undefined, buttons);
+    } else {
+      let justificationFormula = justificationLines[0].formula;
+      if (justificationFormula.type !== formulaTypes.NEGATION) {
+        /* Selected justification formula is not a negation - automatically
+           construct the negation and complete rule application */
+        let newGoalFormula = new Negation(justificationFormula);
+        let newGoalLine = new JustifiedProofLine(newGoalFormula,
+            new SpecialJustification(justTypes.GOAL));
+        targetLine.prepend(newGoalLine);
+        justificationLines.push(newGoalLine);
+        targetLine.justification
+            = new Justification(justType, justificationLines);
+      } else {
+        /* Selected justification formula is a negation - ask the user
+           whether it is intended to be used as the negated formula
+           for the purposes of the rule application */
+        let modalBody =
+             "<p>The selected justification formula "
+             + `(${justificationFormula.stringRep}) is a negation. `
+             + "Please choose whether it should be used as the negated formula "
+             + "for the purposes of this rule application</p>";
+        let buttons =
+            `<button id="addBottomBackwardsCompleteJustNeg" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">Use as negation</button>
+             <button id="addBottomBackwardsCompleteJustNon" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">Use as non-negation</button>`
+        showModal("Input required", modalBody, undefined, undefined, buttons);
+      }
+    }
+
+    /*
+     * Catch user action for the backward rule application completion
+     */
+    /* Unbind possible previously bound event */
+    $("#dynamicModalArea").off("click",
+        "#addBottomBackwardsCompleteNeg");
+    $("#dynamicModalArea").off("click",
+        "#addBottomBackwardsCompleteNon");
+    $("#dynamicModalArea").on("click",
+        "#addBottomBackwardsCompleteNeg",
+        function() {
+      addBottomBackwardsCompleteNoJustification(true);
+    });
+    $("#dynamicModalArea").on("click",
+        "#addBottomBackwardsCompleteNon",
+        function() {
+      addBottomBackwardsCompleteNoJustification(false);
+    });
+    $("#dynamicModalArea").off("click",
+        "#addBottomBackwardsCompleteJustNeg");
+    $("#dynamicModalArea").off("click",
+        "#addBottomBackwardsCompleteJustNon");
+    $("#dynamicModalArea").on("click",
+        "#addBottomBackwardsCompleteJustNeg",
+        function() {
+      addBottomBackwardsCompleteJustification(true);
+    });
+    $("#dynamicModalArea").on("click",
+        "#addBottomBackwardsCompleteJustNon",
+        function() {
+      addBottomBackwardsCompleteJustification(false);
+    });
+
+    function addBottomBackwardsCompleteNoJustification(negationFirst) {
+      let skolemConstants = getSkolemConstants(targetLine);
+      let nonNegNewGoalFormula
+          = parseFormula($("#additionalFormulaInput")[0].value,
+              pithosData.proof.signature, skolemConstants);
+      let negNewGoalFormula = new Negation(nonNegNewGoalFormula);
+      let firstGoalLine;
+      let secondGoalLine;
+      if (negationFirst) {
+        firstGoalLine = new JustifiedProofLine(negNewGoalFormula,
+            new SpecialJustification(justTypes.GOAL));
+        secondGoalLine = new JustifiedProofLine(nonNegNewGoalFormula,
+            new SpecialJustification(justTypes.GOAL));
+      } else {
+        firstGoalLine = new JustifiedProofLine(nonNegNewGoalFormula,
+            new SpecialJustification(justTypes.GOAL));
+        secondGoalLine = new JustifiedProofLine(negNewGoalFormula,
+            new SpecialJustification(justTypes.GOAL));
+      }
+      targetLine.prepend(firstGoalLine);
+      targetLine.prepend(new EmptyProofLine());
+      targetLine.prepend(secondGoalLine);
+      justificationLines = [firstGoalLine, secondGoalLine];
+      targetLine.justification
+          = new Justification(justType, justificationLines);
+      completeProofUpdate();
+    }
+
+    function addBottomBackwardsCompleteJustification(justificationIsNegation) {
+      let justificationFormula = justificationLines[0].formula;
+      let newGoalFormula;
+      if (justificationIsNegation) {
+        newGoalFormula = justificationFormula.operand;
+      } else {
+        newGoalFormula = new Negation(justificationFormula);
+      }
+      let newGoalLine = new JustifiedProofLine(newGoalFormula,
+          new SpecialJustification(justTypes.GOAL));
+      targetLine.prepend(newGoalLine);
+      justificationLines.push(newGoalLine);
+      targetLine.justification
+          = new Justification(justType, justificationLines);
+      completeProofUpdate();
     }
   }
 }
