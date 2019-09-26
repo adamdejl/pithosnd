@@ -110,7 +110,7 @@ function introduceExistential() {
   }
 
   /*
-   * Introduces existential through a backwards rule application
+   * Introduces existential through a backward rule application
    */
   function introduceExistentialBackwards() {
     if (targetLine instanceof EmptyProofLine) {
@@ -289,7 +289,7 @@ function eliminateExistential() {
   });
 
   /*
-   * Eliminates existential through a backwards rule application
+   * Eliminates existential through a backward rule application
    */
   function eliminateExistentialBackwards() {
     if (targetLine instanceof EmptyProofLine) {
@@ -501,7 +501,7 @@ function eliminateUniversal() {
   }
 
   /*
-   * Eliminates universal through a backwards rule application
+   * Eliminates universal through a backward rule application
    */
   function eliminateUniversalBackwards() {
     if (targetLine instanceof EmptyProofLine) {

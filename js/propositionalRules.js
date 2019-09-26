@@ -37,7 +37,7 @@ function introduceConjunction() {
   }
 
   /*
-   * Introduces conjunction through a backwards rule application
+   * Introduces conjunction through a backward rule application
    */
   function introduceConjunctionBackwards() {
     if (targetLine instanceof EmptyProofLine) {
@@ -189,7 +189,7 @@ function eliminateConjunction() {
   });
 
   /*
-   * Eliminate conjunction through a backwards rule application
+   * Eliminate conjunction through a backward rule application
    */
   function eliminateConjunctionBackwards() {
     if (targetLine instanceof EmptyProofLine) {
@@ -318,7 +318,7 @@ function introduceDisjunction() {
   }
 
   /*
-   * Introduce disjunction through a backwards rule application
+   * Introduce disjunction through a backward rule application
    */
   function introduceDisjunctionBackwards() {
     if (targetLine instanceof EmptyProofLine) {
@@ -451,7 +451,7 @@ function eliminateDisjunction() {
   });
 
   /*
-   * Eliminate disjunction through a backwards rule application
+   * Eliminate disjunction through a backward rule application
    */
   function eliminateDisjunctionBackwards() {
     if (targetLine instanceof EmptyProofLine) {
@@ -623,7 +623,7 @@ function eliminateImplication() {
   }
 
   /*
-   * Eliminates implication through a backwards rule application
+   * Eliminates implication through a backward rule application
    */
   function eliminateImplicationBackwards() {
     if (targetLine instanceof EmptyProofLine) {
@@ -1168,7 +1168,7 @@ function eliminateBiconditional() {
   }
 
   /*
-   * Eliminates biconditional through a backwards rule application
+   * Eliminates biconditional through a backward rule application
    */
   function eliminateBiconditionalBackwards() {
     if (targetLine instanceof EmptyProofLine) {
@@ -1276,7 +1276,7 @@ function eliminateBiconditional() {
       } else {
         let error = new ProofProcessingError("The entered biconditional "
             + "does not contain the target formula as an operand and "
-            + "hence cannot be used as a justification for the backwards "
+            + "hence cannot be used as a justification for the backward "
             + "biconditional elimination.");
         handleProofProcessingError(error);
         return;
@@ -1529,7 +1529,7 @@ function addBottom(justType) {
   }
 
   /*
-   * Eliminates implication through a backwards rule application
+   * Eliminates implication through a backward rule application
    */
   function addBottomBackwards() {
     if (targetLine instanceof EmptyProofLine) {
