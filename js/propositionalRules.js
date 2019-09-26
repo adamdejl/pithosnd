@@ -634,7 +634,9 @@ function eliminateImplication() {
     if (justificationLines.length === 0) {
       let requestText = "Please enter the antecedent (left operand) of the "
           + "implication that should be used for the backward implication "
-          + "elimination and choose which formula should be proven first:";
+          + "elimination and choose which formula should be proven first. The "
+          + "formula to be derived by this rule application is"
+          + `${targetFormula.stringRep}:`;
       let buttons =
           `<button id="eliminateImplicationBackwardsCompleteImp" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">Prove implication first</button>
            <button id="eliminateImplicationBackwardsCompleteAnt" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">Prove antecedent first</button>`
@@ -937,6 +939,10 @@ function introduceBiconditional() {
   let targetLine = retrievedLines.targetLine;
   /* Used for dynamic parsing of additional formulas */
   pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    introduceBiconditionalBackwards();
+    return;
+  }
   if (justificationLines[0].formula.type !== formulaTypes.IMPLICATION
       && justificationLines[1].formula.type !== formulaTypes.IMPLICATION) {
     throw new ProofProcessingError("One or both of the selected justification "
@@ -1016,6 +1022,92 @@ function introduceBiconditional() {
     targetLine.prepend(newLine);
     completeProofUpdate();
   }
+
+  function introduceBiconditionalBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    let targetFormula = targetLine.formula;
+    if (targetFormula.type !== formulaTypes.BICONDITIONAL) {
+      throw new ProofProcessingError("The selected target formula is not "
+          + "a biconditional and hence cannot be derived by biconditional "
+          + "introduction.")
+    }
+    let implication1
+        = new Implication(targetFormula.operand1, targetFormula.operand2);
+    let implication2
+        = new Implication(targetFormula.operand2, targetFormula.operand1);
+    if (justificationLines.length === 0) {
+      /* No justification line has been selected - ask the user for the order
+         of the justification formulas */
+      requestOrder(implication1, implication2,
+          "introduceBiconditionalBackwardsComplete")
+    } else {
+      /* A justification line has been selected - check whether the
+         justification formula is valid and set new goal */
+      let justificationFormula = justificationLines[0].formula;
+      let newGoalFormula;
+      if (formulasDeepEqual(implication1, justificationFormula)) {
+        newGoalFormula = implication2;
+      } else if (formulasDeepEqual(implication2, justificationFormula)) {
+        newGoalFormula = implication1;
+      } else {
+        throw new ProofProcessingError("The operands of the selected goal "
+            + "formula do not match the antecedent and the consequent of "
+            + "the chosen justification formula.");
+      }
+      let newGoalLine = new JustifiedProofLine(newGoalFormula,
+          new SpecialJustification(justTypes.GOAL));
+      targetLine.prepend(newGoalLine);
+      justificationLines.push(newGoalLine);
+      targetLine.justification = new Justification(justTypes.BICOND_INTRO,
+          justificationLines);
+      completeProofUpdate();
+    }
+
+    /*
+     * Catch user action for the backward rule application completion
+     */
+    /* Unbind possible previously bound event */
+    $("#dynamicModalArea").off("click",
+        "#introduceBiconditionalBackwardsComplete1");
+    $("#dynamicModalArea").off("click",
+        "#introduceBiconditionalBackwardsComplete2");
+    $("#dynamicModalArea").on("click",
+        "#introduceBiconditionalBackwardsComplete1",
+        function() {
+      introduceBiconditionalBackwardsComplete(true);
+    });
+    $("#dynamicModalArea").on("click",
+        "#introduceBiconditionalBackwardsComplete2",
+        function() {
+      introduceBiconditionalBackwardsComplete(false);
+    });
+
+    function introduceBiconditionalBackwardsComplete(implication1First) {
+      let firstGoalLine;
+      let secondGoalLine;
+      if (implication1First) {
+        firstGoalLine = new JustifiedProofLine(implication1,
+            new SpecialJustification(justTypes.GOAL));
+        secondGoalLine = new JustifiedProofLine(implication2,
+            new SpecialJustification(justTypes.GOAL));
+      } else {
+        firstGoalLine = new JustifiedProofLine(implication2,
+            new SpecialJustification(justTypes.GOAL));
+        secondGoalLine = new JustifiedProofLine(implication1,
+            new SpecialJustification(justTypes.GOAL));
+      }
+      targetLine.prepend(firstGoalLine);
+      targetLine.prepend(new EmptyProofLine());
+      targetLine.prepend(secondGoalLine);
+      justificationLines = [firstGoalLine, secondGoalLine];
+      targetLine.justification = new Justification(justTypes.BICOND_INTRO,
+          justificationLines);
+      completeProofUpdate();
+    }
+  }
 }
 
 /*
@@ -1025,6 +1117,13 @@ function eliminateBiconditional() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
+  let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
+  pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    eliminateBiconditionalBackwards();
+    return;
+  }
   let formula1 = justificationLines[0].formula;
   let formula2 = justificationLines[1].formula;
   let biconditionalFormula;
@@ -1051,9 +1150,6 @@ function eliminateBiconditional() {
     throw new ProofProcessingError("The selected lines cannot be "
         + "used as a justification for biconditional elimination.");
   }
-  let targetLine = retrievedLines.targetLine;
-  /* Used for dynamic parsing of additional formulas */
-  pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     let justification
         = new Justification(justTypes.BICOND_ELIM, justificationLines);
@@ -1068,6 +1164,160 @@ function eliminateBiconditional() {
         = new Justification(justTypes.BICOND_ELIM, justificationLines);
     if (targetLine.prev instanceof EmptyProofLine) {
       targetLine.prev.delete();
+    }
+  }
+
+  /*
+   * Eliminates biconditional through a backwards rule application
+   */
+  function eliminateBiconditionalBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    let targetFormula = targetLine.formula;
+    if (justificationLines.length === 0) {
+      let requestText = "Please enter the biconditional "
+          + "that should be used for the backward biconditional "
+          + "elimination and choose which formula should "
+          + "be proven first. The formula to be derived by this rule "
+          + `application is ${targetFormula.stringRep}:`;
+      let buttons =
+          `<button id="eliminateBiconditionalBackwardsCompleteBicond" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">Prove biconditional first</button>
+           <button id="eliminateBiconditionalBackwardsCompleteOp" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">Prove operand first</button>`
+      requestFormulaInput(requestText, undefined, buttons);
+    } else {
+      let justificationFormula = justificationLines[0].formula;
+      if (justificationFormula.type === formulaTypes.BICONDITIONAL &&
+          (formulasDeepEqual(justificationFormula.operand1, targetFormula)
+           || formulasDeepEqual(justificationFormula.operand2, targetFormula)
+          )) {
+        /* New goal is one of the justification biconditional operands */
+        let newGoalFormula;
+        if (formulasDeepEqual(justificationFormula.operand1, targetFormula)) {
+          newGoalFormula = justificationFormula.operand2;
+        } else {
+          newGoalFormula = justificationFormula.operand1;
+        }
+        let newGoalLine = new JustifiedProofLine(newGoalFormula,
+            new SpecialJustification(justTypes.GOAL));
+        targetLine.prepend(newGoalLine);
+        justificationLines.push(newGoalLine);
+        targetLine.justification = new Justification(justTypes.BICOND_ELIM,
+            justificationLines);
+      } else {
+        /* New goal is a biconditional - prompt the user for the order of the
+           biconditional operands */
+        let biconditional1
+            = new Biconditional(justificationFormula, targetFormula);
+        let biconditional2
+            = new Biconditional(targetFormula, justificationFormula);
+        let requestText = "Please choose the order of the operands in the "
+            + "new goal biconditional.";
+        let buttons =
+            `<button id="eliminateBiconditionalBackwardsCompleteJustBicond1" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">${biconditional1.stringRep}</button>
+             <button id="eliminateBiconditionalBackwardsCompleteJustBicond2" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">${biconditional2.stringRep}</button>`
+        showModal("Input required", requestText, undefined, undefined, buttons);
+      }
+    }
+
+    /*
+     * Catch user action for the backward rule application completion
+     */
+    /* Unbind possible previously bound event */
+    $("#dynamicModalArea").off("click",
+        "#eliminateBiconditionalBackwardsCompleteBicond");
+    $("#dynamicModalArea").off("click",
+        "#eliminateBiconditionalBackwardsCompleteOp");
+    $("#dynamicModalArea").on("click",
+        "#eliminateBiconditionalBackwardsCompleteBicond",
+        function() {
+      eliminateBiconditionalBackwardsCompleteNoJustification(true);
+    });
+    $("#dynamicModalArea").on("click",
+        "#eliminateBiconditionalBackwardsCompleteOp",
+        function() {
+      eliminateBiconditionalBackwardsCompleteNoJustification(false);
+    });
+    $("#dynamicModalArea").off("click",
+        "#eliminateBiconditionalBackwardsCompleteJustBicond1");
+    $("#dynamicModalArea").off("click",
+        "#eliminateBiconditionalBackwardsCompleteJustBicond2");
+    $("#dynamicModalArea").on("click",
+        "#eliminateBiconditionalBackwardsCompleteJustBicond1",
+        function() {
+      eliminateBiconditionalBackwardsCompleteJustification(true);
+    });
+    $("#dynamicModalArea").on("click",
+        "#eliminateBiconditionalBackwardsCompleteJustBicond2",
+        function() {
+      eliminateBiconditionalBackwardsCompleteJustification(false);
+    });
+
+    function eliminateBiconditionalBackwardsCompleteNoJustification(
+        biconditionalFirst) {
+      let skolemConstants = getSkolemConstants(targetLine);
+      let biconditionalFormula
+          = parseFormula($("#additionalFormulaInput")[0].value,
+              pithosData.proof.signature, skolemConstants);
+      if (biconditionalFormula.type !== formulaTypes.BICONDITIONAL) {
+        let error = new ProofProcessingError("The entered formula is not a "
+            + "biconditional and hence cannot be used for a biconditional "
+            + "elimination.")
+        handleProofProcessingError(error);
+        return;
+      }
+      let operandFormula;
+      if (formulasDeepEqual(targetFormula, biconditionalFormula.operand1)) {
+        operandFormula = biconditionalFormula.operand2;
+      } else if (
+          formulasDeepEqual(targetFormula, biconditionalFormula.operand2)) {
+        operandFormula = biconditionalFormula.operand1;
+      } else {
+        let error = new ProofProcessingError("The entered biconditional "
+            + "does not contain the target formula as an operand and "
+            + "hence cannot be used as a justification for the backwards "
+            + "biconditional elimination.");
+        handleProofProcessingError(error);
+        return;
+      }
+      let firstGoalLine;
+      let secondGoalLine;
+      if (biconditionalFirst) {
+        firstGoalLine = new JustifiedProofLine(biconditionalFormula,
+            new SpecialJustification(justTypes.GOAL));
+        secondGoalLine = new JustifiedProofLine(operandFormula,
+            new SpecialJustification(justTypes.GOAL));
+      } else {
+        firstGoalLine = new JustifiedProofLine(operandFormula,
+            new SpecialJustification(justTypes.GOAL));
+        secondGoalLine = new JustifiedProofLine(biconditionalFormula,
+            new SpecialJustification(justTypes.GOAL));
+      }
+      targetLine.prepend(firstGoalLine);
+      targetLine.prepend(new EmptyProofLine());
+      targetLine.prepend(secondGoalLine);
+      justificationLines = [firstGoalLine, secondGoalLine];
+      targetLine.justification = new Justification(justTypes.BICOND_ELIM,
+          justificationLines);
+      completeProofUpdate();
+    }
+
+    function eliminateBiconditionalBackwardsCompleteJustification(justFirst) {
+      let justificationFormula = justificationLines[0].formula;
+      let newGoalFormula;
+      if (justFirst) {
+        newGoalFormula = new Biconditional(justificationFormula, targetFormula);
+      } else {
+        newGoalFormula = new Biconditional(targetFormula, justificationFormula);
+      }
+      let newGoalLine = new JustifiedProofLine(newGoalFormula,
+          new SpecialJustification(justTypes.GOAL));
+      targetLine.prepend(newGoalLine);
+      justificationLines.push(newGoalLine);
+      targetLine.justification = new Justification(justTypes.BICOND_ELIM,
+          justificationLines);
+      completeProofUpdate();
     }
   }
 }
