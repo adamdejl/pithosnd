@@ -785,15 +785,19 @@ function eliminateDoubleNegation() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
+  let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
+  pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    eliminateDoubleNegationBackwards();
+    return;
+  }
   let justificationFormula = justificationLines[0].formula;
   if (justificationFormula.type !== formulaTypes.NEGATION
       || justificationFormula.operand.type !== formulaTypes.NEGATION) {
     throw new ProofProcessingError("The justification formula is not a double "
         + "negation.");
   }
-  let targetLine = retrievedLines.targetLine;
-  /* Used for dynamic parsing of additional formulas */
-  pithosData.targetLine = targetLine;
   let newFormula = justificationFormula.operand.operand;
   let justification
       = new Justification(justTypes.DOUBLE_NEG_ELIM, justificationLines);
@@ -809,6 +813,17 @@ function eliminateDoubleNegation() {
     if (targetLine.prev instanceof EmptyProofLine) {
       targetLine.prev.delete();
     }
+  }
+
+  function eliminateDoubleNegationBackwards() {
+    let targetFormula = targetLine.formula;
+    let newGoalFormula = new Negation(new Negation(targetFormula));
+    let newGoalLine = new JustifiedProofLine(newGoalFormula,
+        new SpecialJustification(justTypes.GOAL));
+    targetLine.prepend(newGoalLine);
+    targetLine.justification = new Justification(justTypes.DOUBLE_NEG_ELIM,
+        [newGoalLine]);
+    completeProofUpdate();
   }
 }
 
