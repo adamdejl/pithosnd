@@ -341,14 +341,18 @@ function eliminateUniversal() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
+  let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
+  pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    eliminateUniversalBackwards();
+    return;
+  }
   let justificationFormula = justificationLines[0].formula;
   if (justificationFormula.type !== formulaTypes.UNIVERSAL) {
     throw new ProofProcessingError("The selected justification formula is "
         + "not a universal.");
   }
-  let targetLine = retrievedLines.targetLine;
-  /* Used for dynamic parsing of additional formulas */
-  pithosData.targetLine = targetLine;
   /* Count the number of universal quantifiers in the justification formula
      and prepare modal allowing the user to choose the number of quantifiers
      to eliminate. */
@@ -494,6 +498,53 @@ function eliminateUniversal() {
     }
     return matchFormulasVariablesReplace(targetFormula, currFormula,
         universalVariablesSet, {});
+  }
+
+  /*
+   * Eliminates universal through a backwards rule application
+   */
+  function eliminateUniversalBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    let targetFormula = targetLine.formula;
+    requestFormulaInput("Please enter the universal formula that should "
+            + `pose as a justification for ${targetFormula.stringRep}:`,
+        "eliminateUniversalBackwardsContinue");
+
+    /*
+     * Catch user action for the backward rule application completion
+     */
+    /* Unbind possible previously bound event */
+    $("#dynamicModalArea").off("click",
+        "#eliminateUniversalBackwardsContinue");
+    $("#dynamicModalArea").on("click", "#eliminateUniversalBackwardsContinue",
+        function() {
+      let skolemConstants = getSkolemConstants(targetLine);
+      let newGoalFormula = parseFormula($("#additionalFormulaInput")[0].value,
+          pithosData.proof.signature, skolemConstants);
+      if (newGoalFormula.type !== formulaTypes.UNIVERSAL) {
+        let error = new ProofProcessingError("The entered justification "
+            + "formula is not a universal.");
+        handleProofProcessingError(error);
+        return;
+      }
+      if (!verifyUniversalElimination(newGoalFormula, targetFormula)) {
+        let error = new ProofProcessingError("The entered universal "
+            + "formula cannot be used as a justification for the originally "
+            + "selected goal formula.")
+        handleProofProcessingError(error);
+        return;
+      }
+      let newGoalLine = new JustifiedProofLine(newGoalFormula,
+          new SpecialJustification(justTypes.GOAL));
+      justificationLines.push(newGoalLine);
+      targetLine.prepend(newGoalLine);
+      targetLine.justification = new Justification(justTypes.UNIV_ELIM,
+          [newGoalLine]);
+      completeProofUpdate();
+    });
   }
 }
 
