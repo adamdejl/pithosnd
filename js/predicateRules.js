@@ -511,15 +511,15 @@ function eliminateUniversal() {
     let targetFormula = targetLine.formula;
     requestFormulaInput("Please enter the universal formula that should "
             + `pose as a justification for ${targetFormula.stringRep}:`,
-        "eliminateUniversalBackwardsContinue");
+        "eliminateUniversalBackwardsComplete");
 
     /*
      * Catch user action for the backward rule application completion
      */
     /* Unbind possible previously bound event */
     $("#dynamicModalArea").off("click",
-        "#eliminateUniversalBackwardsContinue");
-    $("#dynamicModalArea").on("click", "#eliminateUniversalBackwardsContinue",
+        "#eliminateUniversalBackwardsComplete");
+    $("#dynamicModalArea").on("click", "#eliminateUniversalBackwardsComplete",
         function() {
       let skolemConstants = getSkolemConstants(targetLine);
       let newGoalFormula = parseFormula($("#additionalFormulaInput")[0].value,
@@ -562,6 +562,13 @@ function eliminateUniversalImplication() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
+  let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
+  pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    eliminateUniversalImplicationBackwards();
+    return;
+  }
   /* Determine which formula serves as an antecedent and which as universal
      implication */
   let justFormula1 = justificationLines[0].formula;
@@ -611,9 +618,6 @@ function eliminateUniversalImplication() {
     throw new ProofProcessingError("The selected lines cannot be used as "
         + "a justification to universal implication elimination.");
   }
-  let targetLine = retrievedLines.targetLine;
-  /* Used for dynamic parsing of additional formulas */
-  pithosData.targetLine = targetLine;
   /* Declare variable for use by following code */
   let underivableVarsSet = new Set([]);
   if (targetLine instanceof EmptyProofLine) {
@@ -633,31 +637,15 @@ function eliminateUniversalImplication() {
       let newLine = new JustifiedProofLine(newFormula, justification);
       targetLine.prepend(newLine);
     } else {
-      /* User needs to choose replacement terms for some of the variables */
-      let modalBody = "<p>Some of the terms that should replace the "
-           + "universally quantified variables could not be automatically "
-           + "derived. Please enter the terms that should replace the "
-           + "following variables in the formula "
-           + `${unpackedUniversal.innerFormula.operand2.stringRep}:</p>`;
-      let i = 0;
-      underivableVarsSet.forEach(function(variable) {
-        modalBody +=
-            `<label for="additionalTermInput${i}">Variable ${variable}</label>
-             <input id="additionalTermInput${i}" class="additional-term-input form-control mb-2" type="text" placeholder="Please type your term here." value="" autocomplete="off">
-             <div id="additionalTermParsed${i}" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
-               The result of the parsing will appear here.
-             </div>`;
-        i++;
-      });
-      showModal("Input required", modalBody, undefined,
-          "eliminateUniversalImplicationComplete", undefined, true);
+      requestReplacementTerms("eliminateUniversalImplicationComplete",
+          unpackedUniversal.innerFormula.operand2, underivableVarsSet);
     }
   } else {
     /* Target is a goal line */
     let targetFormula = targetLine.formula;
     if (!matchFormulasVariablesReplace(targetFormula,
         unpackedUniversal.innerFormula.operand2,
-        unpackedUniversal.variablesSet, {})) {
+        unpackedUniversal.variablesSet, replacements)) {
       throw new ProofProcessingError("The selected goal line cannot be derived "
           + "from the selected justification lines using universal implication "
           + "elimination.");
@@ -667,6 +655,27 @@ function eliminateUniversalImplication() {
     if (targetLine.prev instanceof EmptyProofLine) {
       targetLine.prev.delete();
     }
+  }
+
+  function requestReplacementTerms(buttonId, formula, underivableVarsSet) {
+    /* User needs to choose replacement terms for some of the variables */
+    let modalBody = "<p>Some of the terms that should be used in place of "
+         + "the universally quantified variables could not be automatically "
+         + "derived. Please enter the terms that should replace the "
+         + "following variables in the formula "
+         + `${formula.stringRep}:</p>`;
+    let i = 0;
+    underivableVarsSet.forEach(function(variable) {
+      modalBody +=
+          `<label for="additionalTermInput${i}">Variable ${variable}</label>
+           <input id="additionalTermInput${i}" class="additional-term-input form-control mb-2" type="text" placeholder="Please type your term here." value="" autocomplete="off">
+           <div id="additionalTermParsed${i}" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
+             The result of the parsing will appear here.
+           </div>`;
+      i++;
+    });
+    showModal("Input required", modalBody, undefined,
+        buttonId, undefined, true);
   }
 
   /*
@@ -720,6 +729,255 @@ function eliminateUniversalImplication() {
       formulaData.isUniversalImplication = true;
     }
     return formulaData;
+  }
+
+  /*
+   * Eliminates universal implication through a backward rule application
+   */
+  function eliminateUniversalImplicationBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    let targetFormula = targetLine.formula;
+    /* Declare variables for use by the following code */
+    let universalImplication;
+    let universalImplicationFirst;
+    let replacements;
+    let underivableVarsSet;
+    let unpacked;
+    if (justificationLines.length === 0) {
+      /* No justification formulas have been selected - prompt user for
+         the universal implication formula */
+      let requestText = "Please enter the universal implication formula "
+          + "that should pose as one of the justification formulas "
+          + `for ${targetFormula.stringRep} and choose which formula `
+          + "should be proven first:";
+      let buttons =
+          `<button id="eliminateUniversalImplicationBackwardsContinueUnivImp" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">Prove universal implication first</button>
+           <button id="eliminateUniversalImplicationBackwardsContinueAnt" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">Prove antecedent first</button>`
+      requestFormulaInput(requestText, undefined, buttons);
+    } else {
+      /* A justification forula has been selected - attempt to determine the
+         type of the formula and possibly prompt for additional information */
+      let justificationFormula = justificationLines[0].formula;
+      unpacked = unpackUniversal(justificationFormula);
+      let varSet = unpacked.variablesSet;
+      let innerFormula = unpacked.innerFormula;
+      replacements = {};
+      if (unpacked.isUniversalImplication && matchFormulasVariablesReplace(
+          targetFormula, innerFormula.operand2, varSet, replacements)) {
+        /* The selected justification formula is a universal implication -
+           attempt to automatically derive the new goal formula
+           (corresponding to the inner antecedent) */
+        underivableVarsSet = new Set([]);
+        varSet.forEach(function(variable) {
+          if (!replacements.hasOwnProperty(variable)) {
+            underivableVarsSet.add(variable);
+          }
+        });
+        if (underivableVarsSet.size === 0) {
+          /* Terms for all variables can be automatically derived */
+          let newGoalFormula = replaceVariables(
+              innerFormula.operand1, replacements);
+          let newGoalLine = new JustifiedProofLine(newGoalFormula,
+              new SpecialJustification(justTypes.GOAL));
+          targetLine.prepend(newGoalLine);
+          justificationLines.push(newGoalLine);
+          targetLine.justification
+              = new Justification(justTypes.UNIV_IMP_ELIM, justificationLines);
+        } else {
+          /* Terms for some of the variables could not be automatically derived
+             - prompt user for additional replacements */
+          requestReplacementTerms(
+              "eliminateUniversalImplicationBackwardsComplete",
+              innerFormula.operand1, underivableVarsSet);
+        }
+      } else {
+        /* The selected justification formula is an antecedent for the
+           universal implication - prompt the user for the universal
+           implication formula */
+       let requestText = "Please enter the universal implication formula "
+           + "that should pose as one of the justification formulas "
+           + `for ${targetFormula.stringRep}:`;
+       requestFormulaInput(requestText,
+           "eliminateUniversalImplicationBackwardsCompleteJustAnt");
+      }
+    }
+
+    /*
+     * Catch user action in order to complete the backward rule application
+       when universal implication has been chosen as the justification formula
+     */
+    $("#dynamicModalArea").off("click",
+        "#eliminateUniversalImplicationBackwardsCompleteJustAnt");
+    $("#dynamicModalArea").on("click",
+        "#eliminateUniversalImplicationBackwardsCompleteJustAnt", function() {
+      eliminateUniversalImplicationBackwardsContinue(null);
+    });
+
+
+    /*
+     * Catch user action in order to proceed with the backward
+       rule application
+     */
+    /* Unbind possible previously bound event */
+    $("#dynamicModalArea").off("click",
+        "#eliminateUniversalImplicationBackwardsContinueUnivImp");
+    $("#dynamicModalArea").off("click",
+        "#eliminateUniversalImplicationBackwardsContinueAnt");
+    $("#dynamicModalArea").on("click",
+        "#eliminateUniversalImplicationBackwardsContinueUnivImp", function() {
+      eliminateUniversalImplicationBackwardsContinue(true);
+    });
+    $("#dynamicModalArea").on("click",
+        "#eliminateUniversalImplicationBackwardsContinueAnt", function() {
+      eliminateUniversalImplicationBackwardsContinue(false);
+    });
+
+    function eliminateUniversalImplicationBackwardsContinue(universalFirst) {
+      universalImplicationFirst = universalFirst;
+      let skolemConstants = getSkolemConstants(targetLine);
+      universalImplication = parseFormula(
+          $("#additionalFormulaInput")[0].value,
+          pithosData.proof.signature, skolemConstants);
+      unpacked = unpackUniversal(universalImplication);
+      let varSet = unpacked.variablesSet;
+      let innerFormula = unpacked.innerFormula;
+      replacements = {};
+      if (!unpacked.isUniversalImplication) {
+        let error = new ProofProcessingError("The entered formula is not a "
+            + "universal implication.")
+        handleProofProcessingError(error);
+        return;
+      }
+      if (!matchFormulasVariablesReplace(targetFormula, innerFormula.operand2,
+          varSet, replacements)) {
+        let error = new ProofProcessingError("The inner consequent of the "
+            + "entered universal implication does not match the originally "
+            + "selected target formula.")
+        handleProofProcessingError(error);
+        return;
+      }
+      if (justificationLines.length === 0) {
+        /* Continuing from backwards rule application without any justification
+           lines */
+        underivableVarsSet = new Set([]);
+        varSet.forEach(function(variable) {
+          if (!replacements.hasOwnProperty(variable)) {
+            underivableVarsSet.add(variable);
+          }
+        });
+        if (underivableVarsSet.size === 0) {
+          /* Terms for all variables can be automatically derived */
+          let antecedent = replaceVariables(
+              innerFormula.operand1, replacements);
+          let newGoalLine1;
+          let newGoalLine2;
+          if (universalFirst) {
+            newGoalLine1 = new JustifiedProofLine(universalImplication,
+                new SpecialJustification(justTypes.GOAL));
+            newGoalLine2 = new JustifiedProofLine(antecedent,
+                new SpecialJustification(justTypes.GOAL));
+          } else {
+            newGoalLine1 = new JustifiedProofLine(antecedent,
+                new SpecialJustification(justTypes.GOAL));
+            newGoalLine2 = new JustifiedProofLine(universalImplication,
+                new SpecialJustification(justTypes.GOAL));
+          }
+          targetLine.prepend(newGoalLine1);
+          targetLine.prepend(new EmptyProofLine());
+          targetLine.prepend(newGoalLine2);
+          targetLine.justification
+              = new Justification(justTypes.UNIV_IMP_ELIM,
+                  [newGoalLine1, newGoalLine2]);
+          completeProofUpdate();
+        } else {
+          /* Terms for some of the variables could not be automatically derived
+             - prompt user for additional replacements */
+          requestReplacementTerms(
+              "eliminateUniversalImplicationBackwardsComplete",
+              innerFormula.operand1, underivableVarsSet);
+        }
+      } else {
+        /* Continuing from backwards rule application with the antecedent
+           formula chosen as a justification */
+        let justificationFormula = justificationLines[0].formula;
+        if (!matchFormulasVariablesReplace(justificationFormula,
+            innerFormula.operand1, varSet, replacements)) {
+          let error = new ProofProcessingError("The inner antecedent of the "
+              + "entered universal implication does not match the "
+              + "selected justification formula.")
+          handleProofProcessingError(error);
+          return;
+        }
+        let newGoalLine = new JustifiedProofLine(universalImplication,
+            new SpecialJustification(justTypes.GOAL));
+        targetLine.prepend(newGoalLine);
+        justificationLines.push(newGoalLine);
+        targetLine.justification
+            = new Justification(justTypes.UNIV_IMP_ELIM, justificationLines)
+        completeProofUpdate();
+      }
+    }
+
+    /*
+     * Catch user action in order to  complete the backward rule application
+     */
+    /* Unbind possible previously bound event */
+    $("#dynamicModalArea").off("click",
+        "#eliminateUniversalImplicationBackwardsComplete");
+    $("#dynamicModalArea").on("click",
+        "#eliminateUniversalImplicationBackwardsComplete", function() {
+      let additionalReplacements = {};
+      let skolemConstants = getSkolemConstants(targetLine);
+      let i = 0;
+      underivableVarsSet.forEach(function(variable) {
+        let term = parseSeparateTerm($("#additionalTermInput" + i)[0].value,
+            pithosData.proof.signature, skolemConstants);
+        additionalReplacements[variable] = term;
+        i++;
+      });
+      let tmpFormula = replaceVariables(
+          unpacked.innerFormula.operand1, replacements);
+      let antecedentFormula
+          = replaceVariables(tmpFormula, additionalReplacements);
+      if (justificationLines.length === 0) {
+        /* Continuing from backwards rule application without any justification
+           lines */
+        let newGoalLine1;
+        let newGoalLine2;
+        if (universalImplicationFirst) {
+          newGoalLine1 = new JustifiedProofLine(universalImplication,
+              new SpecialJustification(justTypes.GOAL));
+          newGoalLine2 = new JustifiedProofLine(antecedentFormula,
+              new SpecialJustification(justTypes.GOAL));
+        } else {
+          newGoalLine1 = new JustifiedProofLine(antecedentFormula,
+              new SpecialJustification(justTypes.GOAL));
+          newGoalLine2 = new JustifiedProofLine(universalImplication,
+              new SpecialJustification(justTypes.GOAL));
+        }
+        targetLine.prepend(newGoalLine1);
+        targetLine.prepend(new EmptyProofLine());
+        targetLine.prepend(newGoalLine2);
+        targetLine.justification
+            = new Justification(justTypes.UNIV_IMP_ELIM,
+                [newGoalLine1, newGoalLine2]);
+      } else {
+        /* Continuing from backwards rule application with the universal
+           implication formula chosen as a justification */
+        let newGoalLine = new JustifiedProofLine(antecedentFormula,
+            new SpecialJustification(justTypes.GOAL));
+        targetLine.prepend(newGoalLine);
+        justificationLines.push(newGoalLine);
+        targetLine.justification
+            = new Justification(justTypes.UNIV_IMP_ELIM, justificationLines);
+        let justification
+            = new Justification(justTypes.UNIV_IMP_ELIM, justificationLines);
+      }
+      completeProofUpdate();
+    });
   }
 }
 
