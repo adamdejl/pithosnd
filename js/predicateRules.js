@@ -1547,14 +1547,18 @@ function applyEqualitySymmetry() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
+  let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
+  pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    applyEqualitySymmetryBackwards();
+    return;
+  }
   let justificationFormula = justificationLines[0].formula;
   if (justificationFormula.type !== formulaTypes.EQUALITY) {
     throw new ProofProcessingError("The selected justification formula is not "
         + "an equality.")
   }
-  let targetLine = retrievedLines.targetLine;
-  /* Used for dynamic parsing of additional formulas */
-  pithosData.targetLine = targetLine;
   let newFormula = new Equality(justificationFormula.term2,
       justificationFormula.term1);
   if (targetLine instanceof EmptyProofLine) {
@@ -1578,6 +1582,28 @@ function applyEqualitySymmetry() {
     if (targetLine.prev instanceof EmptyProofLine) {
       targetLine.prev.delete();
     }
+  }
+
+  /*
+   * Applies equality symmetry rule through backwards application
+   */
+  function applyEqualitySymmetryBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    let targetFormula = targetLine.formula;
+    if (targetFormula.type !== formulaTypes.EQUALITY) {
+      throw new ProofProcessingError("The selected target formula is not "
+          + "an equality.")
+    }
+    let newGoalFormula = new Equality(targetFormula.term2, targetFormula.term1);
+    let newGoalLine = new JustifiedProofLine(newGoalFormula,
+        new SpecialJustification(justTypes.GOAL));
+    targetLine.prepend(newGoalLine);
+    justificationLines.push(newGoalLine);
+    targetLine.justification
+        = new Justification(justTypes.EQ_SYM, justificationLines);
   }
 }
 
