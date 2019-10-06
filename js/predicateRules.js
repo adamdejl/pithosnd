@@ -988,20 +988,36 @@ function applyEqualitySubstitution() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
+  let targetLine = retrievedLines.targetLine;
+  /* Used for dynamic parsing of additional formulas */
+  pithosData.targetLine = targetLine;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    applyEqualitySubstitutionBackwards();
+    return;
+  }
   let possibleReplacements = [];
+  let suggestedTargetFormulas = [];
   let justFormula1 = justificationLines[0].formula;
   let justFormula2 = justificationLines[1].formula;
   if (justFormula1.type === formulaTypes.EQUALITY) {
-    if (formulaContainsTerm(justFormula2, justFormula1.term1)
-        && !formulasDeepEqual(justFormula1.term1, justFormula1.term2)) {
+    if (formulaContainsTerm(justFormula2, justFormula1.term1)) {
+      if (!formulasDeepEqual(justFormula1.term1, justFormula1.term2)) {
+        let suggestion = replaceTerm(justFormula2, justFormula1.term1,
+            justFormula1.term2);
+        suggestedTargetFormulas.push(suggestion);
+      }
       possibleReplacements.push({
         formula: justFormula2,
         replaced: justFormula1.term1,
         replacement: justFormula1.term2
       });
     }
-    if (formulaContainsTerm(justFormula2, justFormula1.term2)
-        && !formulasDeepEqual(justFormula1.term2, justFormula1.term1)) {
+    if (formulaContainsTerm(justFormula2, justFormula1.term2)) {
+      if (!formulasDeepEqual(justFormula1.term2, justFormula1.term1)) {
+        let suggestion = replaceTerm(justFormula2, justFormula1.term2,
+            justFormula1.term1);
+        suggestedTargetFormulas.push(suggestion);
+      }
       possibleReplacements.push({
         formula: justFormula2,
         replaced: justFormula1.term2,
@@ -1010,16 +1026,24 @@ function applyEqualitySubstitution() {
     }
   }
   if (justFormula2.type === formulaTypes.EQUALITY) {
-    if (formulaContainsTerm(justFormula1, justFormula2.term1)
-        && !formulasDeepEqual(justFormula2.term1, justFormula2.term2)) {
+    if (formulaContainsTerm(justFormula1, justFormula2.term1)) {
+      if (!formulasDeepEqual(justFormula2.term1, justFormula2.term2)) {
+        let suggestion = replaceTerm(justFormula1, justFormula2.term1,
+            justFormula2.term2);
+        suggestedTargetFormulas.push(suggestion);
+      }
       possibleReplacements.push({
         formula: justFormula1,
         replaced: justFormula2.term1,
         replacement: justFormula2.term2
       });
     }
-    if (formulaContainsTerm(justFormula1, justFormula2.term2)
-        && !formulasDeepEqual(justFormula2.term2, justFormula2.term1)) {
+    if (formulaContainsTerm(justFormula1, justFormula2.term2)) {
+      if (!formulasDeepEqual(justFormula2.term2, justFormula2.term1)) {
+        let suggestion = replaceTerm(justFormula1, justFormula2.term2,
+            justFormula2.term1);
+        suggestedTargetFormulas.push(suggestion);
+      }
       possibleReplacements.push({
         formula: justFormula1,
         replaced: justFormula2.term2,
@@ -1027,6 +1051,8 @@ function applyEqualitySubstitution() {
       });
     }
   }
+  /* Remove duplicate suggested formulas */
+  _.uniqWith(suggestedTargetFormulas, formulasDeepEqual);
   if (possibleReplacements.length === 0) {
     throw new ProofProcessingError("The selected justification formulas cannot "
         + "be used for application of the equality substitution rule. "
@@ -1034,17 +1060,14 @@ function applyEqualitySubstitution() {
         + "equality and that at least one of the terms in the equality "
         + "appears in the second selected formula.");
   }
-  let targetLine = retrievedLines.targetLine;
-  /* Used for dynamic parsing of additional formulas */
-  pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
     let modalText =
          "Please enter the formula that you would like to introduce using "
-         + "equality substitution or choose one of the automatic replacements.";
+         + "equality substitution or choose one of the suggested formulas.";
     let additionalContent = "";
-    for (let i = 0; i < possibleReplacements.length; i++) {
+    for (let i = 0; i < suggestedTargetFormulas.length; i++) {
       additionalContent +=
-          `<button id="replacement${i}" type="button" class="btn btn-outline-primary btn-block" data-dismiss="modal">Replace ${possibleReplacements[i].replaced.stringRep} for ${possibleReplacements[i].replacement.stringRep} in ${possibleReplacements[i].formula.stringRep}</button>`
+          `<button id="replacement${i}" type="button" class="btn btn-outline-primary btn-block" data-dismiss="modal">Introduce ${suggestedTargetFormulas[i].stringRep}</button>`
     }
     let button = `<button id="substituteEqualityFormula" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal" disabled>Use entered formula</button>`
     requestFormulaInput(modalText, undefined, button, additionalContent);
@@ -1053,8 +1076,7 @@ function applyEqualitySubstitution() {
        and check the rule application. */
     let targetFormula = targetLine.formula;
     let anyReplacementValid = possibleReplacements
-        .map(r => matchFormulasTermsReplace(targetFormula, r.formula, r))
-        .reduce((b1, b2) => b1 || b2, false);
+        .some(r => matchFormulasTermsReplace(r.formula, targetFormula, r));
     if (!anyReplacementValid) {
      throw new ProofProcessingError("The selected target formula cannot be "
          + "derived from the selected justification formulas using equality "
@@ -1071,7 +1093,7 @@ function applyEqualitySubstitution() {
   /*
    * Catch user action to complete rule application
    */
-  for (let i = 0; i < possibleReplacements.length; i++) {
+  for (let i = 0; i < suggestedTargetFormulas.length; i++) {
     $("#dynamicModalArea").off("click", "#replacement" + i);
     $("#dynamicModalArea").on("click", "#replacement" + i,
         function() {
@@ -1084,24 +1106,21 @@ function applyEqualitySubstitution() {
     equalitySubstitutionComplete(false);
   });
 
-  function equalitySubstitutionComplete(automatic, replacementIndex) {
+  function equalitySubstitutionComplete(automatic, suggestionIndex) {
     let newFormula;
     if (automatic) {
-      let replacement = possibleReplacements[replacementIndex];
-      newFormula = replaceTerm(replacement.formula, replacement.replaced,
-          replacement.replacement);
+      newFormula = suggestedTargetFormulas[suggestionIndex];
     } else {
       let skolemConstants = getSkolemConstants(targetLine);
       newFormula = parseFormula($("#additionalFormulaInput")[0].value,
           pithosData.proof.signature, skolemConstants);
       let anyReplacementValid = possibleReplacements
-          .map(r => matchFormulasTermsReplace(newFormula, r.formula, r))
-          .reduce((b1, b2) => b1 || b2, false);
+          .some(r => matchFormulasTermsReplace(r.formula, newFormula, r));
       if (!anyReplacementValid) {
         let error = new ProofProcessingError("The entered formula cannot be "
             + "derived from the selected justification formulas using equality "
-            + "substitution. Please check that only one term has been substituted "
-            + "in accordance with the selected equality formula.")
+            + "substitution. Please check that only one term has been "
+            + "substituted in accordance with the selected equality formula.")
         handleProofProcessingError(error);
         return;
       }
@@ -1111,6 +1130,357 @@ function applyEqualitySubstitution() {
     let newLine = new JustifiedProofLine(newFormula, justification);
     targetLine.prepend(newLine);
     completeProofUpdate();
+  }
+
+  /*
+   * Checks whether the target formula can be derived by equality substitution
+     from the justification formula
+   * Populates replacementObject with information about the match on success
+     or respects the replacement specified by this object
+   */
+  function matchFormulasTermsReplace(justificationFormula, targetFormula,
+      replacementObject) {
+    if (targetFormula.type !== justificationFormula.type
+        && !(targetFormula instanceof Term
+            && justificationFormula instanceof Term)) {
+      /* Types differ on non-term formulas - report failure */
+      return false;
+    }
+    if (formulasDeepEqual(justificationFormula, targetFormula)) {
+      /* Formulas are identical - report match success */
+      return true;
+    }
+    if (justificationFormula instanceof Term) {
+      if (justificationFormula.type === termTypes.CONSTANT
+          || targetFormula.type === termTypes.CONSTANT) {
+        /* Cannot recurse deeper - check replacement */
+        return checkReplacement(justificationFormula, targetFormula,
+            replacementObject);
+      }
+      if (targetFormula.type === termTypes.FUNCTION
+          && justificationFormula.type === termTypes.FUNCTION) {
+        if (targetFormula.name !== justificationFormula.name) {
+          /* Function names do not match - check replacement */
+          return checkReplacement(justificationFormula, targetFormula,
+              replacementObject);
+        }
+        return _.zipWith(justificationFormula.terms, targetFormula.terms,
+            (t1, t2) => matchFormulasTermsReplace(t1, t2, replacementObject))
+            .reduce((b1, b2) => b1 && b2, true);
+      }
+    } else if (justificationFormula instanceof Quantifier) {
+      if (justificationFormula.variableString
+          !== targetFormula.variableString) {
+        return false;
+      }
+      return matchFormulasTermsReplace(justificationFormula.predicate,
+          targetFormula.predicate, replacementObject);
+    } else if (justificationFormula.type === formulaTypes.RELATION) {
+      if (justificationFormula.name !== targetFormula.name) {
+        return false;
+      }
+      return _.zipWith(justificationFormula.terms, targetFormula.terms,
+          (t1, t2) => matchFormulasTermsReplace(t1, t2, replacementObject))
+          .reduce((b1, b2) => b1 && b2, true);
+    } else if (justificationFormula instanceof Equality) {
+      return matchFormulasTermsReplace(justificationFormula.term1,
+              targetFormula.term1, replacementObject)
+          && matchFormulasTermsReplace(justificationFormula.term2,
+              targetFormula.term2, replacementObject);
+    } else if (targetFormula.type === formulaTypes.NEGATION) {
+      return matchFormulasTermsReplace(justificationFormula.operand,
+          targetFormula.operand, replacementObject);
+    } else if (justificationFormula instanceof BinaryConnective) {
+      if (justificationFormula.isAssociative) {
+        let operandsJustificationFormula = [];
+        extractOperands(justificationFormula, operandsJustificationFormula,
+            justificationFormula.type);
+        let operandsTargetFormula = [];
+        extractOperands(targetFormula, operandsTargetFormula,
+            targetFormula.type);
+        return _.zipWith(operandsJustificationFormula, operandsTargetFormula,
+            (f1, f2) => matchFormulasTermsReplace(f1, f2, replacementObject))
+            .reduce((b1, b2) => b1 && b2, true);
+      } else {
+        return matchFormulasTermsReplace(justificationFormula.operand1,
+                targetFormula.operand1, replacementObject)
+            && matchFormulasTermsReplace(justificationFormula.operand2,
+                targetFormula.operand2, replacementObject);
+      }
+    } else {
+      return false;
+    }
+
+    function checkReplacement(justificationFormula, targetFormula,
+        replacementObject) {
+      if (!isClosedTerm(justificationFormula)
+          || !isClosedTerm(targetFormula)) {
+        return false;
+      }
+      if (replacementObject.replaced instanceof Term
+          && replacementObject.replaced instanceof Term) {
+        return formulasDeepEqual(justificationFormula,
+                replacementObject.replaced)
+            && formulasDeepEqual(targetFormula, replacementObject.replacement);
+      }
+      replacementObject.replaced = justificationFormula;
+      replacementObject.replacement = targetFormula;
+      return true;
+    }
+  }
+
+  /*
+   * Applies equality substitution through a backward rule application
+   */
+  function applyEqualitySubstitutionBackwards() {
+    if (targetLine instanceof EmptyProofLine) {
+      throw new ProofProcessingError("The backward rule application cannot "
+          + "be performed on an empty line.");
+    }
+    let targetFormula = targetLine.formula;
+    /* Declare variables for use by the following code */
+    let proveEqualityFirst;
+    let suggestedJustificationFormulas = [];
+    let possibleReplacements = [];
+    let replacementObject;
+    let equalityJustification;
+    let otherJustification;
+    let justificationFormula;
+    if (justificationLines.length === 0) {
+      /* No justification formulas have been selected - prompt user for
+         the equality formula */
+      let requestText = "Please enter the equality formula that should "
+          + "be used as a justification for the equality substitution "
+          + "and chose which of the justification formulas should "
+          + "be proven first. The currently selected target formula is "
+          + `${targetFormula.stringRep}.`;
+      let buttons =
+          `<button id="substituteEqualityBackwardsContinueEqFirst" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">Prove equality first</button>
+           <button id="substituteEqualityBackwardsContinueFormFirst" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">Prove formula with replaced terms first</button>`
+      requestFormulaInput(requestText, undefined, buttons);
+    } else {
+      /* A justification forula has been selected - attempt to determine the
+         type of the formula and prompt for additional information */
+      justificationFormula = justificationLines[0].formula;
+      replacementObject = {};
+      if (matchFormulasTermsReplace(justificationFormula, targetFormula,
+          replacementObject)) {
+        /* The selected justification formula is the formula with replaced
+           terms. Prompt the user for the order of the operands in the
+           justification equality */
+        let requestText = "<p>Please choose the equality that should "
+            + "pose as a new goal:</p>";
+        let buttons =
+            `<button id="substituteEqualityBackwardsCompleteJustForm1" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">${replacementObject.replaced.stringRep} = ${replacementObject.replacement.stringRep}</button>
+             <button id="substituteEqualityBackwardsCompleteJustForm2" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">${replacementObject.replacement.stringRep} = ${replacementObject.replaced.stringRep}</button>`
+        showModal("Input required", requestText, undefined, undefined, buttons);
+      } else {
+        if (justificationFormula.type !== formulaTypes.EQUALITY) {
+          throw new ProofProcessingError("The selected justification formula "
+              + "does not correspond with the target formula and hence the "
+              + "equality substitution rule cannot be applied.")
+        }
+        /* An equality formula has been selected - determine the possible
+           terms replacements and prompt the user to choose one */
+        requestFormulaReplacedTerms(justificationFormula, "justificationJustEq",
+            "substituteEqualityBackwardsCompleteJustEq");
+
+      }
+    }
+
+    function requestFormulaReplacedTerms(equality, suggestedId,
+        enteredId) {
+      if (formulaContainsTerm(targetFormula, equality.term1)) {
+        let suggestion = replaceTerm(targetFormula, equality.term1,
+            equality.term2);
+        if (!formulasDeepEqual(equality.term1, equality.term2)) {
+          suggestedJustificationFormulas.push(suggestion);
+        }
+        possibleReplacements.push({
+          justification: suggestion,
+          replaced: equality.term2,
+          replacement: equality.term1
+        });
+      }
+      if (formulaContainsTerm(targetFormula, equality.term2)) {
+        let suggestion = replaceTerm(targetFormula, equality.term2,
+            equality.term1);
+        if (!formulasDeepEqual(equality.term2, equality.term1)) {
+          suggestedJustificationFormulas.push(suggestion);
+        }
+        possibleReplacements.push({
+          justification: suggestion,
+          replaced: equality.term1,
+          replacement: equality.term2
+        });
+      }
+      if (possibleReplacements.length === 0) {
+        throw new ProofProcessingError("The selected justification formula "
+            + "cannot be used for application of the equality substitution "
+            + "rule. Please check that the selected equality contains "
+            + "terms that occur in the target formula.");
+      }
+      let modalText =
+           "Please enter the formula that should pose as a justification "
+           + "for the equality substitution or choose one of the formulas "
+           + "suggested. The selected target formula is "
+           + `${targetFormula.stringRep}.`;
+      let additionalContent = "";
+      for (let i = 0; i < suggestedJustificationFormulas.length; i++) {
+        additionalContent +=
+            `<button id="${suggestedId}${i}" type="button" class="btn btn-outline-primary btn-block" data-dismiss="modal">${suggestedJustificationFormulas[i].stringRep}</button>`
+      }
+      let button = `<button id="${enteredId}" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal" disabled>Use entered formula</button>`
+      requestFormulaInput(modalText, undefined, button, additionalContent);
+    }
+
+    /*
+     * Catch user action to continue with the backwards equality substitution
+       if no justification formula has been selected
+     */
+    $("#dynamicModalArea").off("click",
+        "#substituteEqualityBackwardsContinueEqFirst");
+    $("#dynamicModalArea").on("click",
+        "#substituteEqualityBackwardsContinueEqFirst", function() {
+      applyEqualitySubstitutionBackwardsContinue(true);
+    });
+    $("#dynamicModalArea").off("click",
+        "#substituteEqualityBackwardsContinueFormFirst");
+    $("#dynamicModalArea").on("click",
+        "#substituteEqualityBackwardsContinueFormFirst", function() {
+      applyEqualitySubstitutionBackwardsContinue(false);
+    });
+
+    function applyEqualitySubstitutionBackwardsContinue(equalityFirst) {
+      proveEqualityFirst = equalityFirst;
+      let skolemConstants = getSkolemConstants(targetLine);
+      equalityJustification = parseFormula(
+          $("#additionalFormulaInput")[0].value,
+          pithosData.proof.signature, skolemConstants);
+      requestFormulaReplacedTerms(equalityJustification, "justificationNoJust",
+          "substituteEqualityBackwardsCompleteNoJust");
+
+      /*
+       * Catch user action to complete the backwards equality substitution
+         if no justification line has been selected
+       */
+      for (let i = 0; i < suggestedJustificationFormulas.length; i++) {
+        $("#dynamicModalArea").off("click", "#justificationNoJust" + i);
+        $("#dynamicModalArea").on("click", "#justificationNoJust" + i,
+            function() {
+          otherJustification = suggestedJustificationFormulas[i];
+          applyEqualitySubstitutionBackwardsCompleteNoJust();
+        });
+      }
+      $("#dynamicModalArea").off("click",
+          "#substituteEqualityBackwardsCompleteNoJust");
+      $("#dynamicModalArea").on("click",
+          "#substituteEqualityBackwardsCompleteNoJust", function() {
+        let skolemConstants = getSkolemConstants(targetLine);
+        otherJustification = parseFormula(
+            $("#additionalFormulaInput")[0].value,
+            pithosData.proof.signature, skolemConstants);
+        let anyReplacementValid = possibleReplacements
+            .some(r =>
+                matchFormulasTermsReplace(otherJustification, targetFormula, r));
+        if (!anyReplacementValid) {
+          let error = new ProofProcessingError("The entered formula cannot be "
+              + "used as a justification for the selected target formula.")
+          handleProofProcessingError(error);
+          return;
+        }
+        applyEqualitySubstitutionBackwardsCompleteNoJust();
+      });
+
+      function applyEqualitySubstitutionBackwardsCompleteNoJust() {
+        let newGoalLine1;
+        let newGoalLine2;
+        if (proveEqualityFirst) {
+          newGoalLine1 = new JustifiedProofLine(equalityJustification,
+              new SpecialJustification(justTypes.GOAL));
+          newGoalLine2 = new JustifiedProofLine(otherJustification,
+              new SpecialJustification(justTypes.GOAL));
+        } else {
+          newGoalLine1 = new JustifiedProofLine(otherJustification,
+              new SpecialJustification(justTypes.GOAL));
+          newGoalLine2 = new JustifiedProofLine(equalityJustification,
+              new SpecialJustification(justTypes.GOAL));
+        }
+        targetLine.prepend(newGoalLine1);
+        targetLine.prepend(new EmptyProofLine());
+        targetLine.prepend(newGoalLine2);
+        targetLine.justification
+            = new Justification(justTypes.EQ_SUB,
+                [newGoalLine1, newGoalLine2]);
+        completeProofUpdate();
+      }
+    }
+
+    /*
+     * Catch user action to complete the backwards equality substitution
+       if the formula with replaced terms has been selected as the
+       only justification formula
+     */
+    $("#dynamicModalArea").off("click",
+        "#substituteEqualityBackwardsCompleteJustForm1");
+    $("#dynamicModalArea").on("click",
+        "#substituteEqualityBackwardsCompleteJustForm1", function() {
+      otherJustification = new Equality(replacementObject.replaced,
+          replacementObject.replacement)
+      applyEqualitySubstitutionBackwardsCompleteJust();
+    });
+    $("#dynamicModalArea").off("click",
+        "#substituteEqualityBackwardsCompleteJustForm2");
+    $("#dynamicModalArea").on("click",
+        "#substituteEqualityBackwardsCompleteJustForm2", function() {
+      otherJustification = new Equality(replacementObject.replacement,
+          replacementObject.replaced)
+      applyEqualitySubstitutionBackwardsCompleteJust();
+    });
+
+    /*
+     * Catch user action to complete the backward equality substitution if an
+       equality has been selected as the only justification formula
+     */
+    for (let i = 0; i < suggestedJustificationFormulas.length; i++) {
+      $("#dynamicModalArea").off("click", "#justificationJustEq" + i);
+      $("#dynamicModalArea").on("click", "#justificationJustEq" + i,
+          function() {
+        otherJustification = suggestedJustificationFormulas[i];
+        applyEqualitySubstitutionBackwardsCompleteJust();
+      });
+    }
+    $("#dynamicModalArea").off("click",
+        "#substituteEqualityBackwardsCompleteJustEq");
+    $("#dynamicModalArea").on("click",
+        "#substituteEqualityBackwardsCompleteJustEq", function() {
+      let skolemConstants = getSkolemConstants(targetLine);
+      otherJustification = parseFormula(
+          $("#additionalFormulaInput")[0].value,
+          pithosData.proof.signature, skolemConstants);
+      let anyReplacementValid = possibleReplacements
+          .some(r =>
+              matchFormulasTermsReplace(otherJustification, targetFormula, r));
+      if (!anyReplacementValid) {
+        let error = new ProofProcessingError("The entered formula cannot be "
+            + "used as a justification for the selected target formula.")
+        handleProofProcessingError(error);
+        return;
+      }
+      applyEqualitySubstitutionBackwardsCompleteJust();
+    });
+
+    function applyEqualitySubstitutionBackwardsCompleteJust() {
+      let newGoalLine = new JustifiedProofLine(otherJustification,
+          new SpecialJustification(justTypes.GOAL));
+      targetLine.prepend(newGoalLine);
+      justificationLines.push(newGoalLine);
+      targetLine.justification
+          = new Justification(justTypes.EQ_SUB, justificationLines);
+      let justification
+          = new Justification(justTypes.EQ_SUB, justificationLines);
+      completeProofUpdate();
+    }
   }
 }
 
@@ -1390,7 +1760,7 @@ function addUniversal(isImplication) {
  * variablesSet contains textual representation of variables that are
    quantified and could be replaced by constants or vice versa
  * replacements dictionary stores pairs of variable names and corresponding
-   terms
+   terms (can be initially empty)
  */
 function matchFormulasVariablesReplace(termsFormula, variablesFormula,
     variablesSet, replacements) {
@@ -1524,80 +1894,5 @@ function matchFormulasVariablesReplace(termsFormula, variablesFormula,
     }
   } else {
     return formulasDeepEqual(termsFormula, variablesFormula);
-  }
-}
-
-/*
- * Checks whether the target formula can be derived by equality substitution
-   using the given replacement
- */
-function matchFormulasTermsReplace(targetFormula, justificationFormula,
-    replacementObject) {
-  let replaced = replacementObject.replaced;
-  let replacement = replacementObject.replacement;
-  if (targetFormula.type !== justificationFormula.type
-      && !(targetFormula instanceof Term
-          && justificationFormula instanceof Term)) {
-    return false;
-  }
-  if (targetFormula instanceof Term) {
-    if (formulasDeepEqual(targetFormula, justificationFormula)) {
-      /* Terms are identical - report match success */
-      return true;
-    }
-    if (formulasDeepEqual(replaced, justificationFormula)
-        && formulasDeepEqual(replacement, targetFormula)) {
-      /* Terms correspond to a replacement - report success */
-      return true;
-    }
-    if (targetFormula.type === termTypes.FUNCTION
-        && justificationFormula.type === termTypes.FUNCTION) {
-      if (targetFormula.name !== justificationFormula.name) {
-        return false;
-      }
-      return _.zipWith(targetFormula.terms, justificationFormula.terms,
-          (t1, t2) => matchFormulasTermsReplace(t1, t2, replacementObject))
-          .reduce((b1, b2) => b1 && b2, true);
-    }
-  } else if (targetFormula instanceof Quantifier) {
-    if (targetFormula.variableString !== justificationFormula.variableString) {
-      return false;
-    }
-    return matchFormulasTermsReplace(targetFormula.predicate,
-        justificationFormula.predicate, replacementObject);
-  } else if (targetFormula.type === formulaTypes.RELATION) {
-    if (targetFormula.name !== justificationFormula.name) {
-      return false;
-    }
-    return _.zipWith(targetFormula.terms, justificationFormula.terms,
-        (t1, t2) => matchFormulasTermsReplace(t1, t2, replacementObject))
-        .reduce((b1, b2) => b1 && b2, true);
-  } else if (targetFormula instanceof Equality) {
-    return matchFormulasTermsReplace(targetFormula.term1,
-            justificationFormula.term1, replacementObject)
-        && matchFormulasTermsReplace(targetFormula.term2,
-            justificationFormula.term2, replacementObject);
-  } else if (targetFormula.type === formulaTypes.NEGATION) {
-    return matchFormulasTermsReplace(targetFormula.operand,
-        justificationFormula.operand, replacementObject);
-  } else if (targetFormula instanceof BinaryConnective) {
-    if (targetFormula.isAssociative) {
-      let operandsTargetFormula = [];
-      extractOperands(targetFormula, operandsTargetFormula,
-          targetFormula.type);
-      let operandsJustificationFormula = [];
-      extractOperands(justificationFormula, operandsJustificationFormula,
-          targetFormula.type);
-      return _.zipWith(operandsTargetFormula, operandsJustificationFormula,
-          (f1, f2) => matchFormulasTermsReplace(f1, f2, replacementObject))
-          .reduce((b1, b2) => b1 && b2, true);
-    } else {
-      return matchFormulasTermsReplace(targetFormula.operand1,
-              justificationFormula.operand1, replacementObject)
-          && matchFormulasTermsReplace(targetFormula.operand2,
-              justificationFormula.operand2, replacementObject);
-    }
-  } else {
-    return formulasDeepEqual(targetFormula, justificationFormula);
   }
 }

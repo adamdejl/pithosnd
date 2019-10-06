@@ -999,3 +999,20 @@ function checkMatchesSide(matched, formula, type, matchData) {
       formulaOperands.length - matchedOperands.length);
   return true;
 }
+
+/*
+ * Checks whether a given term is a closed (ground) term
+ */
+function isClosedTerm(term) {
+  if (term.type === termTypes.CONSTANT) {
+    return true;
+  }
+  if (term.type === termTypes.VARIABLE) {
+    return false;
+  }
+  if (term.type === termTypes.FUNCTION) {
+    return term.terms
+        .map(isClosedTerm)
+        .reduce((b1, b2) => b1 && b2, true);
+  }
+}
