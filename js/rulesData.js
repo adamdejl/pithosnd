@@ -4,76 +4,65 @@
    and number of lines to be selected for application (including target empty
    line) */
 const rulesData = Object.freeze({
-  "∧I": {handler: introduceConjunction, numLines: 3, hint: "∧I requires "
-      + "selection of two formulas to become conjuncts and an empty or "
-      + "goal line.", name: "∧I"},
-  "∧E": {handler: eliminateConjunction, numLines: 2, hint: "∧E requires "
-      + "selection of a conjunction and an empty or goal line. Any of the "
-      + "conjuncts can then be introduced as a separate formula.", name: "∧E"},
-  "∨I": {handler: introduceDisjunction, numLines: 2, hint: "∨I requires "
-      + "selection of one formula to become one of the disjuncts and an "
-      + "empty or goal line.", name: "∨I"},
-  "∨E": {handler: eliminateDisjunction, numLines: 2, hint: "∨E requires "
-      + "selection of one disjuction and an empty or goal line. It can be used "
-      + "to justify any formula provided that this formula can be derived "
-      + "from both disjuncts separately.", name: "∨E"},
-  "→I": {handler: introduceImplication, numLines: 1, hint: "→I requires "
-      + "selection of an empty or goal line. Completion of this rule "
-      + "application requires working from the antecedent towards the "
-      + "consequent in a separate box.", name: "→I"},
-  "→E": {handler: eliminateImplication, numLines: 3, hint: "→E requires "
-      + "selection of an implication, formula matching the antecedent of the "
-      + "implication and an empty or goal line. The consequent can than be "
-      + "eliminated as a separate formula.", name: "→E"},
-  "¬I": {handler: introduceNegation, numLines: 1, hint: "¬I requires "
-      + "selection of an empty or goal line. The rule can be used to justify "
-      + "a negation formula when assumption of negand leads to a contradiction "
-      + "(bottom).", name: "¬I"},
-  "¬E": {handler: eliminateNegation, numLines: 3, hint: "¬E requires "
-      + "selection of a formula, its negation and an empty or goal line. It "
-      + "can be used to introduce bottom (a contradiction) and is identical "
-      + "to the bottom introduction rule.",
-      name: "¬E"},
-  "¬¬E": {handler: eliminateDoubleNegation, numLines: 2, hint: "¬¬E requires "
-      + "selection of a double negation and an empty or goal line. It can "
-      + "be used to eliminate the inner negand as a separate formula.",
-      name: "¬¬E"},
-  "⊤I": {handler: introduceTop, numLines: 1, hint: "⊤I requires "
-      + "selection of an empty or goal line and can be used to introduce top.",
-      name: "⊤I"},
-  "⊥I": {handler: introduceBottom, numLines: 3, hint: "⊥I requires "
-      + "selection of a formula, its negation and an empty or goal line. It "
-      + "can be used to introduce bottom (a contradiction) and is identical "
-      + "to the negation elimination rule.",
-      name: "⊥I"},
-  "⊥E": {handler: eliminateBottom, numLines: 2, hint: "⊥E requires "
-      + "selection of a bottom and an empty or goal line. It can be used to "
-      + "justify any formula.", name: "⊥E"},
-  "↔I": {handler: introduceBiconditional, numLines: 3, hint: "↔I requires "
-      + 'selection of two implications in "opposite" directions and '
-      + "an empty or goal line. It can be used to introduce a biconditional "
-      + "with operands identical to the antecedents and consequents of the "
-      + "justification fomulas.", name: "↔I"},
-  "↔E": {handler: eliminateBiconditional, numLines: 3, hint: "↔E requires "
-      + 'selection of a biconditional, formula matching one of its operands '
-      + "and an empty or goal line. It can be used to eliminate one of the "
-      + "biconditional operands as a distinct formula.", name: "↔E"},
-  "EM": {handler: applyExcludedMiddle, numLines: 1, hint: "EM requires "
-      + "selection of an empty or goal line. It can be used to introduce "
-      + "any disjunction with formula and its negation as operands.",
-      name: "EM"},
-  "PC": {handler: applyProofByContradiction, numLines: 1, hint: "PC requires "
-      + "selection of an empty or goal line. It can be used to introduce any "
-      + "formula if assumption of its negation leads to a contradiction.",
-      name: "PC"},
-  "∃I": {handler: introduceExistential, numLines: 2, hint: "∃I requires "
-      + "selection of a formula with term(s) to be replaced by the "
-      + "quantified variable and an empty or goal line.", name: "∃I"},
-  "∃E": {handler: eliminateExistential, numLines: 2, hint: "∃E requires "
-      + "selection of an existentially quantified formula and an empty or "
-      + "goal line. Completion of this rule requires working from the "
-      + "quantified formula with variable(s) replaced by Skolem constant(s) "
-      + "towards the newly introduced formula.", name: "∃E"},
+  "∧I": {handler: introduceConjunction, numLines: 3, hint: "The ∧I rule "
+      + "can be used to derive conjunction formula from the individual "
+      + "conjuncts.", name: "∧I"},
+  "∧E": {handler: eliminateConjunction, numLines: 2, hint: "The ∧E rule "
+      + "can be used to introduce one or more operands of a conjunction "
+      + "as separate formulas.", name: "∧E"},
+  "∨I": {handler: introduceDisjunction, numLines: 2, hint: "The ∨I rule "
+      + "can be used to derive a disjunction from a formula identical to "
+      + "one of the disjuncts.", name: "∨I"},
+  "∨E": {handler: eliminateDisjunction, numLines: 2, hint: "The ∨E rule "
+      + "can be used to derive formula from a disjunction provided that "
+      + "this formula can be derived from each of the individual disjuncts.",
+      name: "∨E"},
+  "→I": {handler: introduceImplication, numLines: 1, hint: "The →I rule "
+      + "can be used to introduce an implication provided that the consequent "
+      + "of the implication can be derived from the antecedent in a separate "
+      + "box.", name: "→I"},
+  "→E": {handler: eliminateImplication, numLines: 3, hint: "The →E rule "
+      + "can be used to derive a consequent of an implication from it's "
+      + "antecedent and the implication itself.", name: "→E"},
+  "¬I": {handler: introduceNegation, numLines: 1, hint: "The ¬I rule "
+      + "can be used to introduce a negation provided that an assumption "
+      + "of the negand leads to a contradiction (bottom).", name: "¬I"},
+  "¬E": {handler: eliminateNegation, numLines: 3, hint: "The ¬E rule "
+      + "can be used to introduce bottom from a formula along with its "
+      + "negation. This rule is identical to ⊥I.", name: "¬E"},
+  "¬¬E": {handler: eliminateDoubleNegation, numLines: 2, hint: "The ¬¬E rule "
+      + "can be used to derive an inner negand of a double negation "
+      + "as a separate formula.", name: "¬¬E"},
+  "⊤I": {handler: introduceTop, numLines: 1, hint: "The ⊤I rule "
+      + "can be used to introduce top at any time.", name: "⊤I"},
+  "⊥I": {handler: introduceBottom, numLines: 3, hint: "The ⊥I rule "
+      + "can be used to introduce bottom from a formula along with its "
+      + "negation. This rule is identical to ¬E.", name: "⊥I"},
+  "⊥E": {handler: eliminateBottom, numLines: 2, hint: "The ⊥E rule "
+      + "can be used to derive any formula from a contradiction (bottom).",
+      name: "⊥E"},
+  "↔I": {handler: introduceBiconditional, numLines: 3, hint: "The ↔I rule "
+      + "can be used to derive a biconditional from two implications "
+      + 'in "opposite" directions.', name: "↔I"},
+  "↔E": {handler: eliminateBiconditional, numLines: 3, hint: "The ↔E rule "
+      + "can be used to derive one of the operands of an implication "
+      + "from a formula matching the second operand of the biconditional "
+      + "and the biconditional itself.", name: "↔E"},
+  "EM": {handler: applyExcludedMiddle, numLines: 1, hint: "The EM rule "
+      + "can be used to introduce any disjunction with formula and its"
+      + "negation as operands", name: "EM"},
+  "PC": {handler: applyProofByContradiction, numLines: 1, hint: "The PC rule "
+      + "can be used to introduce any formula provided that assumption of "
+      + "its negation leads to a contradiction (bottom).", name: "PC"},
+  "∃I": {handler: introduceExistential, numLines: 2, hint: "The ∃I rule "
+      + "can be used to introduce an existential quantification formula "
+      + "from a matching formula that has term(s) in place of the "
+      + "quantified variables.", name: "∃I"},
+  "∃E": {handler: eliminateExistential, numLines: 2, hint: "The ∃E rule "
+      + "can be used to derive a formula from an existential quantification "
+      + "formula. The new formula must be derivable from the quantified "
+      + "formula with variable(s) replaced by Skolem constant(s) and must "
+      + "not contain any of these constants.", name: "∃E"},
   "∀I": {handler: introduceUniversal, numLines: 1, hint: "∀I requires "
       + "selection of an empty or goal line. It can be used to introduce "
       + "a universally quantified formula provided that this formula holds "
@@ -101,10 +90,10 @@ const rulesData = Object.freeze({
       + "introduce equality with identical terms on both sides.", name: "refl"},
   "=sym": {handler: applyEqualitySymmetry, numLines: 2, hint: "=sym "
       + "requires selection of an equality and an empty or goal line. It can "
-      + "used to introduce another equality with swapped terms.",
+      + "be used to introduce another equality with swapped terms.",
       name: "=sym"},
   "✓": {handler: applyTick, numLines: 2, hint: "✓ requires selection "
       + "of a formula and an empty or goal line. It can be used to "
-      + "justify formula that has alerady been derived in the current "
-      + "scope.", name: "✓"}
+      + "justify formula that has already been derived in the current "
+      + "scope. This rule cannot be applied backwards.", name: "✓"}
 });

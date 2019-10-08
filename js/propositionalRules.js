@@ -1462,6 +1462,10 @@ function applyTick() {
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
+  if (justificationLines.length + 1 < pithosData.selectedRuleData.numLines) {
+    throw new ProofProcessingError("The tick rule requires selection of two "
+        + "proof lines.");
+  }
   let justificationFormula = justificationLines[0].formula;
   let targetLine = retrievedLines.targetLine;
   /* Used for dynamic parsing of additional formulas */
