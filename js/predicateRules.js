@@ -23,7 +23,8 @@ function introduceExistential() {
       throw new ProofProcessingError("The selected formula is not an "
           + "existential.");
     }
-    if (!verifyExistentialIntroduction(justificationFormula, targetFormula)) {
+    if (!matchFormulasQuantifiers(targetFormula, justificationFormula,
+        formulaTypes.EXISTENTIAL)) {
       throw new ProofProcessingError("The selected target formula cannot be "
           + "derived from the selected justification formula using existential "
           + "introduction. Please check that only closed terms have been "
@@ -53,7 +54,8 @@ function introduceExistential() {
       handleProofProcessingError(error);
       return;
     }
-    if (!verifyExistentialIntroduction(justificationFormula, targetFormula)) {
+    if (!matchFormulasQuantifiers(targetFormula, justificationFormula,
+        formulaTypes.EXISTENTIAL)) {
       let error = new ProofProcessingError("The selected target formula cannot "
           + "be derived from the selected justification formula using "
           + "existential introduction. Please check that only closed terms "
@@ -68,41 +70,6 @@ function introduceExistential() {
     targetLine.prepend(newLine);
     completeProofUpdate();
   });
-
-  /*
-   * Function checking existential introduction application
-   */
-  function verifyExistentialIntroduction(justificationFormula, targetFormula) {
-    /* Determine the difference in the number of existential quantifiers */
-    let justificationExistentialCount = 0;
-    let currFormula = justificationFormula;
-    while (currFormula.type === formulaTypes.EXISTENTIAL) {
-      justificationExistentialCount++;
-      currFormula = currFormula.predicate;
-    }
-    let targetExistentialCount = 0;
-    currFormula = targetFormula;
-    while (currFormula.type === formulaTypes.EXISTENTIAL) {
-      targetExistentialCount++;
-      currFormula = currFormula.predicate;
-    }
-    if (targetExistentialCount <= justificationExistentialCount) {
-      /* Fail verification if there are no additional existential quantifiers
-         in the target formula */
-      return false;
-    }
-    /* Attempt to match formulas to verify rule application */
-    let addedExistentialCount
-        = targetExistentialCount - justificationExistentialCount;
-    let existentialVariablesSet = new Set([]);
-    currFormula = targetFormula;
-    for (let i = 0; i < addedExistentialCount; i++) {
-      existentialVariablesSet.add(currFormula.variableString);
-      currFormula = currFormula.predicate;
-    }
-    return matchFormulasVariablesReplace(justificationFormula, currFormula,
-        existentialVariablesSet, {});
-  }
 }
 
 /*
@@ -282,7 +249,8 @@ function eliminateUniversal() {
     /* Target line is a goal line - automatically determine the target formula
        and check the rule application. */
     let targetFormula = targetLine.formula;
-    if (!verifyUniversalElimination(justificationFormula, targetFormula)) {
+    if (!matchFormulasQuantifiers(justificationFormula, targetFormula,
+        formulaTypes.UNIVERSAL)) {
       throw new ProofProcessingError("The selected target formula cannot be "
           + "derived from the selected justification formula using universal "
           + "elimination. Please check that only variables have been replaced "
@@ -360,41 +328,6 @@ function eliminateUniversal() {
     targetLine.prepend(newLine);
     completeProofUpdate();
   });
-
-  /*
-   * Function checking universal elimination application
-   */
-  function verifyUniversalElimination(justificationFormula, targetFormula) {
-    /* Determine the difference in the number of existential quantifiers */
-    let justificationUniversalCount = 0;
-    let currFormula = justificationFormula;
-    while (currFormula.type === formulaTypes.UNIVERSAL) {
-      justificationUniversalCount++;
-      currFormula = currFormula.predicate;
-    }
-    let targetUniversalCount = 0;
-    currFormula = targetFormula;
-    while (currFormula.type === formulaTypes.UNIVERSAL) {
-      targetUniversalCount++;
-      currFormula = currFormula.predicate;
-    }
-    if (targetUniversalCount >= justificationUniversalCount) {
-      /* Fail verification if there are no additional existential quantifiers
-         in the justification formula */
-      return false;
-    }
-    /* Attempt to match formulas to verify rule application */
-    let eliminatedUniversalCount
-        = justificationUniversalCount - targetUniversalCount;
-    let universalVariablesSet = new Set([]);
-    currFormula = justificationFormula;
-    for (let i = 0; i < eliminatedUniversalCount; i++) {
-      universalVariablesSet.add(currFormula.variableString);
-      currFormula = currFormula.predicate;
-    }
-    return matchFormulasVariablesReplace(targetFormula, currFormula,
-        universalVariablesSet, {});
-  }
 }
 
 /*
@@ -967,6 +900,44 @@ function addUniversal(isImplication) {
     }
     completeProofUpdate();
   }
+}
+
+/*
+ * Function checking whether a quantified formula matches a formula with
+   fewer quantifiers for the purposes of existential introduction and
+   universal elimination rules
+ */
+function matchFormulasQuantifiers(quantifierFormula, otherFormula,
+    quantifierFormulaType) {
+  /* Determine the difference in the number of outer quantifiers */
+  let quantifierFormulaQuantifierCount = 0;
+  let currFormula = quantifierFormula;
+  while (currFormula.type === quantifierFormulaType) {
+    quantifierFormulaQuantifierCount++;
+    currFormula = currFormula.predicate;
+  }
+  let otherFormulaQuantifierCount = 0;
+  currFormula = otherFormula;
+  while (currFormula.type === quantifierFormulaType) {
+    otherFormulaQuantifierCount++;
+    currFormula = currFormula.predicate;
+  }
+  if (quantifierFormulaQuantifierCount <= otherFormulaQuantifierCount) {
+    /* Fail verification if there are no additional quantifiers in the other
+       formula */
+    return false;
+  }
+  /* Attempt to match formulas to verify rule application */
+  let quantifierCountDifference
+      = quantifierFormulaQuantifierCount - otherFormulaQuantifierCount;
+  let quantifiedVariablesSet = new Set([]);
+  currFormula = quantifierFormula;
+  for (let i = 0; i < quantifierCountDifference; i++) {
+    quantifiedVariablesSet.add(currFormula.variableString);
+    currFormula = currFormula.predicate;
+  }
+  return matchFormulasVariablesReplace(otherFormula, currFormula,
+      quantifiedVariablesSet, {});
 }
 
 /*
