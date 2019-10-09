@@ -1,6 +1,6 @@
 "use strict";
 
-/* Different types of special justifications */
+/* Different types of  justifications */
 const justTypes = Object.freeze({
   GIVEN: "given",
   ASS: "ass",
@@ -58,6 +58,10 @@ class SpecialJustification {
   }
 }
 
+/*
+ * Class representing proof items
+ * Uses linked list structure
+ */
 class ProofItem {
   constructor() {
     this.parent = null;
@@ -161,10 +165,9 @@ function initializeProof(parsingResults) {
   let signature = parsingResults.signature;
   let parsedFormulas = parsingResults.formulas;
   let parsedGoal = parsedFormulas.pop();
-  let i = 0;
   /* Check whether givens include the goal */
-  for (; i < parsedFormulas.length; i++) {
-    if (JSON.stringify(parsedFormulas[i]) === JSON.stringify(parsedGoal)) {
+  for (var i = 0; i < parsedFormulas.length; i++) {
+    if (formulasDeepEqual(parsedFormulas[i], parsedGoal)) {
       break;
     }
   }
@@ -200,7 +203,7 @@ function initializeProof(parsingResults) {
  */
 function updateLines(proof) {
   checkCompletion(proof);
-  updateLinesHelper(proof, 1);
+  recomputeLineNumbers(proof, 1);
 
   /*
    * Checks the individual proof items for completion and trims out
@@ -260,9 +263,10 @@ function updateLines(proof) {
   }
 
   /*
-   * Helper function for updateLines
+   * Recomputes all line numbers in proofItem starting with lineNumber for
+     the initial line
    */
-  function updateLinesHelper(proofItem, lineNumber) {
+  function recomputeLineNumbers(proofItem, lineNumber) {
     let components = proofItem.components;
     for (let component = components; component !== null;
         component = component.next) {
