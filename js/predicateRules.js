@@ -4,6 +4,7 @@
  * Function handling existential introduction
  */
 function introduceExistential() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
@@ -23,7 +24,8 @@ function introduceExistential() {
       throw new ProofProcessingError("The selected formula is not an "
           + "existential.");
     }
-    if (!verifyExistentialIntroduction(justificationFormula, targetFormula)) {
+    if (!matchFormulasQuantifiers(targetFormula, justificationFormula,
+        formulaTypes.EXISTENTIAL)) {
       throw new ProofProcessingError("The selected target formula cannot be "
           + "derived from the selected justification formula using existential "
           + "introduction. Please check that only closed terms have been "
@@ -53,7 +55,8 @@ function introduceExistential() {
       handleProofProcessingError(error);
       return;
     }
-    if (!verifyExistentialIntroduction(justificationFormula, targetFormula)) {
+    if (!matchFormulasQuantifiers(targetFormula, justificationFormula,
+        formulaTypes.EXISTENTIAL)) {
       let error = new ProofProcessingError("The selected target formula cannot "
           + "be derived from the selected justification formula using "
           + "existential introduction. Please check that only closed terms "
@@ -68,47 +71,13 @@ function introduceExistential() {
     targetLine.prepend(newLine);
     completeProofUpdate();
   });
-
-  /*
-   * Function checking existential introduction application
-   */
-  function verifyExistentialIntroduction(justificationFormula, targetFormula) {
-    /* Determine the difference in the number of existential quantifiers */
-    let justificationExistentialCount = 0;
-    let currFormula = justificationFormula;
-    while (currFormula.type === formulaTypes.EXISTENTIAL) {
-      justificationExistentialCount++;
-      currFormula = currFormula.predicate;
-    }
-    let targetExistentialCount = 0;
-    currFormula = targetFormula;
-    while (currFormula.type === formulaTypes.EXISTENTIAL) {
-      targetExistentialCount++;
-      currFormula = currFormula.predicate;
-    }
-    if (targetExistentialCount <= justificationExistentialCount) {
-      /* Fail verification if there are no additional existential quantifiers
-         in the target formula */
-      return false;
-    }
-    /* Attempt to match formulas to verify rule application */
-    let addedExistentialCount
-        = targetExistentialCount - justificationExistentialCount;
-    let existentialVariablesSet = new Set([]);
-    currFormula = targetFormula;
-    for (let i = 0; i < addedExistentialCount; i++) {
-      existentialVariablesSet.add(currFormula.variableString);
-      currFormula = currFormula.predicate;
-    }
-    return matchFormulasVariablesReplace(justificationFormula, currFormula,
-        existentialVariablesSet, {});
-  }
 }
 
 /*
  * Function handling existential elimination
  */
 function eliminateExistential() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
@@ -151,6 +120,7 @@ function eliminateExistential() {
   $("#dynamicModalArea").off("click", "#eliminateExistentialContinue");
   $("#dynamicModalArea").on("click", "#eliminateExistentialContinue",
       function() {
+    /* Determine the chosen number of quantifirs to eliminate */
     let numberEliminated = 0;
     for (let i = 0; i < existentialCount; i++) {
       if ($("#existentialRadio" + i).is(":checked")) {
@@ -165,6 +135,7 @@ function eliminateExistential() {
   })
 
   function eliminateExistentialContinue(numberEliminated) {
+    /* Determine which variables should be replaced by the Skolem constants */
     let replacements = {};
     let currFormula = justificationFormula;
     for (let i = 0; i < numberEliminated;
@@ -175,6 +146,7 @@ function eliminateExistential() {
       pithosData.proof.signature.skolemNext++;
       currFormula = currFormula.predicate;
     }
+    /* Perform the replacement */
     initialFormula = replaceVariables(currFormula, replacements);
     if (targetLine instanceof EmptyProofLine) {
       /* Target line is an empty line - allow user to specify resulting
@@ -207,6 +179,8 @@ function eliminateExistential() {
   $("#dynamicModalArea").off("click", "#eliminateExistentialComplete");
   $("#dynamicModalArea").on("click", "#eliminateExistentialComplete",
       function() {
+    /* Complete rule application setting up user-provided formula as a new
+       goal inside of the box for existential elimination */
     let skolemConstants = getSkolemConstants(targetLine);
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
         pithosData.proof.signature, skolemConstants);
@@ -232,6 +206,8 @@ function eliminateExistential() {
  * Function handling universal introduction
  */
 function introduceUniversal() {
+  /* Handled by unified function for universal introduction and
+     universal implication introduction */
   addUniversal(false);
 }
 
@@ -239,6 +215,7 @@ function introduceUniversal() {
  * Function handling universal elimination
  */
 function eliminateUniversal() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
@@ -269,9 +246,10 @@ function eliminateUniversal() {
   /* Declared variables for use by following code */
   let numberEliminated;
   if (targetLine instanceof EmptyProofLine) {
-    /* Target is an empty line - determine the number of outer qualifiers to
+    /* Target is an empty line - determine the number of outer quantifiers to
        eliminate. */
     if (universalCount === 1) {
+      /* Only one quuantifier to eliminate */
       numberEliminated = 1;
       eliminateUniversalContinue(universalCount);
     } else {
@@ -282,7 +260,8 @@ function eliminateUniversal() {
     /* Target line is a goal line - automatically determine the target formula
        and check the rule application. */
     let targetFormula = targetLine.formula;
-    if (!verifyUniversalElimination(justificationFormula, targetFormula)) {
+    if (!matchFormulasQuantifiers(justificationFormula, targetFormula,
+        formulaTypes.UNIVERSAL)) {
       throw new ProofProcessingError("The selected target formula cannot be "
           + "derived from the selected justification formula using universal "
           + "elimination. Please check that only variables have been replaced "
@@ -303,6 +282,7 @@ function eliminateUniversal() {
   $("#dynamicModalArea").off("click", "#eliminateUniversalContinue");
   $("#dynamicModalArea").on("click", "#eliminateUniversalContinue",
       function() {
+    /* Determine the user-provided number of quantifiers to eliminate */
     numberEliminated = 0;
     for (let i = 0; i < universalCount; i++) {
       if ($("#universalRadio" + i).is(":checked")) {
@@ -343,6 +323,8 @@ function eliminateUniversal() {
   $("#dynamicModalArea").off("click", "#eliminateUniversalComplete");
   $("#dynamicModalArea").on("click", "#eliminateUniversalComplete",
       function() {
+    /* Complete rule application using the user-provided terms for each
+       eliminated quantified variable */
     let replacements = {};
     let currFormula = justificationFormula;
     let skolemConstants = getSkolemConstants(pithosData.targetLine);
@@ -360,47 +342,14 @@ function eliminateUniversal() {
     targetLine.prepend(newLine);
     completeProofUpdate();
   });
-
-  /*
-   * Function checking universal elimination application
-   */
-  function verifyUniversalElimination(justificationFormula, targetFormula) {
-    /* Determine the difference in the number of existential quantifiers */
-    let justificationUniversalCount = 0;
-    let currFormula = justificationFormula;
-    while (currFormula.type === formulaTypes.UNIVERSAL) {
-      justificationUniversalCount++;
-      currFormula = currFormula.predicate;
-    }
-    let targetUniversalCount = 0;
-    currFormula = targetFormula;
-    while (currFormula.type === formulaTypes.UNIVERSAL) {
-      targetUniversalCount++;
-      currFormula = currFormula.predicate;
-    }
-    if (targetUniversalCount >= justificationUniversalCount) {
-      /* Fail verification if there are no additional existential quantifiers
-         in the justification formula */
-      return false;
-    }
-    /* Attempt to match formulas to verify rule application */
-    let eliminatedUniversalCount
-        = justificationUniversalCount - targetUniversalCount;
-    let universalVariablesSet = new Set([]);
-    currFormula = justificationFormula;
-    for (let i = 0; i < eliminatedUniversalCount; i++) {
-      universalVariablesSet.add(currFormula.variableString);
-      currFormula = currFormula.predicate;
-    }
-    return matchFormulasVariablesReplace(targetFormula, currFormula,
-        universalVariablesSet, {});
-  }
 }
 
 /*
  * Function handling universal implication introduction
  */
 function introduceUniversalImplication() {
+  /* Handled by unified function for universal introduction and
+     universal implication introduction */
   addUniversal(true);
 }
 
@@ -408,6 +357,7 @@ function introduceUniversalImplication() {
  * Function handling universal implication elimination
  */
 function eliminateUniversalImplication() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
@@ -427,31 +377,16 @@ function eliminateUniversalImplication() {
   let replacements;
   let replacements1 = {};
   let replacements2 = {};
-  if (unpacked1.isUniversalImplication && unpacked2.isUniversalImplication) {
-    if (matchFormulasVariablesReplace(justFormula1, innerFormula2.operand1,
-        varSet2, replacements1)) {
-      universalFormula = justFormula2;
-      unpackedUniversal = unpacked2;
-      antecedentFormula = justFormula1;
-      replacements = replacements1;
-    } else if (matchFormulasVariablesReplace(justFormula2,
-        innerFormula1.operand1, varSet1, replacements2)) {
-      universalFormula = justFormula1;
-      unpackedUniversal = unpacked1;
-      antecedentFormula = justFormula2;
-      replacements = replacements2;
-    } else {
-      throw new ProofProcessingError("The selected lines cannot be used as "
-          + "a justification to universal implication elimination.");
-    }
-  } else if (unpacked2.isUniversalImplication && matchFormulasVariablesReplace(
+  if (unpacked2.isUniversalImplication && matchFormulasVariablesReplace(
       justFormula1, innerFormula2.operand1, varSet2, replacements1)) {
+    /* Matched first formula to the antecedent of the second formula */
     universalFormula = justFormula2;
     unpackedUniversal = unpacked2;
     antecedentFormula = justFormula1;
     replacements = replacements1;
   } else if (unpacked1.isUniversalImplication && matchFormulasVariablesReplace(
       justFormula2, innerFormula1.operand1, varSet1, replacements2)) {
+    /* Matched second formula to the antecedent of the first formula */
     universalFormula = justFormula1;
     unpackedUniversal = unpacked1;
     antecedentFormula = justFormula2;
@@ -501,11 +436,12 @@ function eliminateUniversalImplication() {
           "eliminateUniversalImplicationComplete", undefined, true);
     }
   } else {
-    /* Target is a goal line */
+    /* Target is a goal line - check application and justify the goal line
+       on success */
     let targetFormula = targetLine.formula;
     if (!matchFormulasVariablesReplace(targetFormula,
         unpackedUniversal.innerFormula.operand2,
-        unpackedUniversal.variablesSet, {})) {
+        unpackedUniversal.variablesSet, replacements)) {
       throw new ProofProcessingError("The selected goal line cannot be derived "
           + "from the selected justification lines using universal implication "
           + "elimination.");
@@ -524,6 +460,8 @@ function eliminateUniversalImplication() {
   $("#dynamicModalArea").off("click", "#eliminateUniversalImplicationComplete");
   $("#dynamicModalArea").on("click", "#eliminateUniversalImplicationComplete",
       function() {
+    /* Retrieve chosen replacement for each of the variables and eliminate
+       the new formula */
     let additionalReplacements = {};
     let skolemConstants = getSkolemConstants(pithosData.targetLine);
     let i = 0;
@@ -575,12 +513,14 @@ function eliminateUniversalImplication() {
  * Function handling equality substitution
  */
 function applyEqualitySubstitution() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let possibleReplacements = [];
   let justFormula1 = justificationLines[0].formula;
   let justFormula2 = justificationLines[1].formula;
+  /* Determine possible equality substitutions */
   if (justFormula1.type === formulaTypes.EQUALITY) {
     if (formulaContainsTerm(justFormula2, justFormula1.term1)
         && !formulasDeepEqual(justFormula1.term1, justFormula1.term2)) {
@@ -617,6 +557,7 @@ function applyEqualitySubstitution() {
       });
     }
   }
+  /* No possible replacements have been identified */
   if (possibleReplacements.length === 0) {
     throw new ProofProcessingError("The selected justification formulas cannot "
         + "be used for application of the equality substitution rule. "
@@ -627,6 +568,8 @@ function applyEqualitySubstitution() {
   let targetLine = retrievedLines.targetLine;
   pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - prompt user for the intended
+       substitution */
     let modalText =
          "Please enter the formula that you would like to introduce using "
          + "equality substitution or choose one of the automatic replacements.";
@@ -676,10 +619,14 @@ function applyEqualitySubstitution() {
   function equalitySubstitutionComplete(automatic, replacementIndex) {
     let newFormula;
     if (automatic) {
+      /* Perform chosen automatic replacement (replace all occurences of
+         a variable) */
       let replacement = possibleReplacements[replacementIndex];
       newFormula = replaceTerm(replacement.formula, replacement.replaced,
           replacement.replacement);
     } else {
+      /* Perform chosen custom replacement and check the validity of
+         the rule application */
       let skolemConstants = getSkolemConstants(pithosData.targetLine);
       newFormula = parseFormula($("#additionalFormulaInput")[0].value,
           pithosData.proof.signature, skolemConstants);
@@ -689,8 +636,8 @@ function applyEqualitySubstitution() {
       if (!anyReplacementValid) {
         let error = new ProofProcessingError("The entered formula cannot be "
             + "derived from the selected justification formulas using equality "
-            + "substitution. Please check that only one term has been substituted "
-            + "in accordance with the selected equality formula.")
+            + "substitution. Please check that only one term has been "
+            + "substituted in accordance with the selected equality formula.")
         handleProofProcessingError(error);
         return;
       }
@@ -707,6 +654,7 @@ function applyEqualitySubstitution() {
  * Function handling equality reflexivity application
  */
 function applyEqualityReflexivity() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
@@ -723,6 +671,8 @@ function applyEqualityReflexivity() {
     showModal("Input required", modalBody, undefined,
         "applyEqualityReflexivityComplete", undefined, true);
   } else {
+    /* Target line is a goal line - verify rule application and justify
+       goal on success */
     let targetFormula = targetLine.formula;
     if (targetFormula.type !== formulaTypes.EQUALITY) {
       throw new ProofProcessingError("The selected target formula is not an "
@@ -746,6 +696,7 @@ function applyEqualityReflexivity() {
   $("#dynamicModalArea").off("click", "#applyEqualityReflexivityComplete");
   $("#dynamicModalArea").on("click", "#applyEqualityReflexivityComplete",
       function() {
+    /* Add equality with the inputted term on both sides */
     let skolemConstants = getSkolemConstants(pithosData.targetLine);
     let term = parseSeparateTerm($("#additionalTermInput0")[0].value,
         pithosData.proof.signature, skolemConstants);
@@ -762,6 +713,7 @@ function applyEqualityReflexivity() {
  * Function handling equality symmetry application
  */
 function applyEqualitySymmetry() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
@@ -772,19 +724,20 @@ function applyEqualitySymmetry() {
   }
   let targetLine = retrievedLines.targetLine;
   pithosData.targetLine = targetLine;
+  /* Determine the formula that shoudl be introduced by this rule application */
   let newFormula = new Equality(justificationFormula.term2,
       justificationFormula.term1);
   if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - add newly introduced formula to the
+       proof */
     let justification
         = new Justification(justTypes.EQ_SYM, justificationLines);
     let newLine = new JustifiedProofLine(newFormula, justification);
     targetLine.prepend(newLine);
   } else {
+    /* Target is a goal line - verify corectness of the rule application and
+       justify goal formula on success */
     let targetFormula = targetLine.formula;
-    if (targetFormula.type !== formulaTypes.EQUALITY) {
-      throw new ProofProcessingError("The selected target formula is not an "
-          + "equality.")
-    }
     if (!formulasDeepEqual(targetFormula, newFormula)) {
       throw new ProofProcessingError("The selected target formula cannot be "
           + "derived from the selected justification formula using equality "
@@ -803,6 +756,7 @@ function applyEqualitySymmetry() {
    introduction rules
  */
 function addUniversal(isImplication) {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
@@ -834,6 +788,8 @@ function addUniversal(isImplication) {
   $("#dynamicModalArea").off("click", "#addUniversalContinue");
   $("#dynamicModalArea").on("click", "#addUniversalContinue",
       function() {
+    /* Parse the user-entered formula that should be introduced by
+       universal (implication) introduction rule */
     let skolemConstants = getSkolemConstants(targetLine);
     targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
         pithosData.proof.signature, skolemConstants);
@@ -847,7 +803,7 @@ function addUniversal(isImplication) {
   })
 
   function addUniversalContinue() {
-    /* Prepare possibly useful modal body and count the number of universal
+    /* Prepare possibly useful modal body while counting the number of universal
        quantifiers */
     let modalBody =
          "<p>Please choose the number of outer quantifiers that should be "
@@ -890,6 +846,7 @@ function addUniversal(isImplication) {
   $("#dynamicModalArea").off("click", "#addUniversalComplete");
   $("#dynamicModalArea").on("click", "#addUniversalComplete",
       function() {
+    /* Determine the selected number of introduced quantifiers */
     let numberIntroduced = 0;
     for (let i = 0; i < universalCount; i++) {
       if ($("#universalRadio" + i).is(":checked")) {
@@ -904,6 +861,8 @@ function addUniversal(isImplication) {
   });
 
   function addUniversalComplete(numberIntroduced) {
+    /* Replace variables corresponding to the introduced quantifiers
+       for the skolem constants */
     let replacements = {};
     let currFormula = targetFormula;
     for (let i = 0; i < numberIntroduced;
@@ -914,8 +873,10 @@ function addUniversal(isImplication) {
       pithosData.proof.signature.skolemNext++;
       currFormula = currFormula.predicate;
     }
+    /* Prepare the list of universal (implication) introduction constants */
     let constList = [];
     newSkolemConstants.forEach(sk => constList.push(sk));
+    /* Create proof box for universal (implication) introduction */
     let initialLine = new JustifiedProofLine(new ConstantsList(constList),
         new SpecialJustification(justTypes.ALLI_CONST));
     let proofBox;
@@ -940,7 +901,8 @@ function addUniversal(isImplication) {
       ruleJustificationLines = [initialLine, assumptionLine, goalLine];
       justificationType = justTypes.UNIV_IMP_INTRO;
     } else {
-      /* Performning universal introduction */
+      /* Performning universal introduction - the only starting line
+         is the Skolem constants line */
       let goalFormula = replaceVariables(currFormula, replacements);
       goalLine = new JustifiedProofLine(goalFormula,
           new SpecialJustification(justTypes.GOAL));
@@ -967,6 +929,44 @@ function addUniversal(isImplication) {
     }
     completeProofUpdate();
   }
+}
+
+/*
+ * Function checking whether a quantified formula matches a formula with
+   fewer quantifiers for the purposes of existential introduction and
+   universal elimination rules
+ */
+function matchFormulasQuantifiers(quantifierFormula, otherFormula,
+    quantifierFormulaType) {
+  /* Determine the difference in the number of outer quantifiers */
+  let quantifierFormulaQuantifierCount = 0;
+  let currFormula = quantifierFormula;
+  while (currFormula.type === quantifierFormulaType) {
+    quantifierFormulaQuantifierCount++;
+    currFormula = currFormula.predicate;
+  }
+  let otherFormulaQuantifierCount = 0;
+  currFormula = otherFormula;
+  while (currFormula.type === quantifierFormulaType) {
+    otherFormulaQuantifierCount++;
+    currFormula = currFormula.predicate;
+  }
+  if (quantifierFormulaQuantifierCount <= otherFormulaQuantifierCount) {
+    /* Fail verification if there are no additional quantifiers in the other
+       formula */
+    return false;
+  }
+  /* Attempt to match formulas to verify rule application */
+  let quantifierCountDifference
+      = quantifierFormulaQuantifierCount - otherFormulaQuantifierCount;
+  let quantifiedVariablesSet = new Set([]);
+  currFormula = quantifierFormula;
+  for (let i = 0; i < quantifierCountDifference; i++) {
+    quantifiedVariablesSet.add(currFormula.variableString);
+    currFormula = currFormula.predicate;
+  }
+  return matchFormulasVariablesReplace(otherFormula, currFormula,
+      quantifiedVariablesSet, {});
 }
 
 /*
@@ -1124,6 +1124,8 @@ function matchFormulasTermsReplace(targetFormula, justificationFormula,
   if (targetFormula.type !== justificationFormula.type
       && !(targetFormula instanceof Term
           && justificationFormula instanceof Term)) {
+    /* Formulas types do not match and at least one of the formulas is not
+       a term */
     return false;
   }
   if (targetFormula instanceof Term) {

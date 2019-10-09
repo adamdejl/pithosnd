@@ -4,20 +4,25 @@
  * Function handling conjunction introduction
  */
 function introduceConjunction() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let targetLine = retrievedLines.targetLine;
   pithosData.targetLine = targetLine;
+  /* Construct the new conjunction */
   let newConjunction = new Conjunction(justificationLines[0].formula,
       justificationLines[1].formula);
   let justification
       = new Justification(justTypes.CON_INTRO, justificationLines);
   if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - introduce new conjunction to the proof */
     let newLine = new JustifiedProofLine(newConjunction, justification);
     targetLine.prepend(newLine);
   } else {
-    /* Target line is a goal line */
+    /* Target line is a goal line - check whether the goal conjunction
+       matches one of the derived conjunctions and justify goal line
+       on success */
     let swappedConjunction = new Conjunction(justificationLines[1].formula,
         justificationLines[0].formula);
     if (!formulasDeepEqual(targetLine.formula, newConjunction)
@@ -36,6 +41,7 @@ function introduceConjunction() {
  * Function handling conjunction elimination
  */
 function eliminateConjunction() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
@@ -45,6 +51,7 @@ function eliminateConjunction() {
   }
   let targetLine = retrievedLines.targetLine;
   pithosData.targetLine = targetLine;
+  /* Extract individual conjuncts */
   let conjuncts = [];
   extractOperands(justificationLines[0].formula, conjuncts,
       formulaTypes.CONJUNCTION);
@@ -63,7 +70,8 @@ function eliminateConjunction() {
     showModal("Input required", modalBody, undefined,
         "eliminateConjunctionComplete");
   } else {
-    /* Target line is a goal line */
+    /* Target line is a goal line - check whether the goal formula matches
+       one of the conjuncts */
     for (var i = 0; i < conjuncts.length; i++) {
       if (formulasDeepEqual(conjuncts[i], targetLine.formula)) {
         targetLine.justification
@@ -85,6 +93,7 @@ function eliminateConjunction() {
   $("#dynamicModalArea").off("click", "#eliminateConjunctionComplete");
   $("#dynamicModalArea").on("click", "#eliminateConjunctionComplete",
       function() {
+    /* Eliminate each of the selected conjuncts */
     for (let i = 0; i < conjuncts.length; i++) {
       if ($("#conjunctCheckbox" + i).is(":checked")) {
         let justification
@@ -101,6 +110,7 @@ function eliminateConjunction() {
  * Function handling disjunction introduction
  */
 function introduceDisjunction() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
@@ -150,6 +160,8 @@ function introduceDisjunction() {
    * Complete rule application by introducing new disjunction
    */
   function completeDisjunction(left) {
+    /* Introduce new disjunction with one of the disjuncts specified by the
+       user */
     let skolemConstants = getSkolemConstants(targetLine);
     let userDisjunct = parseFormula($("#additionalFormulaInput")[0].value,
         pithosData.proof.signature, skolemConstants);
@@ -203,6 +215,7 @@ function introduceDisjunction() {
  * Function handling disjunction elimination
  */
 function eliminateDisjunction() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
@@ -212,6 +225,7 @@ function eliminateDisjunction() {
   }
   let targetLine = retrievedLines.targetLine;
   pithosData.targetLine = targetLine;
+  /* Determine initial lines of the proof boxes */
   let disjunct1 = justificationLines[0].formula.operand1;
   let initialLine1 = new JustifiedProofLine(disjunct1,
       new SpecialJustification(justTypes.ASS));
@@ -247,6 +261,8 @@ function eliminateDisjunction() {
   $("#dynamicModalArea").off("click", "#eliminateDisjunctionComplete");
   $("#dynamicModalArea").on("click", "#eliminateDisjunctionComplete",
       function() {
+    /* Use entered formula as a goal and add the disjunction elimination
+       boxes to the proof */
     let skolemConstants = getSkolemConstants(targetLine);
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
         pithosData.proof.signature, skolemConstants);
@@ -274,6 +290,7 @@ function eliminateDisjunction() {
  * Function handling implication introduction
  */
 function introduceImplication() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
@@ -308,6 +325,8 @@ function introduceImplication() {
   $("#dynamicModalArea").off("click", "#introduceImplicationComplete");
   $("#dynamicModalArea").on("click", "#introduceImplicationComplete",
       function() {
+    /* Use entered formula as a goal for the implication introduction and
+       set up the proof box */
     let skolemConstants = getSkolemConstants(targetLine);
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
         pithosData.proof.signature, skolemConstants);
@@ -338,11 +357,13 @@ function introduceImplication() {
  * Function handling implication elimination
  */
 function eliminateImplication() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let formula1 = justificationLines[0].formula;
   let formula2 = justificationLines[1].formula;
+  /* Determine role of each of the justification formulas */
   let implicationFormula;
   let antecedentFormula;
   if (formula1.type === formulaTypes.IMPLICATION
@@ -361,11 +382,14 @@ function eliminateImplication() {
   let targetLine = retrievedLines.targetLine;
   pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - add consequent as a new formula */
     let justification
         = new Justification(justTypes.IMP_ELIM, justificationLines);
     let newLine = new JustifiedProofLine(consequent, justification);
     targetLine.prepend(newLine);
   } else {
+    /* Target line is a goal line - check whether the goal formula matches
+       the consequent and justify the goal line on success */
     if (!formulasDeepEqual(targetLine.formula, consequent)) {
       throw new ProofProcessingError("The consequent of the implication does "
           + "not match the selected goal formula.")
@@ -382,6 +406,7 @@ function eliminateImplication() {
  * Function handling negation introduction
  */
 function introduceNegation() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
@@ -415,6 +440,8 @@ function introduceNegation() {
   $("#dynamicModalArea").off("click", "#introduceNegationComplete");
   $("#dynamicModalArea").on("click", "#introduceNegationComplete",
       function() {
+    /* Use entered formula as the introduced negation and set up the
+       negation introduction proof box */
     let skolemConstants = getSkolemConstants(targetLine);
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
         pithosData.proof.signature, skolemConstants);
@@ -453,6 +480,7 @@ function eliminateNegation() {
  * Function handling double negation elimination
  */
 function eliminateDoubleNegation() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
@@ -464,13 +492,17 @@ function eliminateDoubleNegation() {
   }
   let targetLine = retrievedLines.targetLine;
   pithosData.targetLine = targetLine;
+  /* Determine the eliminated inner formula */
   let newFormula = justificationFormula.operand.operand;
   let justification
       = new Justification(justTypes.DOUBLE_NEG_ELIM, justificationLines);
   if (targetLine instanceof EmptyProofLine) {
+    /* Target line is a new line - add the eliminated formula to the proof */
     let newLine = new JustifiedProofLine(newFormula, justification);
     targetLine.prepend(newLine);
   } else {
+    /* Target line is a goal line - check whether the goal formula matches the
+       eliminated formula and justify the goal line on success */
     if (!formulasDeepEqual(targetLine.formula, newFormula)) {
       throw new ProofProcessingError("The justification formula is not a "
           + "double negation of the selected goal formula.");
@@ -486,15 +518,19 @@ function eliminateDoubleNegation() {
  * Function handling top introduction
  */
 function introduceTop() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
   pithosData.targetLine = targetLine;
   let justification = new SpecialJustification(justTypes.TOP_INTRO);
   if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - add new top formula */
     let newLine = new JustifiedProofLine(new Top(), justification);
     targetLine.prepend(newLine);
   } else {
+    /* Target line is a goal line - check that the selected goal formula is
+       top and justify it on success */
     if (targetLine.formula.type !== formulaTypes.TOP) {
       throw new ProofProcessingError("The selected goal formula is not top.");
     }
@@ -516,6 +552,7 @@ function introduceBottom() {
  * Function handling bottom elimination
  */
 function eliminateBottom() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
@@ -548,6 +585,7 @@ function eliminateBottom() {
   $("#dynamicModalArea").off("click", "#eliminateBottomComplete");
   $("#dynamicModalArea").on("click", "#eliminateBottomComplete",
       function() {
+    /* Introduce the entered formula */
     let skolemConstants = getSkolemConstants(targetLine);
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
         pithosData.proof.signature, skolemConstants);
@@ -563,6 +601,7 @@ function eliminateBottom() {
  * Function handling biconditional introduction rule
  */
 function introduceBiconditional() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
@@ -573,6 +612,7 @@ function introduceBiconditional() {
     throw new ProofProcessingError("One or both of the selected justification "
         + "lines are not an implication.");
   }
+  /* Unpack justification formulas */
   let antecedent1 = justificationLines[0].formula.operand1;
   let consequent1 = justificationLines[0].formula.operand2;
   let antecedent2 = justificationLines[1].formula.operand1;
@@ -592,7 +632,7 @@ function introduceBiconditional() {
          <button id="introduceBiconditionalCompleteSecond" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">${consequent1.stringRep} ↔ ${antecedent1.stringRep}</button>`
     showModal("Input required", requestText, undefined, undefined, buttons);
   } else {
-    /* Target line is a goal line - automatically attempt to derive goal
+    /* Target line is a goal line - attempt to automatically derive goal
        formula */
     if (targetLine.formula.type !== formulaTypes.BICONDITIONAL) {
       throw new ProofProcessingError("The selected goal formula is not a "
@@ -633,6 +673,8 @@ function introduceBiconditional() {
    * Complete rule application by introducing new biconditional
    */
   function completeBiconditional(orderFirst) {
+    /* Introduce new biconditional with the user-specified order of the
+       operands */
     let newBiconditional;
     if (orderFirst) {
       /* Use the order in the first selected implication */
@@ -653,11 +695,14 @@ function introduceBiconditional() {
  * Function handling biconditional elimination
  */
 function eliminateBiconditional() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
   let formula1 = justificationLines[0].formula;
   let formula2 = justificationLines[1].formula;
+  /* Determine roles of the selected justification formulas and the
+     formula introduced by the elimination */
   let biconditionalFormula;
   let newFormula;
   if (formula1.type === formulaTypes.BICONDITIONAL
@@ -685,11 +730,16 @@ function eliminateBiconditional() {
   let targetLine = retrievedLines.targetLine;
   pithosData.targetLine = targetLine;
   if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - introduce the previously determined
+       newFormula */
     let justification
         = new Justification(justTypes.BICOND_ELIM, justificationLines);
     let newLine = new JustifiedProofLine(newFormula, justification);
     targetLine.prepend(newLine);
   } else {
+    /* Target line is a goal line - check that the goal formula matches the
+       previously determined newFormula and justify the goal line on
+       success */
     if (!formulasDeepEqual(targetLine.formula, newFormula)) {
       throw new ProofProcessingError("The formula derivable by biconditional "
           + "elimination does not match the selected goal formula.")
@@ -706,6 +756,7 @@ function eliminateBiconditional() {
  * Function handling excluded middle application
  */
 function applyExcludedMiddle() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
@@ -719,6 +770,8 @@ function applyExcludedMiddle() {
          <button id="applyExcludedMiddleRight" type="button" class="disable-parse-error btn btn-outline-primary" data-dismiss="modal">¬p ∨ p</button>`
     requestFormulaInput(requestText, undefined, buttons);
   } else {
+    /* Target line is a goal line - verify that the line can be justified by
+       the law of excluded middle and perform the justification on success */
     let targetFormula = targetLine.formula;
     if (targetFormula.type !== formulaTypes.DISJUNCTION) {
       throw new ProofProcessingError("The selected target formula is not a "
@@ -760,6 +813,8 @@ function applyExcludedMiddle() {
    * Complete rule application by introducing new EM disjunction
    */
   function completeExcludedMiddle(basicLeft) {
+    /* Introduce new disjunction with disjuncts determined from the
+       user-entred formula */
     let skolemConstants = getSkolemConstants(targetLine);
     let pFormula = parseFormula($("#additionalFormulaInput")[0].value,
         pithosData.proof.signature, skolemConstants);
@@ -783,6 +838,7 @@ function applyExcludedMiddle() {
  * Function handling proof by contradiction application
  */
 function applyProofByContradiction() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let targetLine = retrievedLines.targetLine;
@@ -813,6 +869,7 @@ function applyProofByContradiction() {
   $("#dynamicModalArea").off("click", "#proofByContradictionComplete");
   $("#dynamicModalArea").on("click", "#proofByContradictionComplete",
       function() {
+    /* Set up box for the proof by contradiction of the entred formula */
     let skolemConstants = getSkolemConstants(targetLine);
     let targetFormula = parseFormula($("#additionalFormulaInput")[0].value,
         pithosData.proof.signature, skolemConstants);
@@ -837,6 +894,7 @@ function applyProofByContradiction() {
  * Function handling tick rule application
  */
 function applyTick() {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
@@ -845,9 +903,13 @@ function applyTick() {
   pithosData.targetLine = targetLine;
   let justification = new Justification(justTypes.TICK, justificationLines);
   if (targetLine instanceof EmptyProofLine) {
+    /* Target line is an empty line - re-introduce justification formula
+       at the chosen place */
     let newLine = new JustifiedProofLine(justificationFormula, justification);
     targetLine.prepend(newLine);
   } else {
+    /* Target line is a goal line - check whether the goal formula matches
+       the chosen justification formula and justify the goal line on success */
     if (!formulasDeepEqual(targetLine.formula, justificationFormula)) {
       throw new ProofProcessingError("The justification and goal formulas do "
           + "not match.");
@@ -863,22 +925,18 @@ function applyTick() {
  * Function handling negation elimination and bottom introduction rules
  */
 function addBottom(justType) {
+  /* Unpack selected lines */
   let retrievedLines
       = retrieveLines(pithosData.proof, pithosData.selectedLinesSet);
   let justificationLines = retrievedLines.justificationLines;
-  let negatedFormula;
-  let formula;
-  if (justificationLines[0].formula.type === formulaTypes.NEGATION
-      && formulasDeepEqual(justificationLines[0].formula.operand,
-          justificationLines[1].formula)) {
-    negatedFormula = justificationLines[0].formula;
-    formula = justificationLines[1].formula;
-  } else if (justificationLines[1].formula.type === formulaTypes.NEGATION
-      && formulasDeepEqual(justificationLines[1].formula.operand,
-          justificationLines[0].formula)) {
-    negatedFormula = justificationLines[1].formula;
-    formula = justificationLines[0].formula;
-  } else {
+  /* Determine whether the justification formulas are a formula along with
+     its negation */
+  if (!(justificationLines[0].formula.type === formulaTypes.NEGATION
+          && formulasDeepEqual(justificationLines[0].formula.operand,
+          justificationLines[1].formula))
+      || (justificationLines[1].formula.type === formulaTypes.NEGATION
+          && formulasDeepEqual(justificationLines[1].formula.operand,
+              justificationLines[0].formula))) {
     throw new ProofProcessingError("The justification formulas are not a "
         + "formula and its negation.")
   }
