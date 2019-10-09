@@ -441,7 +441,7 @@ function eliminateUniversalImplication() {
     let targetFormula = targetLine.formula;
     if (!matchFormulasVariablesReplace(targetFormula,
         unpackedUniversal.innerFormula.operand2,
-        unpackedUniversal.variablesSet, {})) {
+        unpackedUniversal.variablesSet, replacements)) {
       throw new ProofProcessingError("The selected goal line cannot be derived "
           + "from the selected justification lines using universal implication "
           + "elimination.");
