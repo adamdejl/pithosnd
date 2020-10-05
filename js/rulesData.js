@@ -105,6 +105,6 @@ const rulesData = Object.freeze({
       name: "=sym"},
   "✓": {handler: applyTick, numLines: 2, hint: "✓ requires selection "
       + "of a formula and an empty or goal line. It can be used to "
-      + "justify formula that has alerady been derived in the current "
+      + "justify formula that has already been derived in the current "
       + "scope.", name: "✓"}
 });
