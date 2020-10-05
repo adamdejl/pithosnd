@@ -926,17 +926,16 @@ function replaceTerm(formula, replaced, replacement) {
 }
 
 /*
- * Checks whether the given formula contains specified term
+ * Checks whether the given formula (or term) contains specified term
  */
 function formulaContainsTerm(formula, term) {
   if (formula instanceof Term) {
     if (formulasDeepEqual(formula, term)) {
       return true;
     }
-    if (formula.type === formulaTypes.FUNCTION) {
-      return formula.terms
-          .map(t => formulaContainsTerm(t, term))
-          .reduce((b1, b2) => b1 || b2, false);
+    if (formula.type === termTypes.FUNCTION) {
+      return _.some(formula.terms
+          .map(t => formulaContainsTerm(t, term)));
     }
     return false;
   } else if (formula instanceof Quantifier) {
@@ -950,9 +949,8 @@ function formulaContainsTerm(formula, term) {
     return formulaContainsTerm(formula.term1, term)
         || formulaContainsTerm(formula.term2, term);
   } else if (formula.type === formulaTypes.RELATION) {
-    return formula.terms
-        .map(t => formulaContainsTerm(t, term))
-        .reduce((b1, b2) => b1 || b2, false);
+    return _.some(formula.terms
+        .map(t => formulaContainsTerm(t, term)));
   }
   return false;
 }
