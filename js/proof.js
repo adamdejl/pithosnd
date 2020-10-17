@@ -31,9 +31,8 @@ const justTypes = Object.freeze({
   EQ_SUB: "=sub",
   EQ_REFL: "refl",
   EQ_SYM: "=sym",
-  TICK: "✓"
+  TICK: "✓",
 });
-
 
 class Justification {
   constructor(type, linesArray) {
@@ -42,9 +41,9 @@ class Justification {
   }
 
   get stringRep() {
-    let lineNumbers = this.linesArray.map(x => x.lineNumber);
+    let lineNumbers = this.linesArray.map((x) => x.lineNumber);
     lineNumbers.sort((a, b) => a - b);
-    return `${this.type} (${lineNumbers.join(", ")})`
+    return `${this.type} (${lineNumbers.join(", ")})`;
   }
 }
 
@@ -154,7 +153,7 @@ class Proof extends ProofItem {
 class ProofProcessingError extends Error {
   constructor(message) {
     super(message);
-    this.name = 'ProofProcessingError';
+    this.name = "ProofProcessingError";
   }
 }
 
@@ -171,20 +170,22 @@ function initializeProof(parsingResults) {
       break;
     }
   }
-  let initialProofLines = parsedFormulas
-      .map(x => new JustifiedProofLine(x,
-          new SpecialJustification(justTypes.GIVEN)));
+  let initialProofLines = parsedFormulas.map(
+    (x) => new JustifiedProofLine(x, new SpecialJustification(justTypes.GIVEN))
+  );
   if (i === parsedFormulas.length) {
     /* Givens do not include the goal */
     initialProofLines.push(new EmptyProofLine());
     initialProofLines.push(
-        new JustifiedProofLine(parsedGoal,
-            new SpecialJustification(justTypes.GOAL)));
+      new JustifiedProofLine(
+        parsedGoal,
+        new SpecialJustification(justTypes.GOAL)
+      )
+    );
   } else {
     /* Givens contain the goal, automatically complete proof with tick rule */
     let justification = new Justification("✓", [initialProofLines[i]]);
-    initialProofLines
-        .push(new JustifiedProofLine(parsedGoal, justification));
+    initialProofLines.push(new JustifiedProofLine(parsedGoal, justification));
   }
   /* Construct proof */
   let proof = new Proof(initialProofLines[0], signature);
@@ -214,22 +215,31 @@ function updateLines(proof) {
     let complete = true;
     /* Automatically justify goal if the goal formula has been proven
        right above the empty line above goal. */
-    for (let component = components; component !== null;
-        component = component.next) {
-      if (component.next !== null && component.next.next !== null
-          && component instanceof JustifiedProofLine
-          && component.next instanceof EmptyProofLine
-          && component.next.next instanceof JustifiedProofLine
-          && component.next.next.justification.type === justTypes.GOAL) {
+    for (
+      let component = components;
+      component !== null;
+      component = component.next
+    ) {
+      if (
+        component.next !== null &&
+        component.next.next !== null &&
+        component instanceof JustifiedProofLine &&
+        component.next instanceof EmptyProofLine &&
+        component.next.next instanceof JustifiedProofLine &&
+        component.next.next.justification.type === justTypes.GOAL
+      ) {
         let emptyLine = component.next;
         let goalLine = component.next.next;
         if (formulasDeepEqual(component.formula, goalLine.formula)) {
           /* The formulas are identical */
           emptyLine.delete();
-          if (component.justification.type === justTypes.GIVEN
-              || component.justification.type === justTypes.ASS) {
-            let newJustification
-                = new Justification(justTypes.TICK, [component])
+          if (
+            component.justification.type === justTypes.GIVEN ||
+            component.justification.type === justTypes.ASS
+          ) {
+            let newJustification = new Justification(justTypes.TICK, [
+              component,
+            ]);
             goalLine.justification = newJustification;
           } else {
             goalLine.justification = component.justification;
@@ -239,11 +249,16 @@ function updateLines(proof) {
       }
     }
     /* Determine whether any goal line remains in the current proof item */
-    for (let component = components; component !== null;
-        component = component.next) {
-      if (component instanceof JustifiedProofLine
-          && component.justification.type === justTypes.GOAL) {
-        complete = false
+    for (
+      let component = components;
+      component !== null;
+      component = component.next
+    ) {
+      if (
+        component instanceof JustifiedProofLine &&
+        component.justification.type === justTypes.GOAL
+      ) {
+        complete = false;
       }
       if (component instanceof ProofBox) {
         checkCompletion(component);
@@ -252,8 +267,11 @@ function updateLines(proof) {
     }
     if (complete) {
       /* Trim out relict empty lines in completed part of the proof */
-      for (let component = components; component !== null;
-          component = component.next) {
+      for (
+        let component = components;
+        component !== null;
+        component = component.next
+      ) {
         if (component instanceof EmptyProofLine) {
           component.delete();
         }
@@ -268,15 +286,18 @@ function updateLines(proof) {
    */
   function recomputeLineNumbers(proofItem, lineNumber) {
     let components = proofItem.components;
-    for (let component = components; component !== null;
-        component = component.next) {
+    for (
+      let component = components;
+      component !== null;
+      component = component.next
+    ) {
       if (component instanceof ProofLine) {
         /* Update line number */
         component.lineNumber = lineNumber;
         lineNumber++;
       }
       if (component instanceof ProofBox) {
-        lineNumber = updateLinesHelper(component, lineNumber);
+        lineNumber = recomputeLineNumbers(component, lineNumber);
       }
     }
     return lineNumber;
@@ -290,10 +311,9 @@ function proofToHTML(proof) {
   let innerHTML = proofToHTMLHelper(proof);
   let complete = "";
   if (proof.complete) {
-    complete = " box-checked"
+    complete = " box-checked";
   }
-  let proofHTML =
-      `<table class="table table-borderless table-sm table-responsive">
+  let proofHTML = `<table class="table table-borderless table-sm table-responsive">
          <tbody>
            <tr>
              <td class="box-cell">
@@ -305,7 +325,7 @@ function proofToHTML(proof) {
              </td>
            </tr>
          </tbody>
-       </table>`
+       </table>`;
   return proofHTML;
 
   /*
@@ -315,18 +335,19 @@ function proofToHTML(proof) {
     let proofHTML = "";
     let components = proofItem.components;
     let prevAdjacent = false;
-    for (let component = components; component !== null;
-        component = component.next) {
+    for (
+      let component = components;
+      component !== null;
+      component = component.next
+    ) {
       if (component instanceof JustifiedProofLine) {
-        proofHTML +=
-            `<tr class="proof-line" tabindex="0">
+        proofHTML += `<tr class="proof-line" tabindex="0">
                <th class="shrink" scope="row">${component.lineNumber}</th>
                <td>${component.formula.stringRep}</td>
                <td class="shrink justification-cell">${component.justification.stringRep}</td>
              </tr>`;
       } else if (component instanceof EmptyProofLine) {
-        proofHTML +=
-            `<tr colspan="3" class="proof-line" tabindex="0">
+        proofHTML += `<tr colspan="3" class="proof-line" tabindex="0">
                <th class="shrink" scope="row">${component.lineNumber}</th>
                <td>&lt;empty line&gt;</td>
                <td class="shrink justification-cell"></td>
@@ -337,14 +358,12 @@ function proofToHTML(proof) {
           complete = " box-checked";
         }
         if (!prevAdjacent) {
-          proofHTML +=
-              `<tr>
+          proofHTML += `<tr>
                  <td class="box-cell" colspan="3">
                    <table class="proof-box${complete}">
                      <tbody>`;
         } else {
-          proofHTML +=
-              `<table class="proof-box${complete}">
+          proofHTML += `<table class="proof-box${complete}">
                  <tbody>`;
           prevAdjacent = false;
         }
@@ -377,38 +396,46 @@ function retrieveLines(proof, linesSet) {
   let retrievedLines = {
     justificationLines: [],
     targetLine: null,
-  }
+  };
   let extractedLines = {};
   extractLines(proof, linesSet, extractedLines);
   for (let lineNumber of linesSet.values()) {
     if (!(lineNumber in extractedLines)) {
       retrievedLines.success = false;
-      throw new ProofProcessingError("Processing of the proof failed in an "
-          + "unexpected way. Please contact the developer stating the actions "
-          + "that you performed. Sorry... Cause: Failed to extract selected "
-          + "proof line(s).");
+      throw new ProofProcessingError(
+        "Processing of the proof failed in an " +
+          "unexpected way. Please contact the developer stating the actions " +
+          "that you performed. Sorry... Cause: Failed to extract selected " +
+          "proof line(s)."
+      );
     }
-    if (extractedLines[lineNumber] instanceof JustifiedProofLine
-        && extractedLines[lineNumber].justification.type !== justTypes.GOAL) {
+    if (
+      extractedLines[lineNumber] instanceof JustifiedProofLine &&
+      extractedLines[lineNumber].justification.type !== justTypes.GOAL
+    ) {
       retrievedLines.justificationLines.push(extractedLines[lineNumber]);
     } else {
       if (retrievedLines.targetLine !== null) {
-        throw new ProofProcessingError("Only one target (goal or empty) line "
-            + "should be selected.")
+        throw new ProofProcessingError(
+          "Only one target (goal or empty) line " + "should be selected."
+        );
       }
       retrievedLines.targetLine = extractedLines[lineNumber];
     }
   }
   if (retrievedLines.targetLine === null) {
-    throw new ProofProcessingError("No target (goal or empty) line has been "
-        + "selected.")
+    throw new ProofProcessingError(
+      "No target (goal or empty) line has been " + "selected."
+    );
   }
   for (let justificationLine of retrievedLines.justificationLines) {
     if (!checkScope(justificationLine, retrievedLines.targetLine)) {
-      throw new ProofProcessingError("One or more of the selected "
-          + "justification lines is out of scope for the chosen target (goal "
-          + "or empty) line. Please make sure that you are not using formulas "
-          + "outside of their boxes.");
+      throw new ProofProcessingError(
+        "One or more of the selected " +
+          "justification lines is out of scope for the chosen target (goal " +
+          "or empty) line. Please make sure that you are not using formulas " +
+          "outside of their boxes."
+      );
     }
   }
   return retrievedLines;
@@ -419,10 +446,15 @@ function retrieveLines(proof, linesSet) {
    */
   function extractLines(proofItem, linesSet, extractionTarget) {
     let components = proofItem.components;
-    for (let component = components; component !== null;
-        component = component.next) {
-      if (component instanceof ProofLine
-          && linesSet.has(component.lineNumber)) {
+    for (
+      let component = components;
+      component !== null;
+      component = component.next
+    ) {
+      if (
+        component instanceof ProofLine &&
+        linesSet.has(component.lineNumber)
+      ) {
         extractionTarget[component.lineNumber] = component;
       }
       if (component instanceof ProofBox) {
@@ -441,8 +473,11 @@ function retrieveLines(proof, linesSet) {
     }
     let currProofItem = targetLine.parent;
     while (currProofItem !== null) {
-      for (let component = currProofItem.components; component !== null;
-          component = component.next) {
+      for (
+        let component = currProofItem.components;
+        component !== null;
+        component = component.next
+      ) {
         if (component instanceof ProofLine && component === justificationLine) {
           return true;
         }
@@ -461,7 +496,7 @@ function getSkolemConstants(proofItem) {
   let skolemConstants = new Set([]);
   while (currProofItem !== null) {
     if (currProofItem instanceof ProofBox) {
-      currProofItem.skolemConstants.forEach(s => skolemConstants.add(s));
+      currProofItem.skolemConstants.forEach((s) => skolemConstants.add(s));
     }
     currProofItem = currProofItem.parent;
   }
