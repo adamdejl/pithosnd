@@ -1,7 +1,6 @@
 "use strict";
 
-jQuery(function($) {
-
+jQuery(function ($) {
   /* Disable invalid buttons on reload */
   $("#removeGiven").attr("disabled", true);
   $("#startProof").attr("disabled", true);
@@ -9,7 +8,7 @@ jQuery(function($) {
   /*
    * Add new field for a given
    */
-  $("#addGiven").click(function() {
+  $("#addGiven").click(function () {
     /* Disable the Start proof button */
     $("#startProof").attr("disabled", true);
 
@@ -20,14 +19,21 @@ jQuery(function($) {
     }
 
     /* Insert form for new given */
-    const givenCode =
-        `<div id="given${pithosData.numGivens}" class="form-group given-group">
-           <label for="givenInput${pithosData.numGivens}">#${pithosData.numGivens + 1}</label>
-           <input id="givenInput${pithosData.numGivens}" class="given-input form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
-           <div id="givenParsed${pithosData.numGivens}" class="given-parsed alert alert-dark" role="alert" style="word-wrap: break-word; ">
+    const givenCode = `<div id="given${
+      pithosData.numGivens
+    }" class="form-group given-group">
+           <label for="givenInput${pithosData.numGivens}">#${
+      pithosData.numGivens + 1
+    }</label>
+           <input id="givenInput${
+             pithosData.numGivens
+           }" class="given-input form-control mb-2" type="text" placeholder="Please type your formula here." value="" autocomplete="off">
+           <div id="givenParsed${
+             pithosData.numGivens
+           }" class="given-parsed alert alert-dark" role="alert" style="word-wrap: break-word; ">
              The result of the parsing will appear here.
            </div>
-         </div>`
+         </div>`;
     $(givenCode).insertBefore("#addGiven");
     pithosData.numGivens++;
   });
@@ -35,7 +41,7 @@ jQuery(function($) {
   /*
    * Remove the most recently added field for a given
    */
-  $("#removeGiven").click(function() {
+  $("#removeGiven").click(function () {
     if (pithosData.numGivens === 0) {
       return;
     }
@@ -46,7 +52,7 @@ jQuery(function($) {
       $("#removeGiven").attr("disabled", true);
     }
     parseGivens();
-  })
+  });
 
   /*
    * Parse all formulas on input
@@ -57,19 +63,21 @@ jQuery(function($) {
    * Insert special character and parse all formulas after pressing
      toolbar button
    */
-  $(document).on("mousedown", ".insert-char-btn", function(mouseDownEvent) {
+  $(document).on("mousedown", ".insert-char-btn", function (mouseDownEvent) {
     mouseDownEvent.preventDefault();
     let focusElement = $(":focus");
-    if (focusElement.hasClass("given-input")
-        || focusElement.hasClass("goal-input")
-        || focusElement.hasClass("additional-formula-input")) {
+    if (
+      focusElement.hasClass("given-input") ||
+      focusElement.hasClass("goal-input") ||
+      focusElement.hasClass("additional-formula-input")
+    ) {
       /* Insert character at the correct place */
-      let cursorPosition = focusElement.prop('selectionStart');
+      let cursorPosition = focusElement.prop("selectionStart");
       let value = focusElement[0].value;
       let textBeforeCursor = value.substring(0, cursorPosition);
       let textAfterCursor = value.substring(cursorPosition, value.length);
-      focusElement[0].value = textBeforeCursor
-          + mouseDownEvent.target.innerText + textAfterCursor;
+      focusElement[0].value =
+        textBeforeCursor + mouseDownEvent.target.innerText + textAfterCursor;
 
       /* Set cursor correctly */
       focusElement[0].selectionEnd = cursorPosition + 1;
@@ -86,7 +94,7 @@ jQuery(function($) {
   /*
    * Start proof
    */
-  $("#startProof").click(function() {
+  $("#startProof").click(function () {
     let parsingResults = parseGivens();
     if (parsingResults !== null) {
       /* Reset all data */
@@ -112,15 +120,15 @@ jQuery(function($) {
   /*
    * Restart proof
    */
-  $("#confirmRestart").click(function() {
+  $("#confirmRestart").click(function () {
     $("#proofArea").hide();
     $("#inputArea").show();
-  })
+  });
 
   /*
    * Select or deselect a proof line
    */
-  $("#proofContainer").on("click", ".proof-line", function(clickEvent) {
+  $("#proofContainer").on("click", ".proof-line", function (clickEvent) {
     let target = clickEvent.target;
     /* Locate the whole line element */
     while (target.tagName != "TR") {
@@ -141,8 +149,10 @@ jQuery(function($) {
       pithosData.lineNumToSelector[lineNumber] = targetSelector;
       targetSelector.addClass("text-primary");
     }
-    if (!pithosData.freeSelection && pithosData.selectedLinesSet.size
-        === pithosData.selectedRuleData.numLines) {
+    if (
+      !pithosData.freeSelection &&
+      pithosData.selectedLinesSet.size === pithosData.selectedRuleData.numLines
+    ) {
       /* Update proof if certain rule is activated and the required number of
          proof lines has been selected */
       updateProof();
@@ -152,7 +162,7 @@ jQuery(function($) {
   /*
    * Select or deselect a line on enter keypress
    */
-  $("#proofContainer").on("keypress", ".proof-line", function(keypressEvent) {
+  $("#proofContainer").on("keypress", ".proof-line", function (keypressEvent) {
     const enterKey = 13;
     if (keypressEvent.which === enterKey) {
       $(keypressEvent.target).click();
@@ -162,7 +172,7 @@ jQuery(function($) {
   /*
    * Attempt to apply activated rule.
    */
-  $(".apply-rule").click(function(clickEvent) {
+  $(".apply-rule").click(function (clickEvent) {
     let target = clickEvent.target;
     if ($(target).hasClass("btn-primary")) {
       /* Deactivate selection of the rule */
@@ -173,8 +183,8 @@ jQuery(function($) {
     if (pithosData.selectedButton !== null) {
       /* Deactivate possible previous rule selection */
       $(pithosData.selectedButton)
-          .removeClass("btn-primary")
-          .addClass("btn-secondary");
+        .removeClass("btn-primary")
+        .addClass("btn-secondary");
     }
     /* Attempt to activate rule and save the information globally */
     $(target).removeClass("btn-secondary").addClass("btn-primary");
@@ -185,34 +195,46 @@ jQuery(function($) {
     if (pithosData.selectedLinesSet.size === ruleData.numLines) {
       updateProof();
     } else if (pithosData.selectedLinesSet.size > ruleData.numLines) {
-      showModal("Warning", "You have selected too many lines for the "
-          + `application of the rule ${target.innerText}. Please deselect `
-          + "some of the lines or cancel the application of the current rule. "
-          + "Expected number of selected lines for this rule is "
-          +  `${ruleData.numLines}.`,
-          ruleData.hint);
+      showModal(
+        "Warning",
+        "You have selected too many lines for the " +
+          `application of the rule ${target.innerText}. Please deselect ` +
+          "some of the lines or cancel the application of the current rule. " +
+          "Expected number of selected lines for this rule is " +
+          `${ruleData.numLines}.`,
+        ruleData.hint
+      );
     } else if (pithosData.selectedLinesSet.size !== 0) {
-      showModal("Warning", "You have selected too few lines for the "
-          + `application of the rule ${target.innerText}. Expected number `
-          + `of selected lines for this rule is ${ruleData.numLines}. `
-          + "Please select additional lines or cancel the application of the "
-          + "current rule.",
-          ruleData.hint);
+      showModal(
+        "Warning",
+        "You have selected too few lines for the " +
+          `application of the rule ${target.innerText}. Expected number ` +
+          `of selected lines for this rule is ${ruleData.numLines}. ` +
+          "Please select additional lines or cancel the application of the " +
+          "current rule.",
+        ruleData.hint
+      );
     }
   });
 
   /*
    * Parse additional formulas inputted in modals
    */
-  $("#dynamicModalArea").on("input", "#additionalFormulaInput",
-      parseAdditionalFormula);
-  $("#dynamicModalArea").on("input", ".additional-term-input",
-      parseAdditionalTerm);
+  $("#dynamicModalArea").on(
+    "input",
+    "#additionalFormulaInput",
+    parseAdditionalFormula
+  );
+  $("#dynamicModalArea").on(
+    "input",
+    ".additional-term-input",
+    parseAdditionalTerm
+  );
 
   /*
    * Go back or forward in proof
    */
-  $("#proofUndo").click(function() {
+  $("#proofUndo").click(function () {
     pithosData.proofRedoStack.push(_.cloneDeep(pithosData.proof));
     $("#proofRedo").attr("disabled", false);
     pithosData.proof = pithosData.proofUndoStack.pop();
@@ -221,7 +243,7 @@ jQuery(function($) {
     }
     completeProofUpdate();
   });
-  $("#proofRedo").click(function() {
+  $("#proofRedo").click(function () {
     pithosData.proofUndoStack.push(_.cloneDeep(pithosData.proof));
     $("#proofUndo").attr("disabled", false);
     pithosData.proof = pithosData.proofRedoStack.pop();

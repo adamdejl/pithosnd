@@ -6,7 +6,7 @@ const termTypes = Object.freeze({
   CONSTANT: "constant",
   VARIABLE: "variable",
   FUNCTION: "function",
-  CONSTANTS_LIST: "constants list"
+  CONSTANTS_LIST: "constants list",
 });
 
 class Term {
@@ -50,7 +50,7 @@ class Function extends Term {
   get stringRep() {
     var str = this.name + "(";
     /* Add string representations of the terms separated by commas */
-    this.terms.forEach(term => str += term.stringRep +  ", ");
+    this.terms.forEach((term) => (str += term.stringRep + ", "));
     /* Trim trailing comma and space, add closing bracket */
     str = str.substring(0, str.length - 2) + ")";
     return str;
@@ -86,12 +86,12 @@ const formulaTypes = Object.freeze({
   IMPLICATION: "implication",
   BICONDITIONAL: "biconditional",
   EXISTENTIAL: "existential",
-  UNIVERSAL: "universal"
+  UNIVERSAL: "universal",
 });
 
 class Formula {
   constructor() {
-    this.type = formulaTypes.GENERIC
+    this.type = formulaTypes.GENERIC;
     this.priority = -1;
   }
 }
@@ -121,7 +121,7 @@ class Relation extends Formula {
   get stringRep() {
     var str = this.name + "(";
     /* Add string representations of the terms separated by commas */
-    this.terms.forEach(term => str += term.stringRep +  ", ");
+    this.terms.forEach((term) => (str += term.stringRep + ", "));
     /* Trim trailing comma and space, add closing bracket */
     str = str.substring(0, str.length - 2) + ")";
     return str;
@@ -199,17 +199,19 @@ class BinaryConnective extends Formula {
     var str = "";
     /* Bracket operands only if necessary. Note that this code assumes that
        different binary operators have different priorities. */
-    if (this.operand1.priority < this.priority
-            || (this.isAssociative
-                && this.operand1.priority == this.priority)) {
+    if (
+      this.operand1.priority < this.priority ||
+      (this.isAssociative && this.operand1.priority == this.priority)
+    ) {
       str += this.operand1.stringRep;
     } else {
       str += "(" + this.operand1.stringRep + ")";
     }
     str += " " + this.symbol + " ";
-    if (this.operand2.priority < this.priority
-            || (this.isAssociative
-                && this.operand2.priority == this.priority)) {
+    if (
+      this.operand2.priority < this.priority ||
+      (this.isAssociative && this.operand2.priority == this.priority)
+    ) {
       str += this.operand2.stringRep;
     } else {
       str += "(" + this.operand2.stringRep + ")";
@@ -263,8 +265,10 @@ class Quantifier extends Formula {
 
   get stringRep() {
     var str = this.symbol + this.variableString;
-    if (this.predicate.type == formulaTypes.UNIVERSAL
-        || this.predicate.type == formulaTypes.EXISTENTIAL) {
+    if (
+      this.predicate.type == formulaTypes.UNIVERSAL ||
+      this.predicate.type == formulaTypes.EXISTENTIAL
+    ) {
       str += this.predicate.stringRep;
     } else {
       str += "[" + this.predicate.stringRep + "]";
@@ -275,7 +279,7 @@ class Quantifier extends Formula {
 
 class Universal extends Quantifier {
   constructor(variable, predicate) {
-    super("∀", "\\forall", variable, predicate);;
+    super("∀", "\\forall", variable, predicate);
     this.type = formulaTypes.UNIVERSAL;
   }
 }
@@ -291,7 +295,7 @@ class Existential extends Quantifier {
 const parseTypes = Object.freeze({
   UNARY: "unary",
   BINARY: "binary",
-  QUANTIFIER: "quantifier"
+  QUANTIFIER: "quantifier",
 });
 
 class OperatorData {
@@ -340,26 +344,27 @@ const operatorDataDict = Object.freeze({
   "∀": universalData,
   "(A)": universalData,
   "∃": existentialData,
-  "(E)": existentialData
+  "(E)": existentialData,
 });
 
 const operandRepresentingClass = Object.freeze({
   "⊤": Top,
-  "top": Top,
+  top: Top,
   "⊥": Bottom,
-  "bottom": Bottom
+  bottom: Bottom,
 });
 
 class FormulaParsingError extends Error {
   constructor(message) {
     super(message);
-    this.name = 'FormulaParsingError';
+    this.name = "FormulaParsingError";
   }
 }
 
-const OPERATOR_REGEX = new RegExp(''
-    + /^\(A\)|^\(E\)|^->|^<->|^\(|^\[|^\)|^\]|^~|^˜|^¬|^!|^-|^∧|^\^|^\.|/.source
-    + /^·|^&&|^&|^∨|^\+|^\|\||^\||^→|^⇒|^⊃|^>|^↔|^⇔|^≡|^<>|^#|^∀|^∃/.source
+const OPERATOR_REGEX = new RegExp(
+  "" +
+    /^\(A\)|^\(E\)|^->|^<->|^\(|^\[|^\)|^\]|^~|^˜|^¬|^!|^-|^∧|^\^|^\.|/.source +
+    /^·|^&&|^&|^∨|^\+|^\|\||^\||^→|^⇒|^⊃|^>|^↔|^⇔|^≡|^<>|^#|^∀|^∃/.source
 );
 const OPERAND_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<#∀∃]+/;
 const ONLY_OPERAND_REGEX = /^[^~˜¬!∧^.·&∨+|→⇒⊃\->↔⇔≡<#∀∃]+$/;
@@ -380,13 +385,13 @@ function parseFormula(formulaString, signature, skolemConstants) {
     signature: signature,
     formulaString: formulaString,
     token: { str: null, isOperator: null },
-    skolemConstants: skolemConstants
-  }
+    skolemConstants: skolemConstants,
+  };
 
   /* Trim spaces from the formula */
   parserData.formulaString = parserData.formulaString.replace(/ /g, "");
   if (formulaString === "") {
-    throw new FormulaParsingError("Parsed formula is empty.")
+    throw new FormulaParsingError("Parsed formula is empty.");
   }
   while (parserData.formulaString !== "") {
     /* Determine the next token */
@@ -402,16 +407,23 @@ function parseFormula(formulaString, signature, skolemConstants) {
   /* Process operators remaining in the stack */
   while (operatorStack.length > 0) {
     let processedOperator = operatorStack.pop();
-    if (processedOperator === "(" || processedOperator === "["
-        || processedOperator === ")" || processedOperator === "]") {
-      throw new FormulaParsingError("Parsed formula contains mismatched "
-          + "parentheses.")
+    if (
+      processedOperator === "(" ||
+      processedOperator === "[" ||
+      processedOperator === ")" ||
+      processedOperator === "]"
+    ) {
+      throw new FormulaParsingError(
+        "Parsed formula contains mismatched " + "parentheses."
+      );
     }
     commitOperator(processedOperator, parserData);
   }
   if (formulaStack.length !== 1) {
-    throw new FormulaParsingError("Could not match operators to operands, "
-        + "please check that operators are used with correct arities.");
+    throw new FormulaParsingError(
+      "Could not match operators to operands, " +
+        "please check that operators are used with correct arities."
+    );
   }
   return formulaStack.pop();
 }
@@ -429,9 +441,11 @@ function extractToken(parserData) {
     /* No operator at the beginning of the string - extract operand instead */
     token = OPERAND_REGEX.exec(formulaString);
     if (token === null) {
-      throw new FormulaParsingError("Parsing of the formula failed in an "
-          + "unexpected way. Please contact the developer stating the "
-          + "formula which you used. Sorry... Cause: Failed to extract token.");
+      throw new FormulaParsingError(
+        "Parsing of the formula failed in an " +
+          "unexpected way. Please contact the developer stating the " +
+          "formula which you used. Sorry... Cause: Failed to extract token."
+      );
     }
     token = token[0];
     /* Identify excess brackets and trim them off
@@ -442,16 +456,16 @@ function extractToken(parserData) {
     var openedBrackets = 0;
     var bracketEncountered = false;
     var equality = false;
-    while (index < token.length
-        && (openedBrackets !== 0 || !bracketEncountered || equality)) {
-      if (token.charAt(index) === "("
-          || token.charAt(index) === "[") {
+    while (
+      index < token.length &&
+      (openedBrackets !== 0 || !bracketEncountered || equality)
+    ) {
+      if (token.charAt(index) === "(" || token.charAt(index) === "[") {
         if (!bracketEncountered) {
           bracketEncountered = true;
         }
         openedBrackets++;
-      } else if (token.charAt(index) === ")"
-          || token.charAt(index) === "]") {
+      } else if (token.charAt(index) === ")" || token.charAt(index) === "]") {
         if (openedBrackets === 0) {
           break;
         }
@@ -462,10 +476,10 @@ function extractToken(parserData) {
         equality = true;
       }
     }
-    parserData.token = {str: token.substr(0, index), isOperator: false};
+    parserData.token = { str: token.substr(0, index), isOperator: false };
     return;
   }
-  parserData.token = {str: token[0], isOperator: true};
+  parserData.token = { str: token[0], isOperator: true };
 }
 
 /*
@@ -492,8 +506,9 @@ function processToken(parserData) {
       let currOperator = operatorStack.pop();
       while (currOperator !== "(" && currOperator !== "[") {
         if (currOperator === undefined) {
-          throw new FormulaParsingError("Formula contains mismatched "
-              + "parentheses.");
+          throw new FormulaParsingError(
+            "Formula contains mismatched " + "parentheses."
+          );
         }
         commitOperator(currOperator, parserData);
         currOperator = operatorStack.pop();
@@ -502,8 +517,9 @@ function processToken(parserData) {
       parserData.formulaString = parserData.formulaString.substr(1);
     } else {
       /* Throw error if an unknown operator is encountered */
-      throw new FormulaParsingError("Formula contains an unknown operator "
-          + `'${tokenString}'.`);
+      throw new FormulaParsingError(
+        "Formula contains an unknown operator " + `'${tokenString}'.`
+      );
     }
   } else {
     /* Parse operand */
@@ -521,8 +537,9 @@ function processToken(parserData) {
         term2 = parseTerm(terms[1], parserData);
       } catch (error) {
         if (error instanceof FormulaParsingError) {
-          throw new FormulaParsingError("Formula contains invalid equality: "
-              + error.message);
+          throw new FormulaParsingError(
+            "Formula contains invalid equality: " + error.message
+          );
         } else {
           throw error;
         }
@@ -539,8 +556,9 @@ function processToken(parserData) {
       /* Parse propositional variable */
       formulaStack.push(new PropositionalVariable(tokenString));
     }
-    parserData.formulaString = parserData.formulaString
-        .substr(tokenString.length);
+    parserData.formulaString = parserData.formulaString.substr(
+      tokenString.length
+    );
   }
 }
 
@@ -566,15 +584,19 @@ function processOperator(operatorString, parserData) {
     }
     let topOperatorData = operatorDataDict[topOperator];
     if (topOperatorData === undefined) {
-      throw new FormulaParsingError("Parsing of the formula failed in an "
-          + "unexpected way. Please contact the developer stating the "
-          + "formula which you used. Sorry... Cause: Failed to "
-          + "retrieve specification of top operator on operatorStack.");
+      throw new FormulaParsingError(
+        "Parsing of the formula failed in an " +
+          "unexpected way. Please contact the developer stating the " +
+          "formula which you used. Sorry... Cause: Failed to " +
+          "retrieve specification of top operator on operatorStack."
+      );
     }
     /* Note: Higher priority value = lower priority */
-    if (topOperatorData.priority > operatorData.priority ||
-        (topOperatorData.parseType != parseTypes.BINARY &&
-            operatorData.parseType != parseTypes.BINARY)) {
+    if (
+      topOperatorData.priority > operatorData.priority ||
+      (topOperatorData.parseType != parseTypes.BINARY &&
+        operatorData.parseType != parseTypes.BINARY)
+    ) {
       operatorStack.push(topOperator);
       break;
     }
@@ -583,14 +605,16 @@ function processOperator(operatorString, parserData) {
   /* Push new operator to the stack */
   operatorStack.push(operatorString);
   /* Consume the pushed operator */
-  parserData.formulaString =
-      parserData.formulaString.substr(operatorString.length);
+  parserData.formulaString = parserData.formulaString.substr(
+    operatorString.length
+  );
   if (operatorData.parseType === parseTypes.QUANTIFIER) {
     /* Add quantifier variable to the stack and consume processed characters */
-    let variable = QUANTIFIER_VAR_REGEX.exec(parserData.formulaString)
+    let variable = QUANTIFIER_VAR_REGEX.exec(parserData.formulaString);
     if (variable === null) {
-      throw new FormulaParsingError("Formula contains quantifier without "
-          + "quantified variable.");
+      throw new FormulaParsingError(
+        "Formula contains quantifier without " + "quantified variable."
+      );
     }
     variable = variable[0];
     variableStack.push(variable);
@@ -609,28 +633,34 @@ function commitOperator(operator, parserData) {
 
   /* Retrieve operator data */
   if (!(operator in operatorDataDict)) {
-    throw new FormulaParsingError("Parsing of the formula failed in an "
-              + "unexpected way. Please contact the developer stating the "
-              + "formula which you used. Sorry... Cause: Got invalid "
-              + `operator to process '${operator}'.`);
+    throw new FormulaParsingError(
+      "Parsing of the formula failed in an " +
+        "unexpected way. Please contact the developer stating the " +
+        "formula which you used. Sorry... Cause: Got invalid " +
+        `operator to process '${operator}'.`
+    );
   }
   var operatorData = operatorDataDict[operator];
   /* Construct new formula out of the subformula(s) */
-  switch(operatorData.parseType) {
+  switch (operatorData.parseType) {
     case parseTypes.UNARY:
       if (formulaStack.length === 0) {
-        throw new FormulaParsingError("Cannot match operand to the operator "
-            + `'${operator}', please check whether the formula is complete `
-            + "and well-formed.");
+        throw new FormulaParsingError(
+          "Cannot match operand to the operator " +
+            `'${operator}', please check whether the formula is complete ` +
+            "and well-formed."
+        );
       }
-      let unary_operand = formulaStack.pop()
+      let unary_operand = formulaStack.pop();
       formulaStack.push(new operatorData.representingClass(unary_operand));
       break;
     case parseTypes.BINARY:
       if (formulaStack.length <= 1) {
-        throw new FormulaParsingError("Cannot match operand(s) to the operator "
-            + `'${operator}', please check whether the formula is complete `
-            + "and well-formed.")
+        throw new FormulaParsingError(
+          "Cannot match operand(s) to the operator " +
+            `'${operator}', please check whether the formula is complete ` +
+            "and well-formed."
+        );
       }
       let operand2 = formulaStack.pop();
       let operand1 = formulaStack.pop();
@@ -638,14 +668,17 @@ function commitOperator(operator, parserData) {
       break;
     case parseTypes.QUANTIFIER:
       if (variableStack.length === 0 || formulaStack.length === 0) {
-        throw new FormulaParsingError("Cannot match variable or operand to the "
-            + `operator '${operator}', please check whether the formula is `
-            + "complete and well-formed.")
+        throw new FormulaParsingError(
+          "Cannot match variable or operand to the " +
+            `operator '${operator}', please check whether the formula is ` +
+            "complete and well-formed."
+        );
       }
       let variable = variableStack.pop();
       let quantifiedFormula = formulaStack.pop();
-      formulaStack.push(new operatorData.representingClass(variable,
-          quantifiedFormula));
+      formulaStack.push(
+        new operatorData.representingClass(variable, quantifiedFormula)
+      );
       break;
   }
 }
@@ -658,32 +691,34 @@ function processRelation(relationString, parserData) {
   /* Extract relation name */
   let relationName = RELATION_OR_FUNCTION_NAME_REGEX.exec(relationString);
   if (relationName == null) {
-    throw new FormulaParsingError("Parsing of the formula failed in an "
-        + "unexpected way. Please contact the developer stating the "
-        + "formula which you used. Sorry... Cause: Failed to extract "
-        + "relationName.");
+    throw new FormulaParsingError(
+      "Parsing of the formula failed in an " +
+        "unexpected way. Please contact the developer stating the " +
+        "formula which you used. Sorry... Cause: Failed to extract " +
+        "relationName."
+    );
   }
   relationName = relationName[1];
   /* Consume the relation name */
   relationString = relationString.substr(relationName.length);
   /* Parse the terms in the relation and check arity */
   try {
-    var relationTerms = parseCommaSeparatedTerms(relationString,
-        parserData);
+    var relationTerms = parseCommaSeparatedTerms(relationString, parserData);
   } catch (error) {
     if (error instanceof FormulaParsingError) {
-      throw new FormulaParsingError(`Relation '${relationName}' is `
-          + `malformed: ${error.message}`);
+      throw new FormulaParsingError(
+        `Relation '${relationName}' is ` + `malformed: ${error.message}`
+      );
     } else {
       throw error;
     }
   }
   if (!(relationName in signature.relationArities)) {
     signature.relationArities[relationName] = relationTerms.length;
-  } else if (relationTerms.length
-        !== signature.relationArities[relationName]) {
-    throw new FormulaParsingError(`Relation '${relationName}' `
-        + "is used with conflicting arities.");
+  } else if (relationTerms.length !== signature.relationArities[relationName]) {
+    throw new FormulaParsingError(
+      `Relation '${relationName}' ` + "is used with conflicting arities."
+    );
   }
   /* Add relation to the formula stack */
   formulaStack.push(new Relation(relationName, relationTerms));
@@ -693,8 +728,9 @@ function parseCommaSeparatedTerms(termsString, parserData) {
   /* Strip brackets */
   var termsResult = BRACKETED_REGEX.exec(termsString);
   if (termsResult == null) {
-    throw new FormulaParsingError("Malformed parentheses or empty function "
-        + "arguments list in term.");
+    throw new FormulaParsingError(
+      "Malformed parentheses or empty function " + "arguments list in term."
+    );
   }
   var termsString = termsResult[1];
   var terms = [];
@@ -734,12 +770,12 @@ function parseSeparateTerm(termString, signature, skolemConstants) {
     signature: signature,
     formulaString: null,
     token: { str: null, isOperator: null },
-    skolemConstants: skolemConstants
-  }
+    skolemConstants: skolemConstants,
+  };
   /* Trim spaces from the formula */
   termString = termString.replace(/ /g, "");
   if (termString === "") {
-    throw new FormulaParsingError("Parsed term is empty.")
+    throw new FormulaParsingError("Parsed term is empty.");
   }
   if (!ONLY_OPERAND_REGEX.test(termString)) {
     throw new FormulaParsingError("Parsed term contains invalid characters.");
@@ -759,8 +795,10 @@ function parseTerm(termString, parserData) {
     /* Parse function */
     let functionName = RELATION_OR_FUNCTION_NAME_REGEX.exec(termString);
     if (functionName == null) {
-      throw new FormulaParsingError("Encountered function without a function "
-          + "name (identified by opening bracket).");
+      throw new FormulaParsingError(
+        "Encountered function without a function " +
+          "name (identified by opening bracket)."
+      );
     }
     functionName = functionName[1];
     /* Consume the function name */
@@ -772,10 +810,12 @@ function parseTerm(termString, parserData) {
     }
     if (!(functionName in signature.functionArities)) {
       signature.functionArities[functionName] = functionTerms.length;
-    } else if (functionTerms.length
-          !== signature.functionArities[functionName]) {
-      throw new FormulaParsingError(`Function '${functionName}' `
-          + "is used with conflicting arities.");
+    } else if (
+      functionTerms.length !== signature.functionArities[functionName]
+    ) {
+      throw new FormulaParsingError(
+        `Function '${functionName}' ` + "is used with conflicting arities."
+      );
     }
     return new Function(functionName, functionTerms);
   } else if (variableStack.includes(termString)) {
@@ -785,9 +825,11 @@ function parseTerm(termString, parserData) {
     /* Parse constant */
     let skolemConstants = parserData.skolemConstants;
     if (!skolemConstants.has(termString) && /^sk[0-9]+$/.test(termString)) {
-      throw new FormulaParsingError(`The constant ${termString} uses name `
-          + "reserved for a Skolem constant that cannot be used at this "
-          + "point. Please choose a different constant name.");
+      throw new FormulaParsingError(
+        `The constant ${termString} uses name ` +
+          "reserved for a Skolem constant that cannot be used at this " +
+          "point. Please choose a different constant name."
+      );
     }
     signature.constants.add(termString);
     return new Constant(termString);
@@ -798,29 +840,33 @@ function parseTerm(termString, parserData) {
  * Checks for formula equality
  */
 function formulasDeepEqual(formula1, formula2) {
-  if (formula1.type !== formula2.type
-      || formula1.stringRep !== formula2.stringRep) {
+  if (
+    formula1.type !== formula2.type ||
+    formula1.stringRep !== formula2.stringRep
+  ) {
     return false;
   }
   if (formula1.type === termTypes.FUNCTION) {
-    return _.zipWith(formula1.terms, formula2.terms,
-        (t1, t2) => formulasDeepEqual(t1, t2))
-        .reduce((b1, b2) => b1 && b2, true);
+    return _.zipWith(formula1.terms, formula2.terms, (t1, t2) =>
+      formulasDeepEqual(t1, t2)
+    ).reduce((b1, b2) => b1 && b2, true);
   }
   if (formula1 instanceof Term) {
-    return formula1.stringRep ===formula2.stringRep;
+    return formula1.stringRep === formula2.stringRep;
   }
   if (formula1 instanceof Quantifier) {
     return formulasDeepEqual(formula1.predicate, formula2.predicate);
   }
   if (formula1.type === formulaTypes.RELATION) {
-    return _.zipWith(formula1.terms, formula2.terms,
-        (t1, t2) => formulasDeepEqual(t1, t2))
-        .reduce((b1, b2) => b1 && b2, true);
+    return _.zipWith(formula1.terms, formula2.terms, (t1, t2) =>
+      formulasDeepEqual(t1, t2)
+    ).reduce((b1, b2) => b1 && b2, true);
   }
   if (formula1.type === formulaTypes.EQUALITY) {
-    return formulasDeepEqual(formula1.term1, formula2.term1)
-        && formulasDeepEqual(formula1.term2, formula2.term2);
+    return (
+      formulasDeepEqual(formula1.term1, formula2.term1) &&
+      formulasDeepEqual(formula1.term2, formula2.term2)
+    );
   }
   if (formula1.type === formulaTypes.NEGATION) {
     return formulasDeepEqual(formula1.operand, formula2.operand);
@@ -831,12 +877,14 @@ function formulasDeepEqual(formula1, formula2) {
       extractOperands(formula1, operands1, formula1.type);
       let operands2 = [];
       extractOperands(formula2, operands2, formula2.type);
-      return _.zipWith(operands1, operands2,
-          (f1, f2) => formulasDeepEqual(f1, f2))
-          .reduce((b1, b2) => b1 && b2, true);
+      return _.zipWith(operands1, operands2, (f1, f2) =>
+        formulasDeepEqual(f1, f2)
+      ).reduce((b1, b2) => b1 && b2, true);
     } else {
-      return formulasDeepEqual(formula1.operand1, formula2.operand1)
-          && formulasDeepEqual(formula1.operand2, formula2.operand2);
+      return (
+        formulasDeepEqual(formula1.operand1, formula2.operand1) &&
+        formulasDeepEqual(formula1.operand2, formula2.operand2)
+      );
     }
   }
   return true;
@@ -875,51 +923,75 @@ function replaceTerm(formula, replaced, replacement) {
   let formulaClone = _.cloneDeep(formula);
   return replaceTermHelper(formulaClone, replaced, replacement, new Set([]));
 
-  function replaceTermHelper(formula, replaced, replacement,
-      shadowedVariables) {
-    if (formula.type === termTypes.VARIABLE
-        && formulasDeepEqual(formula, replaced)
-        && !shadowedVariables.has(formula.name)) {
+  function replaceTermHelper(
+    formula,
+    replaced,
+    replacement,
+    shadowedVariables
+  ) {
+    if (
+      formula.type === termTypes.VARIABLE &&
+      formulasDeepEqual(formula, replaced) &&
+      !shadowedVariables.has(formula.name)
+    ) {
       return replacement;
     }
     if (formula instanceof Term && formulasDeepEqual(formula, replaced)) {
       return replacement;
     }
     if (formula.type === termTypes.FUNCTION) {
-      formula.terms = formula.terms
-          .map(t => replaceTermHelper(t, replaced, replacement,
-              shadowedVariables));
+      formula.terms = formula.terms.map((t) =>
+        replaceTermHelper(t, replaced, replacement, shadowedVariables)
+      );
     } else if (formula instanceof Quantifier) {
       let newlyShadowed = !shadowedVariables.has(formula.variableString);
       shadowedVariables.add(formula.variableString);
-      formula.predicate
-          = replaceTermHelper(formula.predicate, replaced, replacement,
-              shadowedVariables);
+      formula.predicate = replaceTermHelper(
+        formula.predicate,
+        replaced,
+        replacement,
+        shadowedVariables
+      );
       if (newlyShadowed) {
         shadowedVariables.delete(formula.variableString);
       }
     } else if (formula instanceof BinaryConnective) {
-      formula.operand1
-          = replaceTermHelper(formula.operand1, replaced, replacement,
-              shadowedVariables);
-      formula.operand2
-          = replaceTermHelper(formula.operand2, replaced, replacement,
-              shadowedVariables);
+      formula.operand1 = replaceTermHelper(
+        formula.operand1,
+        replaced,
+        replacement,
+        shadowedVariables
+      );
+      formula.operand2 = replaceTermHelper(
+        formula.operand2,
+        replaced,
+        replacement,
+        shadowedVariables
+      );
     } else if (formula.type === formulaTypes.NEGATION) {
-      formula.operand
-          = replaceTermHelper(formula.operand, replaced, replacement,
-              shadowedVariables);
+      formula.operand = replaceTermHelper(
+        formula.operand,
+        replaced,
+        replacement,
+        shadowedVariables
+      );
     } else if (formula.type === formulaTypes.EQUALITY) {
-      formula.term1
-          = replaceTermHelper(formula.term1, replaced, replacement,
-              shadowedVariables);
-      formula.term2
-          = replaceTermHelper(formula.term2, replaced, replacement,
-              shadowedVariables);
+      formula.term1 = replaceTermHelper(
+        formula.term1,
+        replaced,
+        replacement,
+        shadowedVariables
+      );
+      formula.term2 = replaceTermHelper(
+        formula.term2,
+        replaced,
+        replacement,
+        shadowedVariables
+      );
     } else if (formula.type === formulaTypes.RELATION) {
-      formula.terms = formula.terms
-          .map(t => replaceTermHelper(t, replaced, replacement,
-              shadowedVariables));
+      formula.terms = formula.terms.map((t) =>
+        replaceTermHelper(t, replaced, replacement, shadowedVariables)
+      );
     }
     return formula;
   }
@@ -934,23 +1006,25 @@ function formulaContainsTerm(formula, term) {
       return true;
     }
     if (formula.type === termTypes.FUNCTION) {
-      return _.some(formula.terms
-          .map(t => formulaContainsTerm(t, term)));
+      return _.some(formula.terms.map((t) => formulaContainsTerm(t, term)));
     }
     return false;
   } else if (formula instanceof Quantifier) {
     return formulaContainsTerm(formula.predicate, term);
   } else if (formula instanceof BinaryConnective) {
-    return formulaContainsTerm(formula.operand1, term)
-        || formulaContainsTerm(formula.operand2, term);
+    return (
+      formulaContainsTerm(formula.operand1, term) ||
+      formulaContainsTerm(formula.operand2, term)
+    );
   } else if (formula.type === formulaTypes.NEGATION) {
     return formulaContainsTerm(formula.operand, term);
   } else if (formula.type === formulaTypes.EQUALITY) {
-    return formulaContainsTerm(formula.term1, term)
-        || formulaContainsTerm(formula.term2, term);
+    return (
+      formulaContainsTerm(formula.term1, term) ||
+      formulaContainsTerm(formula.term2, term)
+    );
   } else if (formula.type === formulaTypes.RELATION) {
-    return _.some(formula.terms
-        .map(t => formulaContainsTerm(t, term)));
+    return _.some(formula.terms.map((t) => formulaContainsTerm(t, term)));
   }
   return false;
 }

@@ -11,8 +11,8 @@ let pithosData = {
   freeSelection: true,
   targetLine: null,
   proofUndoStack: [],
-  proofRedoStack: []
-}
+  proofRedoStack: [],
+};
 
 /*
  * Parse all formulas and report the results of the parsing
@@ -23,13 +23,13 @@ function parseGivens() {
     constants: new Set([]),
     skolemNext: 1,
     relationArities: {},
-    functionArities: {}
+    functionArities: {},
   };
   let errors = false;
   let parsingResults = {
     signature: signature,
-    formulas: []
-  }
+    formulas: [],
+  };
 
   /* Parse all givens */
   for (let i = 0; i <= pithosData.numGivens; i++) {
@@ -48,8 +48,11 @@ function parseGivens() {
       outputElement = $("#goalParsed");
     }
     try {
-      parsedFormula
-          = parseFormula(inputElement[0].value, signature, new Set([]));
+      parsedFormula = parseFormula(
+        inputElement[0].value,
+        signature,
+        new Set([])
+      );
       parsingResults.formulas.push(parsedFormula);
     } catch (error) {
       if (error instanceof FormulaParsingError) {
@@ -57,8 +60,8 @@ function parseGivens() {
         errors = true;
         outputElement.text(error.message);
         outputElement
-            .removeClass("alert-dark alert-success")
-            .addClass("alert-danger");
+          .removeClass("alert-dark alert-success")
+          .addClass("alert-danger");
         /* Restore original signature */
         signature = signatureCopy;
         continue;
@@ -69,8 +72,8 @@ function parseGivens() {
     /* Show result */
     outputElement.text(parsedFormula.stringRep);
     outputElement
-        .removeClass("alert-dark alert-danger")
-        .addClass("alert-success");
+      .removeClass("alert-dark alert-danger")
+      .addClass("alert-success");
   }
 
   /* Disable or enable Start proof button depending on errors */
@@ -93,16 +96,19 @@ function parseAdditionalFormula() {
   let skolemConstants = getSkolemConstants(pithosData.targetLine);
   let parsedFormula;
   try {
-    parsedFormula = parseFormula(inputSelector[0].value, signatureCopy,
-        skolemConstants);
+    parsedFormula = parseFormula(
+      inputSelector[0].value,
+      signatureCopy,
+      skolemConstants
+    );
   } catch (error) {
     if (error instanceof FormulaParsingError) {
       /* Show result and disable action buttons */
       $(".disable-parse-error").attr("disabled", true);
       outputSelector.text(error.message);
       outputSelector
-          .removeClass("alert-dark alert-success")
-          .addClass("alert-danger");
+        .removeClass("alert-dark alert-success")
+        .addClass("alert-danger");
       return;
     } else {
       throw error;
@@ -112,8 +118,8 @@ function parseAdditionalFormula() {
   $(".disable-parse-error").attr("disabled", false);
   outputSelector.text(parsedFormula.stringRep);
   outputSelector
-      .removeClass("alert-dark alert-danger")
-      .addClass("alert-success");
+    .removeClass("alert-dark alert-danger")
+    .addClass("alert-success");
 }
 
 /*
@@ -129,16 +135,19 @@ function parseAdditionalTerm() {
     let skolemConstants = getSkolemConstants(pithosData.targetLine);
     let parsedTerm;
     try {
-      parsedTerm = parseSeparateTerm(inputSelector[0].value, signatureCopy,
-          skolemConstants);
+      parsedTerm = parseSeparateTerm(
+        inputSelector[0].value,
+        signatureCopy,
+        skolemConstants
+      );
     } catch (error) {
       if (error instanceof FormulaParsingError) {
         /* Show result and disable action buttons */
         $(".disable-parse-error").attr("disabled", true);
         outputSelector.text(error.message);
         outputSelector
-            .removeClass("alert-dark alert-success")
-            .addClass("alert-danger");
+          .removeClass("alert-dark alert-success")
+          .addClass("alert-danger");
         errors = true;
         continue;
       } else {
@@ -148,8 +157,8 @@ function parseAdditionalTerm() {
     /* Show result on success */
     outputSelector.text(parsedTerm.stringRep);
     outputSelector
-        .removeClass("alert-dark alert-danger")
-        .addClass("alert-success");
+      .removeClass("alert-dark alert-danger")
+      .addClass("alert-success");
   }
   /* Enable confirmation button on success */
   if (!errors) {
@@ -160,13 +169,18 @@ function parseAdditionalTerm() {
 /*
  * Shows modal alert
  */
-function showModal(title, modalBody, hint, customId, customButtons,
-    disableParseError) {
+function showModal(
+  title,
+  modalBody,
+  hint,
+  customId,
+  customButtons,
+  disableParseError
+) {
   $(".modal-backdrop").remove();
   let hintHTML = "";
   if (hint !== undefined) {
-    hintHTML =
-      `<hr>
+    hintHTML = `<hr>
        <h5>Hint</h5>
        ${hint}`;
   }
@@ -178,16 +192,14 @@ function showModal(title, modalBody, hint, customId, customButtons,
   let disableInitial = "";
   if (disableParseError === true) {
     disableParse = "disable-parse-error ";
-    disableInitial = " disabled"
+    disableInitial = " disabled";
   }
-  let defaultButton
-      = `<button${customIdHTML} type="button" class="${disableParse}btn btn-outline-primary" data-dismiss="modal"${disableInitial}>OK</button>`;
+  let defaultButton = `<button${customIdHTML} type="button" class="${disableParse}btn btn-outline-primary" data-dismiss="modal"${disableInitial}>OK</button>`;
   let buttons = defaultButton;
   if (customButtons !== undefined) {
     buttons = customButtons;
   }
-  let template =
-      `<div id="dynamicModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dynamicModalLabel" aria-hidden="true">
+  let template = `<div id="dynamicModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dynamicModalLabel" aria-hidden="true">
   			 <div class="modal-dialog modal-dialog-centered" role="document">
   				 <div class="modal-content bg-light">
   					 <div class="modal-header">
@@ -204,7 +216,7 @@ function showModal(title, modalBody, hint, customId, customButtons,
   					 </div>
   				 </div>
   			 </div>
-  		 </div>`
+  		 </div>`;
   $("#dynamicModalArea").html(template);
   $("#dynamicModal").modal("show");
 }
@@ -213,13 +225,17 @@ function showModal(title, modalBody, hint, customId, customButtons,
  * Shows modal prompting user to enter additional formula required for
    one of the supported natural deduction ruless
  */
-function requestFormulaInput(requestText, customId, buttons, additionalContent) {
+function requestFormulaInput(
+  requestText,
+  customId,
+  buttons,
+  additionalContent
+) {
   let additionalCode = "";
   if (additionalContent !== undefined) {
     additionalCode = additionalContent;
   }
-  let modalBody =
-      `<div class="py-2 text-center sticky-top bg-light">
+  let modalBody = `<div class="py-2 text-center sticky-top bg-light">
          <div class="btn-group pb-1" role="group" aria-label="Insert logical connectives">
            <button type="button" class="btn btn-secondary insert-char-btn">¬</button>
            <button type="button" class="btn btn-secondary insert-char-btn">∧</button>
@@ -247,17 +263,17 @@ function requestFormulaInput(requestText, customId, buttons, additionalContent) 
        <div id="additionalFormulaParsed" class="alert alert-dark" role="alert" style="word-wrap: break-word; ">
          The result of the parsing will appear here.
        </div>
-       ${additionalCode}`
-    showModal("Input required", modalBody, undefined, customId, buttons, true);
+       ${additionalCode}`;
+  showModal("Input required", modalBody, undefined, customId, buttons, true);
 }
 
 /*
  * Cancells selection of all lines
  */
 function resetSelectedLines() {
-  pithosData.selectedLinesSet
-      .forEach(elem =>
-          pithosData.lineNumToSelector[elem].removeClass("text-primary"));
+  pithosData.selectedLinesSet.forEach((elem) =>
+    pithosData.lineNumToSelector[elem].removeClass("text-primary")
+  );
   pithosData.selectedLinesSet = new Set([]);
 }
 
@@ -293,8 +309,8 @@ function updateProof() {
   $("#proofContainer").html(proofToHTML(pithosData.proof));
   pithosData.freeSelection = true;
   $(pithosData.selectedButton)
-      .removeClass("btn-primary")
-      .addClass("btn-secondary");
+    .removeClass("btn-primary")
+    .addClass("btn-secondary");
 }
 
 /*
@@ -310,7 +326,10 @@ function completeProofUpdate() {
  * Shows informative error message on error
  */
 function handleProofProcessingError(error) {
-  showModal("Error", `<p>An error occured during application of the rule `
-      + `${pithosData.selectedRuleData.name}:</p> <p>${error.message}</p>`,
-      pithosData.selectedRuleData.hint);
+  showModal(
+    "Error",
+    `<p>An error occured during application of the rule ` +
+      `${pithosData.selectedRuleData.name}:</p> <p>${error.message}</p>`,
+    pithosData.selectedRuleData.hint
+  );
 }
