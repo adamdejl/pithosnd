@@ -1192,20 +1192,20 @@ function addBottom(justType) {
      its negation */
   if (
     !(
-      justificationLines[0].formula.type === formulaTypes.NEGATION &&
-      formulasDeepEqual(
-        justificationLines[0].formula.operand,
-        justificationLines[1].formula
-      )
-    ) ||
-    (justificationLines[1].formula.type === formulaTypes.NEGATION &&
-      formulasDeepEqual(
-        justificationLines[1].formula.operand,
-        justificationLines[0].formula
-      ))
+      (justificationLines[0].formula.type === formulaTypes.NEGATION &&
+        formulasDeepEqual(
+          justificationLines[0].formula.operand,
+          justificationLines[1].formula
+        )) ||
+      (justificationLines[1].formula.type === formulaTypes.NEGATION &&
+        formulasDeepEqual(
+          justificationLines[1].formula.operand,
+          justificationLines[0].formula
+        ))
+    )
   ) {
     throw new ProofProcessingError(
-      "The justification formulas are not a " + "formula and its negation."
+      "The justification formulas are not a formula and its negation."
     );
   }
   let targetLine = retrievedLines.targetLine;
